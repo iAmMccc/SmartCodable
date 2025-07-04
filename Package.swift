@@ -10,6 +10,10 @@ let package = Package(
         .library(
             name: "SmartCodable",
             targets: ["SmartCodable"]
+        ),
+        .library(
+            name: "SmartCodableInherit",
+            targets: ["SmartCodableInherit"]
         )
     ],
     dependencies: [
@@ -35,13 +39,22 @@ let package = Package(
         // Library that exposes a macro as part of its API, which is used in client programs.
         .target(
             name: "SmartCodable",
-            dependencies: ["SmartCodableMacros"]),
-
+            exclude: ["MacroSupport"]),
+        
+        .target(
+            name: "SmartCodableInherit",
+            dependencies: [
+                "SmartCodableMacros"
+            ],
+            path: "Sources/SmartCodable/MacroSupport",
+        ),
         // A test target used to develop the macro implementation.
         .testTarget(
             name: "SmartCodableTests",
             dependencies: [
                 "SmartCodable",
+                "SmartCodableInherit",
+                "SmartCodableMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ]
         ),
