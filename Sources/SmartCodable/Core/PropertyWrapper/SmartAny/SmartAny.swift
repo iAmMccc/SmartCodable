@@ -44,7 +44,7 @@ public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
         let value = decoder.json
         if let key = decoder.codingPath.last {
             // Note the case where T is nil. nil as? T is true.
-            if let tranformer = decoder.cache.valueTransformer(for: key) {
+            if let tranformer = decoder.cache.valueTransformer(for: key, codingPath: decoder.codingPath) {
                 if let decoded = tranformer.tranform(value: value) as? T {
                     self = .init(wrappedValue: decoded)
                     return

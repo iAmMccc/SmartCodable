@@ -36,9 +36,7 @@
         "ios": "13.0"
       },
       "dependencies": {
-        "SmartCodable/Core": [
-
-        ]
+        "SmartCodable/Core": []
       },
       "source_files": "Sources/SmartCodable/MacroSupport/*{.swift}",
       "preserve_paths": [

@@ -263,7 +263,7 @@ extension JSONDecoderImpl.KeyedContainer {
             if logIfKeyMissing {
                 SmartSentinel.monitorLog(impl: impl, forKey: key, value: nil, type: T.self)
             }
-            return impl.cache.initialValueIfPresent(forKey: key)
+            return impl.cache.initialValueIfPresent(forKey: key, codingPath: codingPath)
         }
         
         SmartSentinel.monitorLog(impl: impl, forKey: key, value: value, type: T.self)
@@ -273,7 +273,7 @@ extension JSONDecoderImpl.KeyedContainer {
                 return decoded
             }
         }
-        return impl.cache.initialValueIfPresent(forKey: key)
+        return impl.cache.initialValueIfPresent(forKey: key, codingPath: codingPath)
     }
     
     
@@ -438,7 +438,7 @@ extension JSONDecoderImpl.KeyedContainer {
     @inline(__always)private func _decodeDecodableIfPresentCore<T: Decodable>(_ type: T.Type, forKey key: K) -> T? {
         
         // 检查是否有值转换器
-        if let transformer = impl.cache.valueTransformer(for: key) {
+        if let transformer = impl.cache.valueTransformer(for: key, codingPath: codingPath) {
             if let decoded = decodeWithTransformer(transformer, type: type, key: key) {
                 return decoded
             }
@@ -495,7 +495,7 @@ fileprivate func _convertDictionary(_ dictionary: [String: JSONValue], impl: JSO
         }, uniquingKeysWith: { (first, _) in first })
     }
     
-    guard let type = impl.cache.topSnapshot?.objectType else { return dictionary }
+    guard let type = impl.cache.findSnapShot(with: impl.codingPath)?.objectType else { return dictionary }
     
     if let tempValue = KeysMapper.convertFrom(JSONValue.object(dictionary), type: type), let dict = tempValue.object {
         return dict

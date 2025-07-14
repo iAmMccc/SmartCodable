@@ -47,7 +47,7 @@ public struct IgnoredKey<T>: Codable {
         
         // Support for custom decoding strategies on IgnoredKey properties
         if let key = impl.codingPath.last {
-            if let tranformer = impl.cache.valueTransformer(for: key) {
+            if let tranformer = impl.cache.valueTransformer(for: key, codingPath: impl.codingPath) {
                 if let decoded = tranformer.tranform(value: impl.json) as? T {
                     wrappedValue = decoded
                     return
@@ -72,7 +72,7 @@ public struct IgnoredKey<T>: Codable {
         
         if let impl = encoder as? JSONEncoderImpl,
             let key = impl.codingPath.last,
-            let jsonValue = impl.cache.tranform(from: wrappedValue, with: key),
+           let jsonValue = impl.cache.tranform(from: wrappedValue, with: key, codingPath: impl.codingPath),
             let value = jsonValue.peel as? Encodable {
             try value.encode(to: encoder)
             return
@@ -89,6 +89,6 @@ public struct IgnoredKey<T>: Codable {
 }
 extension JSONDecoderImpl {
     fileprivate func smartDecode<T>(type: T.Type) throws -> T {
-        try cache.initialValue(forKey: codingPath.last)
+        try cache.initialValue(forKey: codingPath.last, codingPath: codingPath)
     }
 }

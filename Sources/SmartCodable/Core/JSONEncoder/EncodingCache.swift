@@ -15,7 +15,7 @@ class EncodingCache: Cachable {
     var snapshots: [EncodingSnapshot] = []
     
     /// Caches a snapshot for an Encodable type
-    func cacheSnapshot<T>(for type: T.Type) {
+    func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
         if let object = type as? SmartEncodable.Type {
             
             var snapshot = EncodingSnapshot()
@@ -42,9 +42,9 @@ extension EncodingCache {
     ///   - value: The value to transform
     ///   - key: The associated coding key
     /// - Returns: The transformed JSON value or nil if no transformer applies
-    func tranform(from value: Any, with key: CodingKey?) -> JSONValue? {
+    func tranform(from value: Any, with key: CodingKey?, codingPath: [CodingKey]) -> JSONValue? {
         
-        guard let top = topSnapshot, let key = key else { return nil }
+        guard let top = findSnapShot(with: codingPath), let key = key else { return nil }
                 
         let wantKey = key.stringValue
         let targetTran = top.transformers?.first(where: { transformer in
@@ -92,6 +92,8 @@ struct EncodingSnapshot: Snapshot {
     
     typealias ObjectType = SmartEncodable.Type
         
+    var codingPath: [any CodingKey] = []
+    
     var transformers: [SmartValueTransformer]?
 }
 

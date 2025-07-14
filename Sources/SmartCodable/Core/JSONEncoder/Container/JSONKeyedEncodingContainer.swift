@@ -39,7 +39,7 @@ struct JSONKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol,
     mutating func encode(_ value: Bool, forKey key: Self.Key) throws {
         
         let convertedKey = self._converted(key)
-        if let jsonValue = impl.cache.tranform(from: value, with: convertedKey) {
+        if let jsonValue = impl.cache.tranform(from: value, with: convertedKey, codingPath: codingPath) {
             self.object.set(jsonValue, for: convertedKey.stringValue)
         } else {
             self.object.set(.bool(value), for: self._converted(key).stringValue)
@@ -48,7 +48,7 @@ struct JSONKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol,
 
     mutating func encode(_ value: String, forKey key: Self.Key) throws {
         let convertedKey = self._converted(key)
-        if let jsonValue = impl.cache.tranform(from: value, with: convertedKey) {
+        if let jsonValue = impl.cache.tranform(from: value, with: convertedKey, codingPath: codingPath) {
             self.object.set(jsonValue, for: convertedKey.stringValue)
         } else {
             self.object.set(.string(value), for: convertedKey.stringValue)
@@ -105,7 +105,7 @@ struct JSONKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol,
 
     mutating func encode<T>(_ value: T, forKey key: Self.Key) throws where T: Encodable {
         let convertedKey = self._converted(key)
-        if let jsonValue = impl.cache.tranform(from: value, with: convertedKey) {
+        if let jsonValue = impl.cache.tranform(from: value, with: convertedKey, codingPath: codingPath) {
             self.object.set(jsonValue, for: convertedKey.stringValue)
         } else {
             if let encoded = try self.wrapEncodable(value, for: convertedKey) {
@@ -149,7 +149,7 @@ struct JSONKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol,
 extension JSONKeyedEncodingContainer {
     @inline(__always) private mutating func encodeFloatingPoint<F: FloatingPoint & CustomStringConvertible>(_ float: F, key: CodingKey) throws {
         
-        if let jsonValue = impl.cache.tranform(from: float, with: key) {
+        if let jsonValue = impl.cache.tranform(from: float, with: key, codingPath: codingPath) {
             self.object.set(jsonValue, for: key.stringValue)
         } else {
             let value = try self.wrapFloat(float, for: key)
@@ -159,7 +159,7 @@ extension JSONKeyedEncodingContainer {
 
     @inline(__always) private mutating func encodeFixedWidthInteger<N: FixedWidthInteger>(_ value: N, key: CodingKey) throws {
         
-        if let jsonValue = impl.cache.tranform(from: value, with: key) {
+        if let jsonValue = impl.cache.tranform(from: value, with: key, codingPath: codingPath) {
             self.object.set(jsonValue, for: key.stringValue)
         } else {
             self.object.set(.number(value.description), for: key.stringValue)

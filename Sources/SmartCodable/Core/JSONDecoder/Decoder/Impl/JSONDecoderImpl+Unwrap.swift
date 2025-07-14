@@ -39,7 +39,7 @@ extension JSONDecoderImpl {
             return try self.unwrapDictionary(as: type)
         }
         
-        cache.cacheSnapshot(for: type)
+        cache.cacheSnapshot(for: type, codingPath: codingPath)
         let decoded = try type.init(from: self)
         cache.removeSnapshot(for: type)
         return decoded
@@ -48,7 +48,7 @@ extension JSONDecoderImpl {
     func unwrapFloatingPoint<T: LosslessStringConvertible & BinaryFloatingPoint>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
-            if let tranformer = cache.valueTransformer(for: additionalKey) {
+            if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
                 guard let decoded = tranformer.tranform(value: value) as? T else { return nil }
                 return decoded
             }
@@ -75,7 +75,7 @@ extension JSONDecoderImpl {
     func unwrapFixedWidthInteger<T: FixedWidthInteger>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
-            if let tranformer = cache.valueTransformer(for: additionalKey) {
+            if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
                 return tranformer.tranform(value: value) as? T
             }
             
@@ -125,7 +125,7 @@ extension JSONDecoderImpl {
     
     func unwrapBoolValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> Bool? {
         
-        if let tranformer = cache.valueTransformer(for: additionalKey) {
+        if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
             return tranformer.tranform(value: value) as? Bool
         }
         
@@ -135,7 +135,7 @@ extension JSONDecoderImpl {
     
     func unwrapStringValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> String? {
         
-        if let tranformer = cache.valueTransformer(for: additionalKey) {
+        if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
             return tranformer.tranform(value: value) as? String
         }
         
@@ -147,7 +147,7 @@ extension JSONDecoderImpl {
 extension JSONDecoderImpl {
     private func unwrapDate() throws -> Date {
         
-        if let tranformer = cache.valueTransformer(for: codingPath.last) {
+        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
             if let decoded = tranformer.tranform(value: json) as? Date {
                 return decoded
             } else {
@@ -207,7 +207,7 @@ extension JSONDecoderImpl {
     
     private func unwrapData() throws -> Data {
         
-        if let tranformer = cache.valueTransformer(for: codingPath.last) {
+        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
             if let decoded = tranformer.tranform(value: json) as? Data {
                 return decoded
             }
@@ -229,7 +229,7 @@ extension JSONDecoderImpl {
     
     private func unwrapURL() throws -> URL {
         
-        if let tranformer = cache.valueTransformer(for: codingPath.last) {
+        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
             if let decoded = tranformer.tranform(value: json) as? URL {
                 return decoded
             }
@@ -252,7 +252,7 @@ extension JSONDecoderImpl {
     
     private func unwrapDecimal() throws -> Decimal {
         
-        if let tranformer = cache.valueTransformer(for: codingPath.last) {
+        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
             if let decoded = tranformer.tranform(value: json) as? Decimal {
                 return decoded
             }
@@ -276,7 +276,7 @@ extension JSONDecoderImpl {
     
     
     private func unwrapCGFloat() throws -> CGFloat {
-        if let transformer = cache.valueTransformer(for: codingPath.last) {
+        if let transformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
             if let decoded = transformer.tranform(value: json) as? CGFloat {
                 return decoded
             }

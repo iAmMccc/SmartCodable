@@ -19,13 +19,14 @@ class DecodingCache: Cachable {
 
     /// Creates and stores a snapshot of initial values for a Decodable type
     /// - Parameter type: The Decodable type to cache
-    func cacheSnapshot<T>(for type: T.Type) {
+    func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
         
         // 减少动态派发开销，is 检查是编译时静态行为，比 as? 动态转换更高效。
         guard type is SmartDecodable.Type else { return }
         
         if let object = type as? SmartDecodable.Type {
             let snapshot = DecodingSnapshot()
+            snapshot.codingPath = codingPath
             // [initialValues] Lazy initialization:
             // Generate initial values via reflection only when first accessed,
             // using the recorded objectType to optimize parsing performance.
@@ -46,23 +47,35 @@ class DecodingCache: Cachable {
 
 
 extension DecodingCache {
-    /// Retrieves a cached value for the given coding key
-    /// - Parameter key: The coding key to look up
-    /// - Returns: The cached value if available, nil otherwise
-    func initialValueIfPresent<T>(forKey key: CodingKey?) -> T? {
+    
+
+    
+    /// 查找指定解码路径下容器中某个字段的初始值。
+    ///
+    /// 该方法会根据传入的 `codingPath`（代表某个解码容器的位置），
+    /// 在缓存的快照中查找对应容器，并尝试获取该容器中 `key` 对应字段的初始值。
+    /// 如果该容器尚未初始化初始值，则会延迟初始化一次（通过反射等方式）。
+    ///
+    /// - Parameters:
+    ///   - key: 要查找的字段对应的 `CodingKey`，若为 `nil` 则直接返回 `nil`。
+    ///   - codingPath: 当前字段所在的容器路径，用于准确定位容器上下文。
+    /// - Returns: 若存在可用的初始值且类型匹配，则返回该值；否则返回 `nil`。
+    func initialValueIfPresent<T>(forKey key: CodingKey?, codingPath: [CodingKey]) -> T? {
                 
         guard let key = key else { return nil }
         
-        
+        // 查找匹配当前路径的快照
+        guard let snapshot = findSnapShot(with: codingPath) else { return nil }
+
         // Lazy initialization: Generate initial values via reflection only when first accessed,
         // using the recorded objectType to optimize parsing performance
-        if topSnapshot?.initialValues.isEmpty ?? true {
-            populateInitialValues()
+        if snapshot.initialValues.isEmpty {
+            populateInitialValues(snapshot: snapshot)
         }
-
-        guard let cacheValue = topSnapshot?.initialValues[key.stringValue] else {
+        
+        guard let cacheValue = snapshot.initialValues[key.stringValue] else {
             // Handle @propertyWrapper cases (prefixed with underscore)
-            return handlePropertyWrapperCases(for: key)
+            return handlePropertyWrapperCases(for: key, snapshot: snapshot)
         }
         
         // When the CGFloat type is resolved,
@@ -80,24 +93,25 @@ extension DecodingCache {
         return nil
     }
     
-    
-    func initialValue<T>(forKey key: CodingKey?) throws -> T {
-        guard let value: T = initialValueIfPresent(forKey: key) else {
+    func initialValue<T>(forKey key: CodingKey?, codingPath: [CodingKey]) throws -> T {
+        guard let value: T = initialValueIfPresent(forKey: key, codingPath: codingPath) else {
             return try Patcher<T>.defaultForType()
         }
         return value
     }
     
     /// 获取转换器
-    func valueTransformer(for key: CodingKey?) -> SmartValueTransformer? {
+    func valueTransformer(for key: CodingKey?, codingPath: [CodingKey]) -> SmartValueTransformer? {
         guard let lastKey = key else { return nil }
         
+        guard let snapshot = findSnapShot(with: codingPath) else { return nil }
+        
         // Initialize transformers only once
-        if topSnapshot?.transformers?.isEmpty ?? true {
+        if snapshot.transformers?.isEmpty ?? true {
             return nil
         }
         
-        let transformer = topSnapshot?.transformers?.first(where: {
+        let transformer = snapshot.transformers?.first(where: {
             $0.location.stringValue == lastKey.stringValue
         })
         return transformer
@@ -105,8 +119,8 @@ extension DecodingCache {
     
     
     /// Handles property wrapper cases (properties prefixed with underscore)
-    private func handlePropertyWrapperCases<T>(for key: CodingKey) -> T? {
-        if let cached = topSnapshot?.initialValues["_" + key.stringValue] {
+    private func handlePropertyWrapperCases<T>(for key: CodingKey, snapshot: DecodingSnapshot) -> T? {
+        if let cached = snapshot.initialValues["_" + key.stringValue] {
             return extractWrappedValue(from: cached)
         }
         
@@ -127,14 +141,14 @@ extension DecodingCache {
         return nil
     }
     
-    private func populateInitialValues() {
-        guard let type = topSnapshot?.objectType else { return }
-        
+    private func populateInitialValues(snapshot: DecodingSnapshot) {
+        guard let type = snapshot.objectType else { return }
+                
         // Recursively captures initial values from a type and its superclasses
         func captureInitialValues(from mirror: Mirror) {
             mirror.children.forEach { child in
                 if let key = child.label {
-                    snapshots.last?.initialValues[key] = child.value
+                    snapshot.initialValues[key] = child.value
                 }
             }
             if let superclassMirror = mirror.superclassMirror {
@@ -155,6 +169,8 @@ class DecodingSnapshot: Snapshot {
     typealias ObjectType = SmartDecodable.Type
     
     var objectType: (any SmartDecodable.Type)?
+    
+    var codingPath: [any CodingKey] = []
     
     lazy var transformers: [SmartValueTransformer]? = {
         objectType?.mappingForValue()

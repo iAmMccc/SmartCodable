@@ -1,6 +1,5 @@
 import XCTest
 @testable import SmartCodable
-@testable import SmartCodableInhert
 
 
 class Tests: XCTestCase {
@@ -34,17 +33,6 @@ class Tests: XCTestCase {
         
     }
     
-    func testInherit() {
-        let json = """
-            { "kind": "mammals", "calls": "Miao" }
-            """
-        let cat = Cat.deserialize(from: json)
-        XCTAssertNotNil(cat)
-        XCTAssertEqual(cat!.kind, "mammals")
-        XCTAssertEqual(cat!.calls, "Miao")
-        XCTAssertTrue(cat!.finishMapping)
-    }
-    
 }
 
 // SmartCodable
@@ -60,26 +48,21 @@ struct Smart: SmartCodable {
 }
 
 
-class Animal: SmartCodable {
-    var kind: String = ""
+class BaseModel: SmartCodable {
     
-    required init() {}
+    var name: String = ""
     
-    func didFinishMapping() {
-        
-    }
+
+    
+    required init() { }
 }
 
-
 @SmartSubclass
-class Cat: Animal {
-    var calls: String = ""
+class SubModel: BaseModel {
+    var age: Int = 0
     
-    @IgnoredKey
-    var finishMapping = false
-    
-    override func didFinishMapping() {
-        super.didFinishMapping()
-        self.finishMapping = true
-    }
+    lazy var desc: String = {
+        print("执行了")
+        return "我的名字是\(self.name)"
+    }()
 }

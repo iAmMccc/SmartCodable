@@ -64,7 +64,7 @@ extension SmartSentinel {
         let typeString = String(describing: T.self)
         guard !typeString.starts(with: "IgnoredKey<") else { return }
         
-        let className = impl.cache.topSnapshot?.objectTypeName ?? ""
+        let className = impl.cache.findSnapShot(with: impl.codingPath)?.objectTypeName ?? ""
         var path = impl.codingPath
         path.append(key)
         

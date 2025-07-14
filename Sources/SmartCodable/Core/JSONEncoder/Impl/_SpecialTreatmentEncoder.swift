@@ -67,7 +67,7 @@ extension _SpecialTreatmentEncoder {
             return try self.wrapObject(object as! [String: Encodable], for: additionalKey)
         default:
             
-            impl.cache.cacheSnapshot(for: E.self)
+            impl.cache.cacheSnapshot(for: E.self, codingPath: codingPath)
             
             let encoder = self.getEncoder(for: additionalKey)
             try encodable.encode(to: encoder)
@@ -89,7 +89,7 @@ extension _SpecialTreatmentEncoder {
 
     func wrapDate(_ date: Date, for additionalKey: CodingKey?) throws -> JSONValue {
         
-        if let value = impl.cache.tranform(from: date, with: additionalKey) {
+        if let value = impl.cache.tranform(from: date, with: additionalKey, codingPath: codingPath) {
             return value
         }
 
@@ -175,7 +175,7 @@ extension _SpecialTreatmentEncoder {
             useMappedKeys = impl.userInfo[key] as? Bool ?? false
         }
             
-        if let objectType = impl.cache.topSnapshot?.objectType {
+        if let objectType = impl.cache.findSnapShot(with: impl.codingPath)?.objectType {
             if let mappings = objectType.mappingForKey() {
                 for mapping in mappings {
                     if mapping.to.stringValue == newKey.stringValue {

@@ -62,6 +62,16 @@ public struct SmartSubclassMacro: MemberMacro {
                   varDecl.bindingSpecifier.text == "var" else {
                 continue
             }
+
+            // 跳过 lazy 属性：
+            // lazy 属性具有惰性初始化语义，即在首次访问时才会执行初始化表达式。
+            // 如果在解码过程中赋值 lazy 属性，会导致其原始初始化逻辑被绕过，违背 lazy 的设计初衷；
+            // 而如果保留其 lazy 行为，解码赋值将会失效或被覆盖，从而丧失参与解码的意义。
+            // 因此，出于语义一致性与编码正确性的考虑，lazy 属性将被排除在解码逻辑之外。
+            let isLazy = varDecl.modifiers.contains { $0.name.text == "lazy" }
+            if isLazy {
+                continue
+            }
               
             // 遍历所有绑定
             for binding in varDecl.bindings {
