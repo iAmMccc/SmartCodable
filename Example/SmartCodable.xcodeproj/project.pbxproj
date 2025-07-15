@@ -290,7 +290,7 @@
 		BC656B63C9031B22DEB5C8EB /* Pods-SmartCodable_Example.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SmartCodable_Example.debug.xcconfig"; path = "Target Support Files/Pods-SmartCodable_Example/Pods-SmartCodable_Example.debug.xcconfig"; sourceTree = "<group>"; };
 		DB7246035010143E03C7616B /* Pods-SmartCodable_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SmartCodable_Tests.debug.xcconfig"; path = "Target Support Files/Pods-SmartCodable_Tests/Pods-SmartCodable_Tests.debug.xcconfig"; sourceTree = "<group>"; };
 		EBE2539D7D4ED401A0AF07CA /* Pods_SmartCodable_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SmartCodable_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F415A4253833C1D4B5A35964 /* SmartCodable.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = SmartCodable.podspec; path = ../SmartCodable.podspec; sourceTree = "<group>"; };
+		F415A4253833C1D4B5A35964 /* SmartCodable.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = SmartCodable.podspec; path = ../SmartCodable.podspec; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

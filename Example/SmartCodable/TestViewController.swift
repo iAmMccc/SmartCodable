@@ -25,76 +25,48 @@ class TestViewController: BaseViewController {
     
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let jsonStringArray = [
-                """
-                {
-                    "code" : 200,
-                    "message" : "success",
-                    "data" : {
-                        "status" : null,
-                        "distance" : 12345
-                    }
-                }
-                """,
-                """
-                {
-                    "code" : 200,
-                    "message" : "success",
-                    "data" : {
-                        "status" : "A",
-                        "distance" : 12345
-                    }
-                }
-                """,
-                """
-                {
-                    "message" : "success",
-                    "data" : {
-                        "status" : null,
-                        "distance" : 12345      
-                    }
-                }
-                """,
-                """
-                {
-                    "code" : 200,
-                    "message" : "success",
-                    "data" : {
-                        "distance" : 12345
-                    }
-                }
-                """
-        ]
-        let results = jsonStringArray.map { jsonString in
-            let data = jsonString.data(using: .utf8)
-            let json = try? JSONSerialization.jsonObject(with: data!) as? [String: Any]
-            return ApiData<Trip>.deserialize(from: json) != nil
-        }
-        print(results)
 
-    }
-    
-    
-    struct ApiData<T>:@unchecked Sendable, SmartCodable, Error {
-        var code: Int?
-        var message: String?
-        @SmartAny
-        var data: T?
-        var time: Double?
-        var token: String?
-        @SmartAny
-        var metaData: Any?
-    }
-
-    struct Trip: SmartCodable {
-        var status: Status?
-        var distance: Int = 0
         
-        enum Status: String, SmartCaseDefaultable {
-            case a = "A"
-            case b = "B"
+        
+        let dict: [String: Any] = [
+            "name": [],
+            "age": 20,
+            "sub": [
+                "sex": NSNull(),
+                "location": "Su Zhou"
+            ]
+        ]
+
+        if let model = Model.deserialize(from: dict) {
+            print(model)
         }
+    }
+    
+    
+    struct Model: SmartCodable {
+        var name: String = ""
+        @SmartAny
+        var age: Any?
+        @SmartAny
+        var sub: SubModel?
+    }
+    
+    
+    struct SubModel: SmartCodable {
+        
+        enum Sex: String, SmartCaseDefaultable {
+            case man
+            case women
+        }
+        
+        var sex: Sex = .man
+        var location: String?
+        
     }
 
 }
 
+
+extension String: SmartCodable { }
+
+extension Int: SmartCodable { }

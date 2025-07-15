@@ -61,8 +61,4 @@ class Test2ViewController: BaseViewController {
 
 
 
-//
-//extension String: SmartCodable {
-//
-//}
 
