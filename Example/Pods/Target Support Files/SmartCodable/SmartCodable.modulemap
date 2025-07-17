@@ -1,6 +1,0 @@
-framework module SmartCodable {
-  umbrella header "SmartCodable-umbrella.h"
-
-  export *
-  module * { export * }
-}
