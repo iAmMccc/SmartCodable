@@ -41,8 +41,22 @@ class PerformanceTest: XCTestCase {
         }
     }
     
-    //【1000】 0.046 使用SmartJSONDecoder解析遵循SmartCodable协议的model
-    func testSmartJsonDecoder() {
+    //【1000】 0.046 使用JSONParser解析遵循SmartCodable协议的model
+    func testSmartJsonParser() {
+        measure {
+            do {
+                let decoder = SmartJSONDecoder()
+                decoder.parserMode = .custom
+                let objects = try decoder.decode([SmartModel].self, from: data)
+                XCTAssertEqual(objects.count, count)
+            } catch {
+                XCTAssertNil(error)
+            }
+        }
+    }
+    
+    //【1000】 0.036 使用JSONSerialization解析遵循SmartCodable协议的model
+    func testSmartJSONSerialization() {
         measure {
             do {
                 let decoder = SmartJSONDecoder()

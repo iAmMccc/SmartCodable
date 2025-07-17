@@ -9,6 +9,15 @@ import Foundation
 
 open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     
+    public enum Parser: Int, Sendable {
+        /// JSONSerialization
+        case system
+        /// JSONParser
+        case custom
+    }
+    
+    /// Parser，default: JSONSerialization
+    public var parserMode: Parser = .system
     
     open var smartDataDecodingStrategy: SmartDataDecodingStrategy = .base64
     
@@ -54,10 +63,17 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         }
         
 
-
+        var json: JSONValue
         do {
-            var parser = JSONParser(bytes: Array(data))
-            let json = try parser.parse()
+            switch parserMode {
+            case .system:
+                let object = try JSONSerialization.jsonObject(with: data, options: [.allowFragments])
+                json = try JSONValue.from(object)
+            case .custom:
+                var parser = JSONParser(bytes: Array(data))
+                json = try parser.parse()
+            }
+            
             let impl = JSONDecoderImpl(userInfo: self.userInfo, from: json, codingPath: [], options: self.options)
             let value = try impl.unwrap(as: type)
             SmartSentinel.monitorLogs(in: "\(type)", parsingMark: mark, impl: impl)
