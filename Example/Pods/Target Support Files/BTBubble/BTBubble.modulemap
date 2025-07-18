@@ -1,6 +1,0 @@
-framework module BTBubble {
-  umbrella header "BTBubble-umbrella.h"
-
-  export *
-  module * { export * }
-}

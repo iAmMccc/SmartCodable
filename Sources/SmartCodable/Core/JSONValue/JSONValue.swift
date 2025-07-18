@@ -40,6 +40,39 @@ enum JSONValue: Equatable {
             return nil
         }
     }
+    
+    static func from(_ any: Any) throws -> JSONValue {
+        switch any {
+        case let dict as [String: Any]:
+            let object = try dict.reduce(into: [String: JSONValue]()) { result, pair in
+                result[pair.key] = try from(pair.value)
+            }
+            return .object(object)
+
+        case let array as [Any]:
+            let arr = try array.map { try from($0) }
+            return .array(arr)
+
+        case let str as String:
+            return .string(str)
+
+        case let num as NSNumber:
+            if CFGetTypeID(num) == CFBooleanGetTypeID() {
+                return .bool(num.boolValue)
+            } else {
+                return .number(num.stringValue)
+            }
+
+        case is NSNull:
+            return .null
+
+        default:
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: [],
+                      debugDescription: "Unsupported value: \(type(of: any))")
+            )
+        }
+    }
 }
 
 fileprivate func _toData(_ value: Any) -> Data? {
