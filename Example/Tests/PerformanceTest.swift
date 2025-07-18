@@ -67,6 +67,35 @@ class PerformanceTest: XCTestCase {
             }
         }
     }
+    // 【1000】 average: 0.040, relative standard deviation: 19.680%, values: [0.055929, 0.044426, 0.028143, 0.040032, 0.041667, 0.042019, 0.039634, 0.026208, 0.038857, 0.040737]
+    func testEncodeWithJSONSerialization() throws {
+        let decoder = SmartJSONDecoder()
+        let objects = try decoder.decode([SmartModel].self, from: data)
+        measure {
+            do {
+                let encoder = SmartJSONEncoder()
+                encoder.generatorMode = .system
+                let _ = try encoder.encode(objects)
+            } catch {
+                XCTAssertNil(error)
+            }
+        }
+    }
+    
+    // 【1000】average: 0.039, relative standard deviation: 15.440%, values: [0.048204, 0.044045, 0.038840, 0.039561, 0.040793, 0.042170, 0.027042, 0.041110, 0.040413, 0.029381]
+    func testEncodeWithWriter() throws {
+        let decoder = SmartJSONDecoder()
+        let objects = try decoder.decode([SmartModel].self, from: data)
+        measure {
+            do {
+                let encoder = SmartJSONEncoder()
+                encoder.generatorMode = .custom
+                let _ = try encoder.encode(objects)
+            } catch {
+                XCTAssertNil(error)
+            }
+        }
+    }
 }
 
 // Codable & CleanJSON
