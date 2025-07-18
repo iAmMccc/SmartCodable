@@ -41,6 +41,30 @@ enum JSONValue: Equatable {
         }
     }
     
+    func toFoundation() -> Any {
+        switch self {
+        case .null:
+            return NSNull()
+        case .bool(let b):
+            return b
+        case .number(let n):
+            // 这里判断 string 是否能转成 Int 或 Double
+            if let intValue = Int(n) {
+                return intValue
+            } else if let doubleValue = Double(n) {
+                return doubleValue
+            } else {
+                return n 
+            }
+        case .string(let s):
+            return s
+        case .array(let arr):
+            return arr.map { $0.toFoundation() }
+        case .object(let dict):
+            return dict.mapValues { $0.toFoundation() }
+        }
+    }
+    
     static func from(_ any: Any) throws -> JSONValue {
         switch any {
         case let dict as [String: Any]:
