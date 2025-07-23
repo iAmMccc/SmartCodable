@@ -28,6 +28,11 @@ public struct IgnoredKey<T>: Codable {
     /// Determines whether this property should be included in encoding
     var isEncodable: Bool = true
     
+    
+    public init(wrappedValue: T) {
+        self.wrappedValue = wrappedValue
+        self.isEncodable = true
+    }
 
     /// Initializes an IgnoredKey with a wrapped value and encoding control
     /// - Parameters:
@@ -90,5 +95,18 @@ public struct IgnoredKey<T>: Codable {
 extension JSONDecoderImpl {
     fileprivate func smartDecode<T>(type: T.Type) throws -> T {
         try cache.initialValue(forKey: codingPath.last, codingPath: codingPath)
+    }
+}
+
+
+extension IgnoredKey: PropertyWrapperInitializable {
+
+    
+    /// Creates an instance from any value if possible
+    public static func createInstance(with value: Any) -> IgnoredKey? {
+        if let value = value as? T {
+            return IgnoredKey(wrappedValue: value)
+        }
+        return nil
     }
 }

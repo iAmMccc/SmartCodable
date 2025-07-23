@@ -29,44 +29,28 @@ class TestViewController: BaseViewController {
         
         
         let dict: [String: Any] = [
-            "name": [],
-            "age": 20,
-            "sub": [
-                "sex": NSNull(),
-                "location": "Su Zhou"
-            ]
+            "name": "Mccc",
+            "age": 32,
+            "height": 182.5,
+            "isMan": true
         ]
 
-        if let model = Model.deserialize(from: dict) {
-            print(model)
-        }
+        guard let model = Model.deserialize(from: dict) else { return }
+        print(model)
+        
+        guard let transDict = model.toDictionary() else { return }
+        print(transDict)
     }
     
     
     struct Model: SmartCodable {
         var name: String = ""
-        @SmartAny
-        var age: Any?
-        @SmartAny
-        var sub: SubModel?
+        var age: Int = 0
+        var height: CGFloat = 0
+        var isMan: Bool = true
     }
     
     
-    struct SubModel: SmartCodable {
-        
-        enum Sex: String, SmartCaseDefaultable {
-            case man
-            case women
-        }
-        
-        var sex: Sex = .man
-        var location: String?
-        
-    }
 
 }
 
-
-extension String: SmartCodable { }
-
-extension Int: SmartCodable { }

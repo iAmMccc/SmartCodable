@@ -9,16 +9,6 @@ import Foundation
 
 open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     
-    public enum Parser: Int, Sendable {
-        /// JSONSerialization
-        case system
-        /// JSONParser
-        case custom
-    }
-    
-    /// Parser，default: JSONSerialization
-    public var parserMode: Parser = .system
-    
     open var smartDataDecodingStrategy: SmartDataDecodingStrategy = .base64
     
     /// Options set on the top-level encoder to pass down the decoding hierarchy.
@@ -63,19 +53,19 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         }
         
 
-        var json: JSONValue
         do {
-            switch parserMode {
-            case .system:
-                let object = try JSONSerialization.jsonObject(with: data, options: [.allowFragments])
-                json = try JSONValue.from(object)
-            case .custom:
-                var parser = JSONParser(bytes: Array(data))
-                json = try parser.parse()
+            let object = try JSONSerialization.jsonObject(with: data, options: [.allowFragments])
+            guard let json = JSONValue.make(object) else {
+                let error = DecodingError.dataCorrupted(
+                    .init(codingPath: [], debugDescription: "不支持的 JSON 值类型")
+                )
+                SmartSentinel.monitorAndPrint(debugDescription: "The given data was not valid JSON.", error: error, in: type)
+                throw error
             }
-            
-            let impl = JSONDecoderImpl(userInfo: self.userInfo, from: json, codingPath: [], options: self.options)
+
+            let impl = JSONDecoderImpl(userInfo: userInfo, from: json, codingPath: [], options: options)
             let value = try impl.unwrap(as: type)
+
             SmartSentinel.monitorLogs(in: "\(type)", parsingMark: mark, impl: impl)
             return value
         } catch {

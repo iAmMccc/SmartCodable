@@ -15,58 +15,58 @@ class PerformanceTest: XCTestCase {
     }
     
 
-    //【1000】 0.015。 使用JSONDecoder解析遵循Codable协议的model
-    func testCodable() {
-        measure {
-            do {
-                let decoder = JSONDecoder()
-                let objects = try decoder.decode([CodableModel].self, from: data)
-                XCTAssertEqual(objects.count, count)
-            } catch {
-                XCTAssertNil(error)
-            }
-        }
-    }
-    
-    //【1000】0.026 使用SmartJSONDecoder解析遵循Codable协议的model
-    func testCleanJsonDecoder() {
-        measure {
-            do {
-                let decoder = SmartJSONDecoder()
-                let objects = try decoder.decode([CodableModel].self, from: data)
-                XCTAssertEqual(objects.count, count)
-            } catch {
-                XCTAssertNil(error)
-            }
-        }
-    }
-    
-    //【1000】 0.046 使用JSONParser解析遵循SmartCodable协议的model
-    func testSmartJsonParser() {
-        measure {
-            do {
-                let decoder = SmartJSONDecoder()
-                decoder.parserMode = .custom
-                let objects = try decoder.decode([SmartModel].self, from: data)
-                XCTAssertEqual(objects.count, count)
-            } catch {
-                XCTAssertNil(error)
-            }
-        }
-    }
-    
-    //【1000】 0.036 使用JSONSerialization解析遵循SmartCodable协议的model
-    func testSmartJSONSerialization() {
-        measure {
-            do {
-                let decoder = SmartJSONDecoder()
-                let objects = try decoder.decode([SmartModel].self, from: data)
-                XCTAssertEqual(objects.count, count)
-            } catch {
-                XCTAssertNil(error)
-            }
-        }
-    }
+//    //【1000】 0.015。 使用JSONDecoder解析遵循Codable协议的model
+//    func testCodable() {
+//        measure {
+//            do {
+//                let decoder = JSONDecoder()
+//                let objects = try decoder.decode([CodableModel].self, from: data)
+//                XCTAssertEqual(objects.count, count)
+//            } catch {
+//                XCTAssertNil(error)
+//            }
+//        }
+//    }
+//    
+//    //【1000】0.026 使用SmartJSONDecoder解析遵循Codable协议的model
+//    func testCleanJsonDecoder() {
+//        measure {
+//            do {
+//                let decoder = SmartJSONDecoder()
+//                let objects = try decoder.decode([CodableModel].self, from: data)
+//                XCTAssertEqual(objects.count, count)
+//            } catch {
+//                XCTAssertNil(error)
+//            }
+//        }
+//    }
+//    
+//    //【1000】 0.046 使用JSONParser解析遵循SmartCodable协议的model
+//    func testSmartJsonParser() {
+//        measure {
+//            do {
+//                let decoder = SmartJSONDecoder()
+//                decoder.parserMode = .custom
+//                let objects = try decoder.decode([SmartModel].self, from: data)
+//                XCTAssertEqual(objects.count, count)
+//            } catch {
+//                XCTAssertNil(error)
+//            }
+//        }
+//    }
+//    
+//    //【1000】 0.036 使用JSONSerialization解析遵循SmartCodable协议的model
+//    func testSmartJSONSerialization() {
+//        measure {
+//            do {
+//                let decoder = SmartJSONDecoder()
+//                let objects = try decoder.decode([SmartModel].self, from: data)
+//                XCTAssertEqual(objects.count, count)
+//            } catch {
+//                XCTAssertNil(error)
+//            }
+//        }
+//    }
     // 【1000】 average: 0.040, relative standard deviation: 19.680%, values: [0.055929, 0.044426, 0.028143, 0.040032, 0.041667, 0.042019, 0.039634, 0.026208, 0.038857, 0.040737]
     func testEncodeWithJSONSerialization() throws {
         let decoder = SmartJSONDecoder()
@@ -74,7 +74,6 @@ class PerformanceTest: XCTestCase {
         measure {
             do {
                 let encoder = SmartJSONEncoder()
-                encoder.generatorMode = .system
                 let _ = try encoder.encode(objects)
             } catch {
                 XCTAssertNil(error)
@@ -89,7 +88,6 @@ class PerformanceTest: XCTestCase {
         measure {
             do {
                 let encoder = SmartJSONEncoder()
-                encoder.generatorMode = .custom
                 let _ = try encoder.encode(objects)
             } catch {
                 XCTAssertNil(error)

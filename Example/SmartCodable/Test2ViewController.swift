@@ -28,34 +28,34 @@ class Test2ViewController: BaseViewController {
         
         let json = """
         {
-            "code" : 200,
-            "message" : "success",
-            "data" : {
-                "status": null,
-                "distance" : 12345
-            }
+            "color" : "0xffffff",
+            "date": "1721745600"
         }        
         """
         
-        let model = ApiData.deserialize(from: json)
-        print(model as Any)
+        let model = Model.deserialize(from: json)
+        print(model?.color)
+        print(model?.date)
         return
         
     }
 
-    struct ApiData: SmartCodable {
-        @SmartAny var data: Trip?
-        @SmartAny var metaData: Any? = "默认值"
-    }
-
-    struct Trip: SmartCodable {
-        var status: Status?
+    struct Model: SmartCodable {
+        @IgnoredKey
+        var color: UIColor?
         
-        enum Status: String, SmartCaseDefaultable {
-            case a = "A"
-            case b = "B"
+        @SmartAny
+        var date: Date?
+        
+        static func mappingForValue() -> [SmartValueTransformer]? {
+            [
+                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rrggbb(.zeroX)),
+                CodingKeys.date <--- SmartDateTransformer(strategy: .timestamp)
+                
+            ]
         }
     }
+
 
 }
 
