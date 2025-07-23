@@ -19,11 +19,10 @@ public struct SmartHexColorTransformer: ValueTransformable {
         self.colorFormat = colorFormat
     }
     public func transformFromJSON(_ value: Any) -> ColorObject? {
-        return UIColor.red
-//        if let colorStr = value as? String {
-//            return SmartHexColor.toColor(from: colorStr, format: colorFormat)
-//        }
-//        return nil
+        if let colorStr = value as? String {
+            return SmartHexColor.toColor(from: colorStr, format: colorFormat)
+        }
+        return nil
     }
     
     public func transformToJSON(_ value: ColorObject) -> String? {
