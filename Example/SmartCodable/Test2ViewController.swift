@@ -7,54 +7,57 @@
 //
 
 import SmartCodable
-import BTPrint
+
+
+
 
 class Test2ViewController: BaseViewController {
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        let dict: [String: Any] = [
 
 
-//        test()
-    }
-    
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        test()
-    }
-    
-    func test() {
-        SmartSentinel.debugMode = .verbose
-        
-        
-        let json = """
-        {
-            "color" : "0xffffff",
-            "date": "1721745600"
-        }        
-        """
-        
-        let model = Model.deserialize(from: json)
-        print(model?.color)
-        print(model?.date)
-    }
-
-    struct Model: SmartCodable {
-        @IgnoredKey
-        var color: UIColor?
-        
-        @SmartAny
-        var date: Date?
-        
-        static func mappingForValue() -> [SmartValueTransformer]? {
-            [
-                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rrggbb(.zeroX)),
-                CodingKeys.date <--- SmartDateTransformer(strategy: .timestamp)
-                
+            "name": "Mccc",
+            
+            "height": 188.5,
+            
+            "sex": true,
+            
+            "dict": ["abc": "Test"],
+            
+            "arr": [
+                "1", "2", "3"
             ]
-        }
+
+        ]
+
+        guard let model = Model.deserialize(from: dict) else { return }
+        smartPrint(value: model)
+        
+        guard let transDict = model.toJSONString(prettyPrint: true) else { return }
+        print(transDict)
     }
 }
 
 
-
-
+extension Test2ViewController {
+    struct Model: SmartCodable {
+        
+        @SmartAny
+        var name: Any?
+        
+        @SmartAny
+        var sex: Any?
+        
+        @SmartAny
+        var height: Any?
+        
+        @SmartAny
+        var dict: [String: Any]?
+        
+        @SmartAny
+        var arr: [Any]?
+    }
+}

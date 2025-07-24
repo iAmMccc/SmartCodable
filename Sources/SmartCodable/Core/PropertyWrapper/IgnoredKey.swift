@@ -47,7 +47,7 @@ public struct IgnoredKey<T>: PropertyWrapperable {
     
     
     /// Determines whether this property should be included in encoding
-    var isEncodable: Bool = true
+    var isEncodable: Bool = false
     
     /// Initializes an IgnoredKey with a wrapped value and encoding control
     /// - Parameters:
@@ -92,14 +92,6 @@ extension IgnoredKey: Codable {
     public func encode(to encoder: Encoder) throws {
         
         guard isEncodable else { return }
-        
-        if let impl = encoder as? JSONEncoderImpl,
-            let key = impl.codingPath.last,
-           let jsonValue = impl.cache.tranform(from: wrappedValue, with: key, codingPath: impl.codingPath),
-            let value = jsonValue.peel as? Encodable {
-            try value.encode(to: encoder)
-            return
-        }
         
         // Manual encoding for Encodable types, nil otherwise
         if let encodableValue = wrappedValue as? Encodable {
