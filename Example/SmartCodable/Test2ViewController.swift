@@ -36,8 +36,8 @@ class Test2ViewController: BaseViewController {
         guard let model = Model.deserialize(from: dict) else { return }
         smartPrint(value: model)
         
-        guard let transDict = model.toJSONString(prettyPrint: true) else { return }
-        print(transDict)
+//        guard let transDict = model.toJSONString(prettyPrint: true) else { return }
+//        print(transDict)
     }
 }
 
@@ -45,19 +45,21 @@ class Test2ViewController: BaseViewController {
 extension Test2ViewController {
     struct Model: SmartCodable {
         
-        @SmartAny
-        var name: Any?
+        var age: CGFloat = 72.0/278.0
         
-        @SmartAny
-        var sex: Any?
-        
-        @SmartAny
-        var height: Any?
-        
-        @SmartAny
-        var dict: [String: Any]?
-        
-        @SmartAny
-        var arr: [Any]?
+//        @SmartAny
+//        var name: Any?
+//        
+//        @SmartAny
+//        var sex: Any?
+//        
+//        @SmartAny
+//        var height: Any?
+//        
+//        @SmartAny
+//        var dict: [String: Any]?
+//        
+//        @SmartAny
+//        var arr: [Any]?
     }
 }
