@@ -8,7 +8,7 @@
 
 
 /// Global coding/decoding configuration namespace for SmartCodable
-public struct SmartCoding {
+public struct SmartCodableOptions {
     /// Number conversion strategy during decoding (default: .strict)
     ///
     /// - Description: Controls how to handle precision loss when converting JSON numbers (e.g., floating-point) to target types (e.g., integer)
@@ -19,7 +19,7 @@ public struct SmartCoding {
     ///     - .rounded:  Returns 3 (rounds to nearest)
     ///
     /// - Note: This only affects decoding process
-    public static var numberConversionStrategy: NumberConversionStrategy {
+    public static var numberStrategy: NumberConversionStrategy {
         get { _numberConversionStrategy }
         set {_numberConversionStrategy = newValue }
     }

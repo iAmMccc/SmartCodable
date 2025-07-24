@@ -20,20 +20,35 @@ import Foundation
    rather than being overwritten by decoded values.
  */
 @propertyWrapper
-public struct IgnoredKey<T>: Codable {
+public struct IgnoredKey<T>: PropertyWrapperable {
     
     /// The underlying value being wrapped
     public var wrappedValue: T
 
+    public init(wrappedValue: T) {
+        self.wrappedValue = wrappedValue
+    }
+    public func wrappedValueDidFinishMapping() -> IgnoredKey<T>? {
+        if var temp = wrappedValue as? SmartDecodable {
+            temp.didFinishMapping()
+            return IgnoredKey(wrappedValue: temp as! T)
+        }
+        return nil
+    }
+        
+    /// Creates an instance from any value if possible
+    public static func createInstance(with value: Any) -> IgnoredKey? {
+        if let value = value as? T {
+            return IgnoredKey(wrappedValue: value)
+        }
+        return nil
+    }
+    
+    
+    
     /// Determines whether this property should be included in encoding
     var isEncodable: Bool = true
     
-    
-    public init(wrappedValue: T) {
-        self.wrappedValue = wrappedValue
-        self.isEncodable = true
-    }
-
     /// Initializes an IgnoredKey with a wrapped value and encoding control
     /// - Parameters:
     ///   - wrappedValue: The initial/default value
@@ -42,7 +57,10 @@ public struct IgnoredKey<T>: Codable {
         self.wrappedValue = wrappedValue
         self.isEncodable = isEncodable
     }
+}
 
+
+extension IgnoredKey: Codable {
     public init(from decoder: Decoder) throws {
         // Attempt to get default value first
         guard let impl = decoder as? JSONDecoderImpl else {
@@ -92,21 +110,10 @@ public struct IgnoredKey<T>: Codable {
         }
     }
 }
+
+
 extension JSONDecoderImpl {
     fileprivate func smartDecode<T>(type: T.Type) throws -> T {
         try cache.initialValue(forKey: codingPath.last, codingPath: codingPath)
-    }
-}
-
-
-extension IgnoredKey: PropertyWrapperInitializable {
-
-    
-    /// Creates an instance from any value if possible
-    public static func createInstance(with value: Any) -> IgnoredKey? {
-        if let value = value as? T {
-            return IgnoredKey(wrappedValue: value)
-        }
-        return nil
     }
 }

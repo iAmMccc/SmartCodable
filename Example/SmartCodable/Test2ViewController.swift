@@ -36,8 +36,6 @@ class Test2ViewController: BaseViewController {
         let model = Model.deserialize(from: json)
         print(model?.color)
         print(model?.date)
-        return
-        
     }
 
     struct Model: SmartCodable {
@@ -55,8 +53,6 @@ class Test2ViewController: BaseViewController {
             ]
         }
     }
-
-
 }
 
 

@@ -20,12 +20,20 @@
  * ```
  */
 @propertyWrapper
-public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
+public struct SmartAny<T>: PropertyWrapperable {
     
     public var wrappedValue: T
 
     public init(wrappedValue: T) {
         self.wrappedValue = wrappedValue
+    }
+    
+    public func wrappedValueDidFinishMapping() -> SmartAny<T>? {
+        if var temp = wrappedValue as? SmartDecodable {
+            temp.didFinishMapping()
+            return SmartAny(wrappedValue: temp as! T)
+        }
+        return nil
     }
     
     public static func createInstance(with value: Any) -> SmartAny<T>? {
@@ -35,6 +43,11 @@ public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
         return nil
     }
 
+    
+}
+
+
+extension SmartAny: Codable {
     public init(from decoder: Decoder) throws {
         guard let decoder = decoder as? JSONDecoderImpl else {
             throw DecodingError.typeMismatch(SmartAnyImpl.self, DecodingError.Context(
@@ -90,16 +103,5 @@ public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
             let value = SmartAnyImpl(from: wrappedValue)
             try container.encode(value)
         }
-    }
-}
-
-
-extension SmartAny: PostDecodingHookable {
-    func wrappedValueDidFinishMapping() -> SmartAny<T>? {
-        if var temp = wrappedValue as? SmartDecodable {
-            temp.didFinishMapping()
-            return SmartAny(wrappedValue: temp as! T)
-        }
-        return nil
     }
 }

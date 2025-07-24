@@ -31,8 +31,24 @@ public typealias ColorObject = NSColor
 
 
 @propertyWrapper
-public struct SmartHexColor: Codable {
+public struct SmartHexColor: PropertyWrapperable {
+    
     public var wrappedValue: ColorObject?
+    public init(wrappedValue: ColorObject?) {
+        self.wrappedValue = wrappedValue
+    }
+    
+    public static func createInstance(with value: Any) -> SmartHexColor? {
+        if let value = value as? ColorObject {
+            return SmartHexColor(wrappedValue: value)
+        }
+        return nil
+    }
+    
+    public func wrappedValueDidFinishMapping() -> SmartHexColor? {
+        return nil
+    }
+    
     
     private var encodeHexFormat: HexFormat?
 
@@ -40,7 +56,9 @@ public struct SmartHexColor: Codable {
         self.wrappedValue = wrappedValue
         self.encodeHexFormat = encodeHexFormat
     }
-    
+}
+
+extension SmartHexColor: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let hexString = try container.decode(String.self)

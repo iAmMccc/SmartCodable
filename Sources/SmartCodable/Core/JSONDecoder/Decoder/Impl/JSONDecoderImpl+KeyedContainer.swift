@@ -280,11 +280,11 @@ extension JSONDecoderImpl.KeyedContainer {
     /// Performs post-mapping cleanup and notifications
     fileprivate func didFinishMapping<T>(_ decodeValue: T) -> T {
         // Properties wrapped by property wrappers don't conform to SmartDecodable protocol.
-        // Here we use PostDecodingHookable as an intermediary layer for processing.
+        // Here we use PropertyWrapperable as an intermediary layer for processing.
         if var value = decodeValue as? SmartDecodable {
             value.didFinishMapping()
             if let temp = value as? T { return temp }
-        } else if let value = decodeValue as? PostDecodingHookable {
+        } else if let value = decodeValue as? (any PropertyWrapperable) {
             if let temp = value.wrappedValueDidFinishMapping() as? T {
                 return temp
             }
@@ -296,13 +296,10 @@ extension JSONDecoderImpl.KeyedContainer {
                                           type: T.Type,
                                           key: K) -> T? where T: Decodable {
         // 处理属性包装类型
-        if let propertyWrapperType = T.self as? any PropertyWrapperInitializable.Type {
-            if type is FlatType.Type, let decoded = transformer.tranform(value: impl.json),
-               let wrapperValue = propertyWrapperType.createInstance(with: decoded) as? T {
-                return didFinishMapping(wrapperValue)
-            }
+        if let propertyWrapperType = T.self as? any PropertyWrapperable.Type {
+            let value: JSONValue? = (type is FlatType.Type) ? impl.json : getValue(forKey: key)
             
-            if let value = getValue(forKey: key),
+            if let value = value,
                let decoded = transformer.tranform(value: value),
                let wrapperValue = propertyWrapperType.createInstance(with: decoded) as? T {
                 return didFinishMapping(wrapperValue)
