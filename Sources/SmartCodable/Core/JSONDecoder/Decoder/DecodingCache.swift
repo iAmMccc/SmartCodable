@@ -81,7 +81,7 @@ extension DecodingCache {
         // When the CGFloat type is resolved,
         // it is resolved as Double. So we need to do a type conversion.
         if T.self == CGFloat.self, let temp = cacheValue as? CGFloat {
-            return Double(temp) as? T
+            return CGFloat(temp) as? T
         }
         
         if let value = cacheValue as? T {
