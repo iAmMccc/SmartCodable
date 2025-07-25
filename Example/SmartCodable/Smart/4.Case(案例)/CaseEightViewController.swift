@@ -26,26 +26,30 @@ class CaseEightViewController: BaseViewController {
             ]
         ]
         
-        
-        let dict2: [String: Any] = [
-            "type": 2,
-            "data": [
-                "c": "cccc",
-                "d": 200
-            ]
-        ]
+
 
         
         guard let modelPackage1 = Model.deserialize(from: dict1) else { return }
-        if let model = modelPackage1.model as? ModelPackage.One {
-            print(model.a, model.b)
-
-        }
+        guard let model = modelPackage1.model as? ModelPackage.One else { return }
+        print(model.a, model.b)
         
-        guard let modelPackage2 = Model.deserialize(from: dict2) else { return }
-        if let model = modelPackage2.model as? ModelPackage.Two {
-            print(model.c, model.d)
-        }
+        guard let transDict1 = modelPackage1.toDict() else { return }
+        print("transDict1 =\(transDict1)")
+        
+        
+        
+//        let dict2: [String: Any] = [
+//            "type": 2,
+//            "data": [
+//                "c": "cccc",
+//                "d": 200
+//            ]
+//        ]
+        
+//        guard let modelPackage2 = Model.deserialize(from: dict2) else { return }
+//        if let model = modelPackage2.model as? ModelPackage.Two {
+//            print(model.c, model.d)
+//        }
     }
     
     
@@ -58,6 +62,13 @@ class CaseEightViewController: BaseViewController {
         var model: Any? {
             data?.model
         }
+        
+        
+        func toDict() -> [String: Any]? {
+            guard let tempDict = toDictionary() else { return nil }            
+            return tempDict["data"] as? [String: Any]
+        }
+        
         
         static func mappingForValue() -> [SmartValueTransformer]? {
             [
@@ -81,8 +92,7 @@ extension CaseEightViewController {
             case .two(let model): return model
             }
         }
-        
-        
+
         struct One: SmartCodable {
             var a: String = ""
             var b: Int = 0
@@ -92,6 +102,7 @@ extension CaseEightViewController {
             var c: String = ""
             var d: Int = 0
         }
+
     }
 }
 
@@ -114,7 +125,6 @@ extension CaseEightViewController {
             
             guard let data = dict["data"] as? [String: Any] else { return nil }
             
-            print(data)
             
             switch modelType {
             case .one:
@@ -131,9 +141,25 @@ extension CaseEightViewController {
         
         func transformToJSON(_ value: ModelPackage) -> JSON? {
             
-            // do something
-            
-            return nil
+            switch value {
+            case .one(let one):
+                
+                let dict = one.toDictionary(useMappedKeys: true)
+                
+                return [
+                    "type": 1,
+                    "data": dict as Any
+                ]
+                
+                
+            case .two(let two):
+                let dict = two.toDictionary(useMappedKeys: true)
+                
+                return [
+                    "type": 2,
+                    "data": dict as Any
+                ]
+            }
         }
         
         
