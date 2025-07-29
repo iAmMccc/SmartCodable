@@ -45,27 +45,47 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     /// - returns: A value of the requested type.
     /// - throws: `DecodingError.dataCorrupted` if values requested from the payload are corrupted, or if the given data is not valid JSON.
     /// - throws: An error if any value throws an error during decoding.
-    open override func decode<T : Decodable>(_ type: T.Type, from data: Data) throws -> T {
+    public func smartDecode<T : Decodable>(_ type: T.Type, from input: Any) throws -> T {
                 
         let mark = SmartSentinel.parsingMark()
         if let parsingMark = CodingUserInfoKey.parsingMark {
             userInfo.updateValue(mark, forKey: parsingMark)
         }
         
-
-        do {
-            let object = try JSONSerialization.jsonObject(with: data, options: [.allowFragments])
-            guard let json = JSONValue.make(object) else {
-                let error = DecodingError.dataCorrupted(
-                    .init(codingPath: [], debugDescription: "不支持的 JSON 值类型")
-                )
+        
+        // 将数据转成object
+        let jsonObject: Any
+        switch input {
+        case let data as Data:
+            do {
+                jsonObject = try JSONSerialization.jsonObject(with: data, options: [.allowFragments])
+            } catch {
                 SmartSentinel.monitorAndPrint(debugDescription: "The given data was not valid JSON.", error: error, in: type)
                 throw error
             }
+            
+        case let dict as [String: Any]:
+            jsonObject = dict
+            
+        case let arr as [Any]:
+            jsonObject = arr
+        default:
+            let error = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "不支持的 JSON 值类型"))
+            SmartSentinel.monitorAndPrint(debugDescription: "The given data was not valid JSON.", error: error, in: type)
+            throw error
+        }
 
-            let impl = JSONDecoderImpl(userInfo: userInfo, from: json, codingPath: [], options: options)
+        // 将object转成解析内部需要的 `JSONValue`
+        guard let json = JSONValue.make(jsonObject) else {
+            let error = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "不支持的 JSON 值类型"))
+            SmartSentinel.monitorAndPrint(debugDescription: "The given data was not valid JSON.", error: error, in: type)
+            throw error
+        }
+
+        // 执行解析逻辑
+        let impl = JSONDecoderImpl(userInfo: userInfo, from: json, codingPath: [], options: options)
+        do {
             let value = try impl.unwrap(as: type)
-
             SmartSentinel.monitorLogs(in: "\(type)", parsingMark: mark, impl: impl)
             return value
         } catch {

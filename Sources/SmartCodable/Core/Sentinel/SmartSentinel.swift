@@ -62,7 +62,7 @@ extension SmartSentinel {
         guard let key = key else { return }
         // 如果被忽略了，就不要输出log了。
         let typeString = String(describing: T.self)
-        guard !typeString.starts(with: "IgnoredKey<") else { return }
+        guard !typeString.starts(with: "SmartIgnored<") else { return }
         
         let className = impl.cache.findSnapShot(with: impl.codingPath)?.objectTypeName ?? ""
         var path = impl.codingPath

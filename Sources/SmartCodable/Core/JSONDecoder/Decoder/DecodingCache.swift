@@ -45,11 +45,8 @@ class DecodingCache: Cachable {
     }
 }
 
-
+// MARK: - 获取属性初始值
 extension DecodingCache {
-    
-
-    
     /// 查找指定解码路径下容器中某个字段的初始值。
     ///
     /// 该方法会根据传入的 `codingPath`（代表某个解码容器的位置），
@@ -78,12 +75,6 @@ extension DecodingCache {
             return handlePropertyWrapperCases(for: key, snapshot: snapshot)
         }
         
-        // When the CGFloat type is resolved,
-        // it is resolved as Double. So we need to do a type conversion.
-        if T.self == CGFloat.self, let temp = cacheValue as? CGFloat {
-            return CGFloat(temp) as? T
-        }
-        
         if let value = cacheValue as? T {
             return value
         } else if let caseValue = cacheValue as? any SmartCaseDefaultable {
@@ -99,12 +90,28 @@ extension DecodingCache {
         }
         return value
     }
+}
+
+
+// MARK: - 获取属性对应的值转换器
+extension DecodingCache {
     
-    /// 获取转换器
-    func valueTransformer(for key: CodingKey?, codingPath: [CodingKey]) -> SmartValueTransformer? {
+    /// 根据属性 key 和其所在容器路径，查找对应的值转换器（SmartValueTransformer）
+    ///
+    /// - Parameters:
+    ///   - key: 当前正在解码的属性名（CodingKey），即字段名。可能为 `nil`，表示缺失或无法识别的字段。
+    ///   - containerPath: 当前属性所在容器的完整路径（不含当前 key）。
+    ///
+    /// - Returns: 匹配到的 `SmartValueTransformer`，如果未找到则返回 `nil`。
+    ///
+    /// - Note:
+    ///   - 此方法依赖于容器路径 `codingPath` 查找快照（snapshot），快照中包含该容器注册的所有转换器列表。
+    ///   - 若 key 为 `nil` 或找不到快照，或快照中未注册转换器，均返回 `nil`。
+    ///   - 匹配逻辑基于 key 的 `stringValue`。
+    func valueTransformer(for key: CodingKey?, in containerPath: [CodingKey]) -> SmartValueTransformer? {
         guard let lastKey = key else { return nil }
         
-        guard let snapshot = findSnapShot(with: codingPath) else { return nil }
+        guard let snapshot = findSnapShot(with: containerPath) else { return nil }
         
         // Initialize transformers only once
         if snapshot.transformers?.isEmpty ?? true {
@@ -116,6 +123,9 @@ extension DecodingCache {
         })
         return transformer
     }
+}
+
+extension DecodingCache {
     
     
     /// Handles property wrapper cases (properties prefixed with underscore)
@@ -131,7 +141,7 @@ extension DecodingCache {
     
     /// Extracts wrapped value from potential property wrapper types
     private func extractWrappedValue<T>(from value: Any) -> T? {
-        if let wrapper = value as? IgnoredKey<T> {
+        if let wrapper = value as? SmartIgnored<T> {
             return wrapper.wrappedValue
         } else if let wrapper = value as? SmartAny<T> {
             return wrapper.wrappedValue
@@ -179,4 +189,15 @@ class DecodingSnapshot: Snapshot {
     /// Dictionary storing initial values of properties
     /// Key: Property name, Value: Initial value
     var initialValues: [String : Any] = [:]
+}
+
+
+extension [CodingKey] {
+    /// 返回当前解码字段的 key 与其所属容器的 codingPath
+    /// 要注意此时的codingPath 是否属性级别。
+    fileprivate func codingKeyAndContainerPath() -> (key: CodingKey?, containerPath: [CodingKey]) {
+        let key = last
+        let containerPath = Array(dropLast())
+        return (key, containerPath)
+    }
 }

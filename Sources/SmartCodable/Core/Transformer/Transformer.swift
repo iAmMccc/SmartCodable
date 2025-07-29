@@ -90,7 +90,7 @@ public struct FastTransformer<Object, JSON>: ValueTransformable {
     /// 便捷的转换器
     /// - Parameters:
     ///   - fromJSON: json 转 object
-    ///   - toJSON:  object 转 json， 如果需要转json，可以不实现。
+    ///   - toJSON:  object 转 json， 如果不需要转json，可以不实现。
     public init(fromJSON: @escaping (JSON?) -> Object?, toJSON: ((Object?) -> JSON?)? = nil) {
         self.fromJSON = fromJSON
         self.toJSON = toJSON

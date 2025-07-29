@@ -1,11 +1,14 @@
 //
-//  Ignored.swift
+//  SmartIgnored.swift
 //  SmartCodable
 //
 //  Created by Mccc on 2024/4/30.
 //
 
 import Foundation
+
+@available(*, deprecated, renamed: "SmartIgnored")
+public typealias IgnoredKey = SmartIgnored
 
 /**
  A property wrapper that marks a property to be ignored during encoding/decoding.
@@ -20,7 +23,7 @@ import Foundation
    rather than being overwritten by decoded values.
  */
 @propertyWrapper
-public struct IgnoredKey<T>: PropertyWrapperable {
+public struct SmartIgnored<T>: PropertyWrapperable {
     
     /// The underlying value being wrapped
     public var wrappedValue: T
@@ -28,18 +31,18 @@ public struct IgnoredKey<T>: PropertyWrapperable {
     public init(wrappedValue: T) {
         self.wrappedValue = wrappedValue
     }
-    public func wrappedValueDidFinishMapping() -> IgnoredKey<T>? {
+    public func wrappedValueDidFinishMapping() -> SmartIgnored<T>? {
         if var temp = wrappedValue as? SmartDecodable {
             temp.didFinishMapping()
-            return IgnoredKey(wrappedValue: temp as! T)
+            return SmartIgnored(wrappedValue: temp as! T)
         }
         return nil
     }
         
     /// Creates an instance from any value if possible
-    public static func createInstance(with value: Any) -> IgnoredKey? {
+    public static func createInstance(with value: Any) -> SmartIgnored? {
         if let value = value as? T {
-            return IgnoredKey(wrappedValue: value)
+            return SmartIgnored(wrappedValue: value)
         }
         return nil
     }
@@ -49,7 +52,7 @@ public struct IgnoredKey<T>: PropertyWrapperable {
     /// Determines whether this property should be included in encoding
     var isEncodable: Bool = false
     
-    /// Initializes an IgnoredKey with a wrapped value and encoding control
+    /// Initializes an SmartIgnored with a wrapped value and encoding control
     /// - Parameters:
     ///   - wrappedValue: The initial/default value
     ///   - isEncodable: Whether the property should be included in encoding (default: false)
@@ -60,27 +63,17 @@ public struct IgnoredKey<T>: PropertyWrapperable {
 }
 
 
-extension IgnoredKey: Codable {
+extension SmartIgnored: Codable {
     public init(from decoder: Decoder) throws {
         // Attempt to get default value first
         guard let impl = decoder as? JSONDecoderImpl else {
             wrappedValue = try Patcher<T>.defaultForType()
             return
         }
-        
-        // Support for custom decoding strategies on IgnoredKey properties
-        if let key = impl.codingPath.last {
-            if let tranformer = impl.cache.valueTransformer(for: key, codingPath: impl.codingPath) {
-                if let decoded = tranformer.tranform(value: impl.json) as? T {
-                    wrappedValue = decoded
-                    return
-                }
-            }
-        }
-        
+
         /// Special handling for SmartJSONDecoder parser - throws exceptions to be handled by container
         if let key = CodingUserInfoKey.parsingMark, let _ = impl.userInfo[key] {
-            throw DecodingError.typeMismatch(IgnoredKey<T>.self, DecodingError.Context(
+            throw DecodingError.typeMismatch(SmartIgnored<T>.self, DecodingError.Context(
                 codingPath: decoder.codingPath, debugDescription: "\(Self.self) does not participate in the parsing, please ignore it.")
             )
         }

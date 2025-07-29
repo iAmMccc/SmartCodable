@@ -27,9 +27,15 @@ enum JSONValue: Equatable {
         case let string as String:
             return .string(string)
         case let number as NSNumber:
-            return .number(number.stringValue)
-        case let bool as Bool:
-            return .bool(bool)
+            
+            // 判断是否为 Bool 类型
+            let cfType = CFNumberGetType(number)
+            if cfType == .charType {
+                return .bool(number.boolValue)
+            } else {
+                return .number(number.stringValue)
+            }
+            
         case let array as [Any]:
             let jsonArray = array.compactMap { make($0) }
             return .array(jsonArray)
@@ -160,25 +166,28 @@ extension NSNumber {
     }
     
     /// 尝试将 NSNumber 转换为最合适的 Swift 基础类型（Int64、Double、Bool、Decimal 等）
-//    var toBestSwiftType: Any {
-//        if let decimal = self as? NSDecimalNumber {
-//            return decimal // Decimal 类型（或者可进一步返回 decimal.decimalValue）
-//        }
-//        
-//        switch CFNumberGetType(self) {
-//        case .charType:
-//            return self.boolValue
-//        case .sInt8Type, .sInt16Type, .sInt32Type, .sInt64Type:
-//            let int64 = self.int64Value
-//            if int64 >= Int.min && int64 <= Int.max {
-//                return Int(int64)
-//            } else {
-//                return int64 // fallback
-//            }
-//        case .floatType, .float32Type, .float64Type, .doubleType:
-//            return self.doubleValue
-//        default:
-//            return self // fallback 为 NSNumber
-//        }
-//    }
+    var toBestSwiftType: Any {
+        if let decimal = self as? NSDecimalNumber {
+            return decimal.decimalValue // 返回 Swift 的 Decimal 类型更自然
+        }
+
+        switch CFNumberGetType(self) {
+        case .charType:
+            return self.boolValue
+
+        case .sInt8Type, .sInt16Type, .sInt32Type, .sInt64Type:
+            let int64 = self.int64Value
+            if int64 >= Int.min && int64 <= Int.max {
+                return Int(int64)
+            } else {
+                return int64 // fallback
+            }
+
+        case .floatType, .float32Type, .float64Type, .doubleType:
+            return self.doubleValue
+
+        default:
+            return self // fallback 为原始 NSNumber
+        }
+    }
 }

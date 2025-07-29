@@ -54,19 +54,6 @@ extension SmartAny: Codable {
                 codingPath: decoder.codingPath, debugDescription: "Expected \(Self.self) value，but an exception occurred！Please report this issue（请上报该问题）")
             )
         }
-        let value = decoder.json
-        if let key = decoder.codingPath.last {
-            // Note the case where T is nil. nil as? T is true.
-            if let tranformer = decoder.cache.valueTransformer(for: key, codingPath: decoder.codingPath) {
-                if let decoded = tranformer.tranform(value: value) as? T {
-                    self = .init(wrappedValue: decoded)
-                    return
-                } else {
-                    throw DecodingError.typeMismatch(Self.self, DecodingError.Context(
-                        codingPath: decoder.codingPath, debugDescription: "Expected \(Self.self) value，but an exception occurred！"))
-                }
-            }
-        }
                 
         if let decoded = try? decoder.unwrap(as: SmartAnyImpl.self), let peel = decoded.peel as? T {
             self = .init(wrappedValue: peel)
