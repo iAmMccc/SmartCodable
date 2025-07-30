@@ -26,106 +26,82 @@ import BTPrint
 
 class TestViewController: BaseViewController {
     
+    var object: [Any]?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        let data = areaJSON()
+        
+        object = data.toArray()
+        
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let start = CFAbsoluteTimeGetCurrent()
 
-        let dict: [String: Any] = [
-            "int": 1,
-            "bool": true,
-            "string": "mccc",
-            "double": 200.0,
-            "cgFloat": 200.0,
-            "float": 200.0,
-            "subModel": [
-                "name": "Sub Mccc"
-            ]
-        ]
+        guard let objects = [AreaSmart].deserialize(from: object) else {
+            return
+        }
+        let end = CFAbsoluteTimeGetCurrent()
+        print("⏱ 方法耗时: \(end - start) 秒")
         
-        guard let model = Model.deserialize(from: dict) else { return }
-        print(model)
-        
-        guard let transDict = model.toJSONString(prettyPrint: true) else { return }
-        print(transDict)
     }
     
-    struct Model: SmartCodable {
-
-//        var int: Int = 100
-//        var bool: Bool = true
-//        var string: String = "Mccc"
-//        var double: Double = 100.0
-//        var cgFloat: CGFloat = 100.0
-//        var float: Float = 100.0
-        var subModel: SubModel = SubModel()
-        
-        static func mappingForValue() -> [SmartValueTransformer]? {
-            [
-//                CodingKeys.int <--- IntTranformer(),
-//                CodingKeys.bool <--- BoolTranformer(),
-//                CodingKeys.string <--- Tranformer(),
-//                CodingKeys.double <--- Tranformer(),
-//                CodingKeys.cgFloat <--- Tranformer(),
-//                CodingKeys.float <--- Tranformer(),
-//                CodingKeys.date <--- SmartDateTransformer(strategy: .timestamp)
-//                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rrggbb(.none))
-//                CodingKeys.name <--- Tranformer()
-                CodingKeys.subModel <--- SubTranformer()
-            ]
-        }
-    }
-    
-    struct SubModel: SmartCodable {
-        var name: String = "Mccc"
-    }
-    
-    struct IntTranformer: ValueTransformable {
-        func transformFromJSON(_ value: Any) -> Object? {
-            return 300
-        }
-        
-        func transformToJSON(_ value: Object) -> JSON? {
-            return "300"
-        }
-        
-        typealias Object = Int
-        
-        typealias JSON = String
-    }
-    
-    
-    struct SubTranformer: ValueTransformable {
-        func transformFromJSON(_ value: Any) -> Object? {
-            return SubModel(name: "subsubsub")
-        }
-        
-        func transformToJSON(_ value: Object) -> JSON? {
-            return ["name": "subsubsub"]
-        }
-        
-        typealias Object = SubModel
-        
-        typealias JSON = [String: Any]
-    }
 
     
+
+}
+func areaJSON() -> Data {
+    let resource = "10000"
+    let url = Bundle.main.url(forResource: resource, withExtension: "json")
+    guard let url = url,
+        let data = try? Data(contentsOf: url) else {
+            fatalError()
+    }
+    return data
+}
+// SmartCodable
+struct AreaSmart: SmartCodable {
+    
+    
+    var areaCode: String = ""
+    var name: String = ""
+    var city: [City] = []
+    
+    struct City: SmartCodable {
+        var name: String = ""
+        var areaCode: String = ""
+        var district: [District] = []
+        
+        struct District: SmartCodable {
+            var name: String = ""
+            var areaCode: String = ""
+        }
+    }
 }
 
 
-struct BoolTranformer: ValueTransformable {
-    func transformFromJSON(_ value: Any) -> Object? {
-        return true
+extension Data {
+    /// 尝试将 Data 解析为 JSON 对象（字典或数组）
+    func toJSONObject() -> Any? {
+        do {
+            let json = try JSONSerialization.jsonObject(with: self, options: [])
+            return json
+        } catch {
+            print("JSON 解析失败: \(error)")
+            return nil
+        }
     }
+}
+fileprivate func jsonData(from object: Any?, prettyPrinted: Bool = false) -> Data? {
     
-    func transformToJSON(_ value: Object) -> JSON? {
+    guard let object = object else { return nil }
+    
+    guard JSONSerialization.isValidJSONObject(object) else {
+        print("⚠️ 无法转成 JSON：不是合法的 JSON 对象")
         return nil
     }
-    
-    typealias Object = Bool
-    
-    typealias JSON = String
+    let options: JSONSerialization.WritingOptions = prettyPrinted ? .prettyPrinted : []
+    return try? JSONSerialization.data(withJSONObject: object, options: options)
 }
-
-
