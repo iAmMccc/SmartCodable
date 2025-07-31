@@ -26,82 +26,100 @@ import BTPrint
 
 class TestViewController: BaseViewController {
     
-    var object: [Any]?
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let data = areaJSON()
-        
-        object = data.toArray()
+
         
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let start = CFAbsoluteTimeGetCurrent()
+        
+        let model = Model()
+        
+        guard let dict = model.toJSONString() else { return }
+        print(dict)
+        print("\n")
 
-        guard let objects = [AreaSmart].deserialize(from: object) else {
-            return
+        
+        guard let dict1 = model.toJSONString(useMappedKeys: true) else { return }
+        print(dict1)
+    }
+    
+
+
+    
+    struct Model: SmartCodable {
+        var name: String?
+//        var age: Int = 100
+        
+//        var sub: SubModel = SubModel()
+//        
+//        
+//        static func mappingForKey() -> [SmartKeyTransformer]? {
+//            [
+//                CodingKeys.name  <--- "nick_name",
+//                CodingKeys.age <--- "self_age"
+//            ]
+//        }
+//        
+//        static func mappingForValue() -> [SmartValueTransformer]? {
+//            [
+//                CodingKeys.name <--- Tranformer()
+//            ]
+//        }
+    }
+    
+    
+    struct SubModel: SmartCodable {
+        var hobby: String = "ball"
+        
+        
+        
+        static func mappingForKey() -> [SmartKeyTransformer]? {
+            [
+                CodingKeys.hobby  <--- "ball_ball",
+            ]
         }
-        let end = CFAbsoluteTimeGetCurrent()
-        print("⏱ 方法耗时: \(end - start) 秒")
+        
+        static func mappingForValue() -> [SmartValueTransformer]? {
+            [
+                CodingKeys.hobby <--- Tranformer1()
+            ]
+        }
+    }
+    
+    
+    struct Tranformer: ValueTransformable {
+        func transformFromJSON(_ value: Any) -> String? {
+            return "你好"
+        }
+        
+        func transformToJSON(_ value: String) -> String? {
+            return "你好"
+        }
+        
+        typealias Object = String
+        
+        typealias JSON = String
+        
         
     }
     
-
     
-
-}
-func areaJSON() -> Data {
-    let resource = "10000"
-    let url = Bundle.main.url(forResource: resource, withExtension: "json")
-    guard let url = url,
-        let data = try? Data(contentsOf: url) else {
-            fatalError()
-    }
-    return data
-}
-// SmartCodable
-struct AreaSmart: SmartCodable {
-    
-    
-    var areaCode: String = ""
-    var name: String = ""
-    var city: [City] = []
-    
-    struct City: SmartCodable {
-        var name: String = ""
-        var areaCode: String = ""
-        var district: [District] = []
+    struct Tranformer1: ValueTransformable {
+        func transformFromJSON(_ value: Any) -> String? {
+            return "篮球"
+        }
         
-        struct District: SmartCodable {
-            var name: String = ""
-            var areaCode: String = ""
+        func transformToJSON(_ value: String) -> String? {
+            return "篮球"
         }
+        
+        typealias Object = String
+        
+        typealias JSON = String
+        
+        
     }
 }
 
-
-extension Data {
-    /// 尝试将 Data 解析为 JSON 对象（字典或数组）
-    func toJSONObject() -> Any? {
-        do {
-            let json = try JSONSerialization.jsonObject(with: self, options: [])
-            return json
-        } catch {
-            print("JSON 解析失败: \(error)")
-            return nil
-        }
-    }
-}
-fileprivate func jsonData(from object: Any?, prettyPrinted: Bool = false) -> Data? {
-    
-    guard let object = object else { return nil }
-    
-    guard JSONSerialization.isValidJSONObject(object) else {
-        print("⚠️ 无法转成 JSON：不是合法的 JSON 对象")
-        return nil
-    }
-    let options: JSONSerialization.WritingOptions = prettyPrinted ? .prettyPrinted : []
-    return try? JSONSerialization.data(withJSONObject: object, options: options)
-}

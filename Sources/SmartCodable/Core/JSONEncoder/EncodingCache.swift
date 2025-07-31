@@ -20,6 +20,7 @@ class EncodingCache: Cachable {
             
             var snapshot = EncodingSnapshot()
             snapshot.objectType = object
+            snapshot.codingPath = codingPath
             snapshot.transformers = object.mappingForValue()
             snapshots.append(snapshot)
         }
@@ -34,6 +35,33 @@ class EncodingCache: Cachable {
         }
     }
 }
+
+
+extension EncodingCache {
+    /// 获取对应的值解析器
+    func valueTransformer(for key: CodingKey?, in containerPath: [CodingKey]) -> SmartValueTransformer? {
+        guard let lastKey = key else { return nil }
+        
+        guard let snapshot = findSnapShot(with: containerPath) else { return nil }
+        
+        guard let transformers = snapshot.transformers, !transformers.isEmpty else { return nil }
+        
+        
+        // 提前解析 key 映射（避免每次遍历 transformer 都重新计算）
+        let keyMappings: Set<String> = {
+            guard let mappings = snapshot.objectType?.mappingForKey() else { return [] }
+            return Set(mappings.flatMap { $0.from })
+        }()
+        
+        let transformer = transformers.first(where: { transformer in
+            transformer.location.stringValue == lastKey.stringValue
+            || keyMappings.contains(lastKey.stringValue)
+        })
+
+        return transformer
+    }
+}
+
 
 extension EncodingCache {
     
