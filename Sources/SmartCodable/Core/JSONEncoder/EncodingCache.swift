@@ -20,6 +20,7 @@ class EncodingCache: Cachable {
             
             var snapshot = EncodingSnapshot()
             snapshot.objectType = object
+            snapshot.codingPath = codingPath
             snapshot.transformers = object.mappingForValue()
             snapshots.append(snapshot)
         }
