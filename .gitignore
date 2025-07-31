@@ -89,3 +89,22 @@ fastlane/test_output
 
 iOSInjectionProject/
 .DS_Store
+
+
+# Swift Package Manager
+/.build
+/Packages
+Package.resolved
+
+# 如果你用 Xcode 打开 Package.swift，会生成 .swiftpm
+.swiftpm/xcode
+
+# Playground 支持
+timeline.xctimeline
+playground.xcworkspace
+
+# SwiftPM artifact cache (Swift 5.8+，如果用到了 binary target)
+.artifacts
+
+# Xcode Preview snapshots
+*.preview-thumbnails
