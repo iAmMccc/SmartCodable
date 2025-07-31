@@ -67,11 +67,10 @@ extension _SpecialTreatmentEncoder {
             return try self.wrapObject(object as! [String: Encodable], for: additionalKey)
         default:
             
-            impl.cache.cacheSnapshot(for: E.self, codingPath: codingPath)
-            
             let encoder = self.getEncoder(for: additionalKey)
+            encoder.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
             try encodable.encode(to: encoder)
-            impl.cache.removeSnapshot(for: E.self)
+            encoder.cache.removeSnapshot(for: E.self)
 
             // If it is modified by SmartFlat, you need to encode to the upper layer to restore the data.
             if encodable is FlatType {
