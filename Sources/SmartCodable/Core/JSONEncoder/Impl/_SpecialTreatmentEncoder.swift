@@ -69,9 +69,9 @@ extension _SpecialTreatmentEncoder {
             
             
             let encoder = self.getEncoder(for: additionalKey)
-            impl.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
+            encoder.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
             try encodable.encode(to: encoder)
-            impl.cache.removeSnapshot(for: E.self)
+            encoder.cache.removeSnapshot(for: E.self)
 
             // If it is modified by SmartFlat, you need to encode to the upper layer to restore the data.
             if encodable is FlatType {
