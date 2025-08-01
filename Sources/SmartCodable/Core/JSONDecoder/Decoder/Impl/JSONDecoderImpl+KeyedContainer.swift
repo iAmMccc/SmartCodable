@@ -288,7 +288,7 @@ extension JSONDecoderImpl.KeyedContainer {
             let value: JSONValue? = (type is FlatType.Type) ? impl.json : getValue(forKey: key)
             
             if let value = value,
-               let decoded = transformer.tranform(value: value),
+               let decoded = transformer.transformFromJSON(value),
                let wrapperValue = propertyWrapperType.createInstance(with: decoded) as? T {
                 return didFinishMapping(wrapperValue)
             }
@@ -296,7 +296,7 @@ extension JSONDecoderImpl.KeyedContainer {
         
         // 处理普通类型转换
         if let value = getValue(forKey: key),
-           let decoded = transformer.tranform(value: value) as? T {
+           let decoded = transformer.transformFromJSON(value) as? T {
             return didFinishMapping(decoded)
         }
         return nil

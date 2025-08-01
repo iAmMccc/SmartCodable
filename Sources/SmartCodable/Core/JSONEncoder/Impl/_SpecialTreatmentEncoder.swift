@@ -69,7 +69,7 @@ extension _SpecialTreatmentEncoder {
             
             
             let encoder = self.getEncoder(for: additionalKey)
-            impl.cache.cacheSnapshot(for: E.self, codingPath: codingPath)
+            impl.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
             try encodable.encode(to: encoder)
             impl.cache.removeSnapshot(for: E.self)
 
@@ -166,6 +166,25 @@ extension _SpecialTreatmentEncoder {
 
 
 extension _SpecialTreatmentEncoder {
+    
+    
+    /// Performs the actual value transformation
+    internal func encodeWithTransformer<Performer: ValueTransformable>(_ performer: Performer, decodedValue: Any) -> Any? {
+        // 首先检查是否是属性包装器
+        if let propertyWrapper = decodedValue as? any PropertyWrapperable {
+            let wrappedValue = propertyWrapper.wrappedValue
+            guard let value = wrappedValue as? Performer.Object else {
+                return nil
+            }
+            return performer.transformToJSON(value)
+        } else {
+            guard let value = decodedValue as? Performer.Object else { return nil }
+            return performer.transformToJSON(value)
+        }
+    }
+    
+    
+    
     internal func _converted(_ key: CodingKey) -> CodingKey {
         
         var newKey = key

@@ -34,25 +34,39 @@ class TestViewController: BaseViewController {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         
-        let model = Model()
+        
+        
+        let dict: [String: Any] = [
+            "name": "Mccc",
+            "age": 20
+        ]
+        
+        
+        guard let model = Model.deserialize(from: dict) else { return }
+        
+        print(model)
         
         guard let dict = model.toJSONString() else { return }
         print(dict)
-        print("\n")
-
-        
-        guard let dict1 = model.toJSONString(useMappedKeys: true) else { return }
-        print(dict1)
+//        print("\n")
+//
+//        
+//        guard let dict1 = model.toJSONString(useMappedKeys: true) else { return }
+//        print(dict1)
     }
     
 
 
     
     struct Model: SmartCodable {
-        var name: String?
+//        var name: String? = "Mccc"
 //        var age: Int = 100
+//        
+//        @SmartDate
+//        var date: Date? = Date()
         
-//        var sub: SubModel = SubModel()
+        @SmartFlat
+        var sub: SubModel = SubModel()
 //        
 //        
 //        static func mappingForKey() -> [SmartKeyTransformer]? {
@@ -71,21 +85,28 @@ class TestViewController: BaseViewController {
     
     
     struct SubModel: SmartCodable {
-        var hobby: String = "ball"
+//        var hobby: String = "ball"
+   
+        var name: String? = "Mccc"
+        var age: Int = 100
+        
+//        @SmartHexColor
+//        var color: UIColor? = UIColor.red
         
         
-        
-        static func mappingForKey() -> [SmartKeyTransformer]? {
-            [
-                CodingKeys.hobby  <--- "ball_ball",
-            ]
-        }
-        
-        static func mappingForValue() -> [SmartValueTransformer]? {
-            [
-                CodingKeys.hobby <--- Tranformer1()
-            ]
-        }
+//        
+//        static func mappingForKey() -> [SmartKeyTransformer]? {
+//            [
+////                CodingKeys.hobby  <--- "ball_ball",
+//            ]
+//        }
+//        
+//        static func mappingForValue() -> [SmartValueTransformer]? {
+//            [
+////                CodingKeys.hobby <--- Tranformer1(),
+////                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rgb(.zeroX))
+//            ]
+//        }
     }
     
     

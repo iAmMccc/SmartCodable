@@ -231,7 +231,7 @@ extension JSONDecoderImpl {
     fileprivate func unwrapSmartAny() throws -> SmartAnyImpl {
         
         if let tranformer = cache.valueTransformer(for: codingPath.last, in: codingPath.dropLast()) {
-            if let decoded = tranformer.tranform(value: json) as? SmartAnyImpl {
+            if let decoded = tranformer.transformFromJSON(json) as? SmartAnyImpl {
                 return decoded
             } else {
                 throw DecodingError.dataCorrupted(

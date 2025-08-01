@@ -99,16 +99,16 @@ extension EncodingCache {
     }
     
     /// Performs the actual value transformation
-    private func transform<Transform: ValueTransformable>(decodedValue: Any, performer: Transform) -> Any? {
+    private func transform<Performer: ValueTransformable>(decodedValue: Any, performer: Performer) -> Any? {
         // 首先检查是否是属性包装器
         if let propertyWrapper = decodedValue as? any PropertyWrapperable {
             let wrappedValue = propertyWrapper.wrappedValue
-            guard let value = wrappedValue as? Transform.Object else {
+            guard let value = wrappedValue as? Performer.Object else {
                 return nil
             }
             return performer.transformToJSON(value)
         } else {
-            guard let value = decodedValue as? Transform.Object else { return nil }
+            guard let value = decodedValue as? Performer.Object else { return nil }
             return performer.transformToJSON(value)
         }
     }

@@ -48,7 +48,7 @@ extension JSONDecoderImpl {
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
             if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-                guard let decoded = tranformer.tranform(value: value) as? T else { return nil }
+                guard let decoded = tranformer.transformFromJSON(value) as? T else { return nil }
                 return decoded
             }
             
@@ -75,7 +75,7 @@ extension JSONDecoderImpl {
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
             if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-                return tranformer.tranform(value: value) as? T
+                return tranformer.transformFromJSON(value) as? T
             }
             
             guard case .number(let number) = value else { return nil }
@@ -125,7 +125,7 @@ extension JSONDecoderImpl {
     func unwrapBoolValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> Bool? {
         
         if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-            return tranformer.tranform(value: value) as? Bool
+            return tranformer.transformFromJSON(value) as? Bool
         }
         
         guard case .bool(let bool) = value else { return nil }
@@ -135,7 +135,7 @@ extension JSONDecoderImpl {
     func unwrapStringValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> String? {
         
         if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-            return tranformer.tranform(value: value) as? String
+            return tranformer.transformFromJSON(value) as? String
         }
         
         guard case .string(let string) = value else { return nil }
