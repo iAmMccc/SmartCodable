@@ -1,13 +1,18 @@
 import XCTest
 import SmartCodable
+import HandyJSON
 
 
 class PerformanceTest: XCTestCase {
     var data: Data = Data()
+    
+    var object: Any?
 
     override func setUp() {
         super.setUp()
         data = airportsJSON(count: count)
+        
+        object = data.toJSONObject()
     }
     
     override func tearDown() {
@@ -15,108 +20,64 @@ class PerformanceTest: XCTestCase {
     }
     
 
-//    //【1000】 0.015。 使用JSONDecoder解析遵循Codable协议的model
-//    func testCodable() {
-//        measure {
-//            do {
-//                let decoder = JSONDecoder()
-//                let objects = try decoder.decode([CodableModel].self, from: data)
-//                XCTAssertEqual(objects.count, count)
-//            } catch {
-//                XCTAssertNil(error)
-//            }
-//        }
-//    }
-//    
-//    //【1000】0.026 使用SmartJSONDecoder解析遵循Codable协议的model
-//    func testCleanJsonDecoder() {
-//        measure {
-//            do {
-//                let decoder = SmartJSONDecoder()
-//                let objects = try decoder.decode([CodableModel].self, from: data)
-//                XCTAssertEqual(objects.count, count)
-//            } catch {
-//                XCTAssertNil(error)
-//            }
-//        }
-//    }
-//    
-//    //【1000】 0.046 使用JSONParser解析遵循SmartCodable协议的model
-//    func testSmartJsonParser() {
-//        measure {
-//            do {
-//                let decoder = SmartJSONDecoder()
-//                decoder.parserMode = .custom
-//                let objects = try decoder.decode([SmartModel].self, from: data)
-//                XCTAssertEqual(objects.count, count)
-//            } catch {
-//                XCTAssertNil(error)
-//            }
-//        }
-//    }
-//    
-//    //【1000】 0.036 使用JSONSerialization解析遵循SmartCodable协议的model
-//    func testSmartJSONSerialization() {
-//        measure {
-//            do {
-//                let decoder = SmartJSONDecoder()
-//                let objects = try decoder.decode([SmartModel].self, from: data)
-//                XCTAssertEqual(objects.count, count)
-//            } catch {
-//                XCTAssertNil(error)
-//            }
-//        }
-//    }
-    // 【1000】 average: 0.040, relative standard deviation: 19.680%, values: [0.055929, 0.044426, 0.028143, 0.040032, 0.041667, 0.042019, 0.039634, 0.026208, 0.038857, 0.040737]
-    func testEncodeWithJSONSerialization() throws {
-        let decoder = SmartJSONDecoder()
-        let objects = try decoder.decode([SmartModel].self, from: data)
+    //【1000】 0.015。 使用JSONDecoder解析遵循Codable协议的model
+    func testCodable() {
         measure {
             do {
-                let encoder = SmartJSONEncoder()
-                let _ = try encoder.encode(objects)
+                
+//                let _data = jsonData(from: object)!
+                
+                let decoder = JSONDecoder()
+                let objects = try decoder.decode([CodableModel].self, from: data)
+                XCTAssertEqual(objects.count, count)
             } catch {
                 XCTAssertNil(error)
             }
         }
     }
     
-    // 【1000】average: 0.039, relative standard deviation: 15.440%, values: [0.048204, 0.044045, 0.038840, 0.039561, 0.040793, 0.042170, 0.027042, 0.041110, 0.040413, 0.029381]
-    func testEncodeWithWriter() throws {
-        let decoder = SmartJSONDecoder()
-        let objects = try decoder.decode([SmartModel].self, from: data)
+
+    //【1000】 0.036 使用JSONSerialization解析遵循SmartCodable协议的model
+    func testHandyJSON() {
         measure {
-            do {
-                let encoder = SmartJSONEncoder()
-                let _ = try encoder.encode(objects)
-            } catch {
-                XCTAssertNil(error)
+            guard let objects = [HandyModel].deserialize(from: object as? [Any]) else {
+                return
             }
+            XCTAssertEqual(objects.count, count)
+        }
+    }
+    // 【1000】
+    func testSmart() throws {
+       
+        measure {
+            guard let objects = [SmartModel].deserialize(from: data) else {
+                return
+            }
+            XCTAssertEqual(objects.count, count)
         }
     }
 }
 
-// Codable & CleanJSON
+
+
 struct CodableModel: Codable {
-    let name: String
-    let iata: String
-    let icao: String
-    let coordinates: [Double]
-//    let runways: [Runway]
-
-//    struct Runway: Codable {
-//        enum Surface: String, Codable {
-//            case rigid, flexible, gravel, sealed, unpaved, other
-//        }
-//        
-//        let direction: String
-//        let distance: Int
-//        let surface: Surface
-//    }
+    
+    var name: String?
+    var iata: String?
+    var icao: String?
+    var coordinates: [Double]?
+    var runways: [Runway]?
+    
+    struct Runway: Codable {
+        enum Surface: String, Codable {
+            case rigid, flexible, gravel, sealed, unpaved, other
+        }
+        
+        var direction: String?
+        var distance: Int?
+        var surface: Surface?
+    }
 }
-
-
-
 
 // SmartCodable
 struct SmartModel: SmartCodable {
@@ -125,15 +86,61 @@ struct SmartModel: SmartCodable {
     var iata: String?
     var icao: String?
     var coordinates: [Double]?
-//    var runways: [Runway]?
-//    
-//    struct Runway: SmartCodable {
-//        enum Surface: String, SmartCaseDefaultable {            
-//            case rigid, flexible, gravel, sealed, unpaved, other
-//        }
-//        
-//        var direction: String?
-//        var distance: Int?
-//        var surface: Surface?
-//    }
+    var runways: [Runway]?
+    
+    struct Runway: SmartCodable {
+        enum Surface: String, SmartCaseDefaultable {            
+            case rigid, flexible, gravel, sealed, unpaved, other
+        }
+        
+        var direction: String?
+        var distance: Int?
+        var surface: Surface?
+    }
+}
+
+struct HandyModel: HandyJSON {
+    
+    var name: String?
+    var iata: String?
+    var icao: String?
+    var coordinates: [Double]?
+    var runways: [Runway]?
+    
+    struct Runway: HandyJSON {
+        enum Surface: String, HandyJSONEnum {
+            case rigid, flexible, gravel, sealed, unpaved, other
+        }
+        
+        var direction: String?
+        var distance: Int?
+        var surface: Surface?
+    }
+}
+
+
+
+
+extension Data {
+    /// 尝试将 Data 解析为 JSON 对象（字典或数组）
+    func toJSONObject() -> Any? {
+        do {
+            let json = try JSONSerialization.jsonObject(with: self, options: [])
+            return json
+        } catch {
+            print("JSON 解析失败: \(error)")
+            return nil
+        }
+    }
+}
+fileprivate func jsonData(from object: Any?, prettyPrinted: Bool = false) -> Data? {
+    
+    guard let object = object else { return nil }
+    
+    guard JSONSerialization.isValidJSONObject(object) else {
+        print("⚠️ 无法转成 JSON：不是合法的 JSON 对象")
+        return nil
+    }
+    let options: JSONSerialization.WritingOptions = prettyPrinted ? .prettyPrinted : []
+    return try? JSONSerialization.data(withJSONObject: object, options: options)
 }

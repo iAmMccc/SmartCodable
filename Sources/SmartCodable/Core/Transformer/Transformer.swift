@@ -41,7 +41,7 @@ public struct SmartValueTransformer {
     ///   - value: The JSON value to transform
     ///   - key: The associated coding key (if available)
     /// - Returns: The transformed value or nil if no transformer applies
-    func tranform(value: JSONValue) -> Any? {
+    func transformFromJSON(_ value: JSONValue) -> Any? {
         return performer.transformFromJSON(value.peel)
     }
 }

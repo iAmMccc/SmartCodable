@@ -16,7 +16,10 @@ enum JSONValue: Equatable {
     case object([String: JSONValue])
     
     
-    static func make(_ value: Any) -> Self? {
+    static func make(_ value: Any?) -> Self? {
+        
+        guard let value = value else { return nil }
+        
         if let jsonValue = value as? JSONValue {
             return jsonValue
         }

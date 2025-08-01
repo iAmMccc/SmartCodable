@@ -246,8 +246,18 @@ fileprivate func _deserializeArray<T>(input: Any, type: [T].Type, options: Set<S
 
     do {
         let _decoder = createDecoder(type: type, options: options)
-        let obj = try _decoder.smartDecode(type, from: input)
-        return obj
+        
+        
+        if options?.isEmpty ?? false {
+            let obj = try _decoder.smartDecode(type, from: input)
+            return obj
+
+        } else {
+            let obj = try _decoder.decode(type, from: input as! Data)
+            return obj
+
+        }
+        
     } catch {
         return nil
     }

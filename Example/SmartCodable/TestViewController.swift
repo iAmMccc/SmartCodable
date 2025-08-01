@@ -28,104 +28,119 @@ class TestViewController: BaseViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-
+        
+        
+        
         let dict: [String: Any] = [
-            "int": 1,
-            "bool": true,
-            "string": "mccc",
-            "double": 200.0,
-            "cgFloat": 200.0,
-            "float": 200.0,
-            "subModel": [
-                "name": "Sub Mccc"
-            ]
+            "name": "Mccc",
+            "age": 20
         ]
         
+        
         guard let model = Model.deserialize(from: dict) else { return }
+        
         print(model)
         
-        guard let transDict = model.toJSONString(prettyPrint: true) else { return }
-        print(transDict)
+        guard let dict = model.toJSONString() else { return }
+        print(dict)
+//        print("\n")
+//
+//        
+//        guard let dict1 = model.toJSONString(useMappedKeys: true) else { return }
+//        print(dict1)
     }
+    
+
+
     
     struct Model: SmartCodable {
-
-//        var int: Int = 100
-//        var bool: Bool = true
-//        var string: String = "Mccc"
-//        var double: Double = 100.0
-//        var cgFloat: CGFloat = 100.0
-//        var float: Float = 100.0
-        var subModel: SubModel = SubModel()
+//        var name: String? = "Mccc"
+//        var age: Int = 100
+//        
+//        @SmartDate
+//        var date: Date? = Date()
         
-        static func mappingForValue() -> [SmartValueTransformer]? {
-            [
-//                CodingKeys.int <--- IntTranformer(),
-//                CodingKeys.bool <--- BoolTranformer(),
-//                CodingKeys.string <--- Tranformer(),
-//                CodingKeys.double <--- Tranformer(),
-//                CodingKeys.cgFloat <--- Tranformer(),
-//                CodingKeys.float <--- Tranformer(),
-//                CodingKeys.date <--- SmartDateTransformer(strategy: .timestamp)
-//                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rrggbb(.none))
+        @SmartFlat
+        var sub: SubModel = SubModel()
+//        
+//        
+//        static func mappingForKey() -> [SmartKeyTransformer]? {
+//            [
+//                CodingKeys.name  <--- "nick_name",
+//                CodingKeys.age <--- "self_age"
+//            ]
+//        }
+//        
+//        static func mappingForValue() -> [SmartValueTransformer]? {
+//            [
 //                CodingKeys.name <--- Tranformer()
-                CodingKeys.subModel <--- SubTranformer()
-            ]
-        }
+//            ]
+//        }
     }
+    
     
     struct SubModel: SmartCodable {
-        var name: String = "Mccc"
+//        var hobby: String = "ball"
+   
+        var name: String? = "Mccc"
+        var age: Int = 100
+        
+//        @SmartHexColor
+//        var color: UIColor? = UIColor.red
+        
+        
+//        
+//        static func mappingForKey() -> [SmartKeyTransformer]? {
+//            [
+////                CodingKeys.hobby  <--- "ball_ball",
+//            ]
+//        }
+//        
+//        static func mappingForValue() -> [SmartValueTransformer]? {
+//            [
+////                CodingKeys.hobby <--- Tranformer1(),
+////                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rgb(.zeroX))
+//            ]
+//        }
     }
     
-    struct IntTranformer: ValueTransformable {
-        func transformFromJSON(_ value: Any) -> Object? {
-            return 300
+    
+    struct Tranformer: ValueTransformable {
+        func transformFromJSON(_ value: Any) -> String? {
+            return "你好"
         }
         
-        func transformToJSON(_ value: Object) -> JSON? {
-            return "300"
+        func transformToJSON(_ value: String) -> String? {
+            return "你好"
         }
         
-        typealias Object = Int
+        typealias Object = String
         
         typealias JSON = String
+        
+        
     }
     
     
-    struct SubTranformer: ValueTransformable {
-        func transformFromJSON(_ value: Any) -> Object? {
-            return SubModel(name: "subsubsub")
+    struct Tranformer1: ValueTransformable {
+        func transformFromJSON(_ value: Any) -> String? {
+            return "篮球"
         }
         
-        func transformToJSON(_ value: Object) -> JSON? {
-            return ["name": "subsubsub"]
+        func transformToJSON(_ value: String) -> String? {
+            return "篮球"
         }
         
-        typealias Object = SubModel
+        typealias Object = String
         
-        typealias JSON = [String: Any]
+        typealias JSON = String
+        
+        
     }
-
-    
 }
-
-
-struct BoolTranformer: ValueTransformable {
-    func transformFromJSON(_ value: Any) -> Object? {
-        return true
-    }
-    
-    func transformToJSON(_ value: Object) -> JSON? {
-        return nil
-    }
-    
-    typealias Object = Bool
-    
-    typealias JSON = String
-}
-
 

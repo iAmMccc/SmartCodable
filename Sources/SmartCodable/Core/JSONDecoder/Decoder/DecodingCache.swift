@@ -190,14 +190,3 @@ class DecodingSnapshot: Snapshot {
     /// Key: Property name, Value: Initial value
     var initialValues: [String : Any] = [:]
 }
-
-
-extension [CodingKey] {
-    /// 返回当前解码字段的 key 与其所属容器的 codingPath
-    /// 要注意此时的codingPath 是否属性级别。
-    fileprivate func codingKeyAndContainerPath() -> (key: CodingKey?, containerPath: [CodingKey]) {
-        let key = last
-        let containerPath = Array(dropLast())
-        return (key, containerPath)
-    }
-}

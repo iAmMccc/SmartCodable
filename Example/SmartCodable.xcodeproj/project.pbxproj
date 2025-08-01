@@ -105,6 +105,7 @@
 		9993D69D2B9215B70089CA68 /* Support_didFinishMappingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9993D69C2B9215B70089CA68 /* Support_didFinishMappingViewController.swift */; };
 		999FA2432B99B86A00A2952F /* FinishMappingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999FA2422B99B86A00A2952F /* FinishMappingViewController.swift */; };
 		99A919762E324DED00620B9C /* CaseEightViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99A919752E324DED00620B9C /* CaseEightViewController.swift */; };
+		99A919782E38E7BA00620B9C /* 10000.json in Resources */ = {isa = PBXBuildFile; fileRef = 99A919772E38E7BA00620B9C /* 10000.json */; };
 		99AE7D902B3EC02E00B474E5 /* airports1.json in Resources */ = {isa = PBXBuildFile; fileRef = 99AE7D8A2B3EC02E00B474E5 /* airports1.json */; };
 		99AE7D922B3EC02E00B474E5 /* airports10000.json in Resources */ = {isa = PBXBuildFile; fileRef = 99AE7D8C2B3EC02E00B474E5 /* airports10000.json */; };
 		99AE7D932B3EC02E00B474E5 /* airports10.json in Resources */ = {isa = PBXBuildFile; fileRef = 99AE7D8D2B3EC02E00B474E5 /* airports10.json */; };
@@ -251,6 +252,7 @@
 		9993D69C2B9215B70089CA68 /* Support_didFinishMappingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Support_didFinishMappingViewController.swift; sourceTree = "<group>"; };
 		999FA2422B99B86A00A2952F /* FinishMappingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinishMappingViewController.swift; sourceTree = "<group>"; };
 		99A919752E324DED00620B9C /* CaseEightViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaseEightViewController.swift; sourceTree = "<group>"; };
+		99A919772E38E7BA00620B9C /* 10000.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = 10000.json; sourceTree = "<group>"; };
 		99AE7D8A2B3EC02E00B474E5 /* airports1.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = airports1.json; sourceTree = "<group>"; };
 		99AE7D8C2B3EC02E00B474E5 /* airports10000.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = airports10000.json; sourceTree = "<group>"; };
 		99AE7D8D2B3EC02E00B474E5 /* airports10.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = airports10.json; sourceTree = "<group>"; };
@@ -351,6 +353,7 @@
 				99675FDC2B3EC930006C83EC /* TestViewController.swift */,
 				99CE4D512BC687700006D435 /* Test2ViewController.swift */,
 				99153D762BD1124C004C01AD /* Test3ViewController.swift */,
+				99A919772E38E7BA00620B9C /* 10000.json */,
 				990CBAF32CA4F5300099E4C7 /* 1231231.swift */,
 				99C1E70C2B99A55E0090E8FD /* 说明信息 */,
 				99675FDF2B3EC930006C83EC /* Smart */,
@@ -879,6 +882,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				99A919782E38E7BA00620B9C /* 10000.json in Resources */,
 				99675FD12B3EC822006C83EC /* airports1000.json in Resources */,
 				99C1E70D2B99A55E0090E8FD /* 说明信息 in Resources */,
 				607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */,

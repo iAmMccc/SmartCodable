@@ -165,6 +165,25 @@ extension _SpecialTreatmentEncoder {
 
 
 extension _SpecialTreatmentEncoder {
+    
+    
+    /// Performs the actual value transformation
+    internal func encodeWithTransformer<Performer: ValueTransformable>(_ performer: Performer, decodedValue: Any) -> Any? {
+        // 首先检查是否是属性包装器
+        if let propertyWrapper = decodedValue as? any PropertyWrapperable {
+            let wrappedValue = propertyWrapper.wrappedValue
+            guard let value = wrappedValue as? Performer.Object else {
+                return nil
+            }
+            return performer.transformToJSON(value)
+        } else {
+            guard let value = decodedValue as? Performer.Object else { return nil }
+            return performer.transformToJSON(value)
+        }
+    }
+    
+    
+    
     internal func _converted(_ key: CodingKey) -> CodingKey {
         
         var newKey = key
