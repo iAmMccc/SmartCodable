@@ -67,7 +67,6 @@ extension _SpecialTreatmentEncoder {
             return try self.wrapObject(object as! [String: Encodable], for: additionalKey)
         default:
             
-            
             let encoder = self.getEncoder(for: additionalKey)
             encoder.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
             try encodable.encode(to: encoder)
