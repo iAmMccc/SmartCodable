@@ -40,6 +40,27 @@
 
 ### English | [中文](https://github.com/iAmMccc/SmartCodable/blob/main/README_CN.md)
 
+
+## SmartModeler - JSON To Swift SmartCodable Tool
+
+[online access）](https://iammccc.github.io)
+
+SmartModeler is an online JSON-to-model tool specifically designed for the Swift ecosystem and the SmartCodable library. It quickly converts any standard JSON data into Swift structs compliant with SmartCodable, greatly improving developers' efficiency and accuracy in model creation.
+
+**Key Features:**
+
+- **Smart JSON Parsing:** Automatically detects basic types, arrays, and nested objects to generate corresponding Swift structs and properties.
+- **Flexible Configurations:** Customize struct usage, initializer generation, property access levels (public), camelCase conversion, optional properties, and header comments to fit various coding standards.
+- **Syntax Highlighting & Formatting:** Built-in editor supports syntax highlighting and automatic formatting for both JSON and Swift code for better readability.
+- **Real-Time Preview:** Edit JSON on the left and instantly see the generated Swift model on the right, with configuration toggles updating output dynamically.
+- **Clean & Intuitive UI:** Top toolbar and clear split layout make it easy to operate and understand the conversion process.
+
+Built as an extension of the open-source SmartCodable project, this tool is a practical asset for Swift developers converting JSON data into consistent Swift models.
+
+![](https://github.com/iAmMccc/iAmMccc.github.io/blob/main/演示图.png)
+
+
+
 SmartCodable redefines Swift data parsing by augmenting Apple's native Codable with production-ready resilience and flexibility. Where standard Codable fails on real-world data, SmartCodable delivers bulletproof parsing with minimal boilerplate.
 
 ## **SmartCodable vs Codable**
