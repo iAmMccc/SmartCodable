@@ -43,7 +43,7 @@
 
 ## SmartModeler - JSON To Swift SmartCodable Tool
 
-[online access）](https://iammccc.github.io)
+[online access](https://iammccc.github.io)
 
 SmartModeler is an online JSON-to-model tool specifically designed for the Swift ecosystem and the SmartCodable library. It quickly converts any standard JSON data into Swift structs compliant with SmartCodable, greatly improving developers' efficiency and accuracy in model creation.
 
