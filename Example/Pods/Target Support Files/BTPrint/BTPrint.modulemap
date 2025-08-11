@@ -1,6 +1,0 @@
-framework module BTPrint {
-  umbrella header "BTPrint-umbrella.h"
-
-  export *
-  module * { export * }
-}

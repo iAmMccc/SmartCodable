@@ -15,15 +15,37 @@ import AppKit
 #endif
 
 @propertyWrapper
-public struct SmartDate: Codable {
+public struct SmartDate: PropertyWrapperable {
+    
     public var wrappedValue: Date?
+    public init(wrappedValue: Date?) {
+        self.wrappedValue = wrappedValue
+        self.encodeFormat = nil
+    }
+    
+    public func wrappedValueDidFinishMapping() -> SmartDate? {
+        // Date类型不需要DidFinishMapping处理。
+        return nil
+    }
+    public static func createInstance(with value: Any) -> SmartDate? {
+        if let value = value as? Date {
+            return SmartDate(wrappedValue: value)
+        }
+        return nil
+    }
+    
+
+    
     private var encodeFormat: DateStrategy?
 
     public init(wrappedValue: Date?, encodeFormat: SmartDate.DateStrategy? = nil) {
         self.wrappedValue = wrappedValue
         self.encodeFormat = encodeFormat
     }
+}
 
+
+extension SmartDate: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 

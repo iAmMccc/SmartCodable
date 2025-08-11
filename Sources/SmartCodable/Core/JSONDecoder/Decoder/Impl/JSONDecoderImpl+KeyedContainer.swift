@@ -128,11 +128,6 @@ extension JSONDecoderImpl.KeyedContainer {
         try _decodeFloatingPoint(key: key)
     }
     
-    func decode(_: CGFloat.Type, forKey key: K) throws -> CGFloat {
-        let value = try decode(Double.self, forKey: key)
-        return CGFloat(value)
-    }
-    
     func decode(_: Float.Type, forKey key: K) throws -> Float {
         try _decodeFloatingPoint(key: key)
     }
@@ -195,13 +190,6 @@ extension JSONDecoderImpl.KeyedContainer {
     
     func decodeIfPresent(_ type: Float.Type, forKey key: K) throws -> Float? {
         _decodeFloatingPointIfPresent(key: key)
-    }
-    
-    func decodeIfPresent(_ type: CGFloat.Type, forKey key: K) throws -> CGFloat? {
-        if let value = try decodeIfPresent(Double.self, forKey: key) {
-            return CGFloat(value)
-        }
-        return nil
     }
     
     func decodeIfPresent(_ type: Double.Type, forKey key: K) throws -> Double? {
@@ -280,11 +268,11 @@ extension JSONDecoderImpl.KeyedContainer {
     /// Performs post-mapping cleanup and notifications
     fileprivate func didFinishMapping<T>(_ decodeValue: T) -> T {
         // Properties wrapped by property wrappers don't conform to SmartDecodable protocol.
-        // Here we use PostDecodingHookable as an intermediary layer for processing.
+        // Here we use PropertyWrapperable as an intermediary layer for processing.
         if var value = decodeValue as? SmartDecodable {
             value.didFinishMapping()
             if let temp = value as? T { return temp }
-        } else if let value = decodeValue as? PostDecodingHookable {
+        } else if let value = decodeValue as? (any PropertyWrapperable) {
             if let temp = value.wrappedValueDidFinishMapping() as? T {
                 return temp
             }
@@ -296,14 +284,11 @@ extension JSONDecoderImpl.KeyedContainer {
                                           type: T.Type,
                                           key: K) -> T? where T: Decodable {
         // 处理属性包装类型
-        if let propertyWrapperType = T.self as? any PropertyWrapperInitializable.Type {
-            if type is FlatType.Type, let decoded = transformer.tranform(value: impl.json),
-               let wrapperValue = propertyWrapperType.createInstance(with: decoded) as? T {
-                return didFinishMapping(wrapperValue)
-            }
+        if let propertyWrapperType = T.self as? any PropertyWrapperable.Type {
+            let value: JSONValue? = (type is FlatType.Type) ? impl.json : getValue(forKey: key)
             
-            if let value = getValue(forKey: key),
-               let decoded = transformer.tranform(value: value),
+            if let value = value,
+               let decoded = transformer.transformFromJSON(value),
                let wrapperValue = propertyWrapperType.createInstance(with: decoded) as? T {
                 return didFinishMapping(wrapperValue)
             }
@@ -311,7 +296,7 @@ extension JSONDecoderImpl.KeyedContainer {
         
         // 处理普通类型转换
         if let value = getValue(forKey: key),
-           let decoded = transformer.tranform(value: value) as? T {
+           let decoded = transformer.transformFromJSON(value) as? T {
             return didFinishMapping(decoded)
         }
         return nil
@@ -437,8 +422,24 @@ extension JSONDecoderImpl.KeyedContainer {
     
     @inline(__always)private func _decodeDecodableIfPresentCore<T: Decodable>(_ type: T.Type, forKey key: K) -> T? {
         
-        // 检查是否有值转换器
-        if let transformer = impl.cache.valueTransformer(for: key, codingPath: codingPath) {
+        /// JSON 解码场景可分为三大类，每类对应不同的处理策略：
+        ///
+        /// 1. 基本数据类型（Primitive Types）
+        ///    - 包括 Int、Bool、Double、String 等基础类型，直接映射 JSON 的原始值（number/string/bool）。
+        ///
+        /// 2. 特殊类型（Non-Primitive Types）
+        ///    - 包括 Date、CGFloat、URL、Decimal 等，需要额外格式或上下文支持的类型。
+        ///
+        /// 3. 嵌套模型类型（Nested model Types）
+        ///    - 包括 直接继承于Codable 或 SmartCodable的Model。
+        ///
+        /// 4. 属性包装器类型（Property Wrapper Types）
+        ///    - 包括SmartDate，SmartIgnored，SmartHexColor等。
+        
+        /// 总结：
+        /// 除基本数据类型之外，都会进入该方法`_decodeDecodableIfPresentCore`.因此在此处进行统一的value解析的拦截实现即可。
+        /// 不需要分散在各个类型中逐一处理。
+        if let transformer = impl.cache.valueTransformer(for: key, in: codingPath) {
             if let decoded = decodeWithTransformer(transformer, type: type, key: key) {
                 return decoded
             }

@@ -34,7 +34,12 @@ extension JSONValue {
         case .bool(let v):
             return v
         case .number(let v):
-            return v
+            if let number = NSNumber.fromJSONNumber(v) {
+                return number
+//                return number.toBestSwiftType
+            } else {
+                return v // fallback to string
+            }
         case .string(let v):
             return v
         case .object(let v):

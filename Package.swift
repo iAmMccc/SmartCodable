@@ -46,8 +46,8 @@ let package = Package(
             dependencies: [
                 "SmartCodableMacros"
             ],
-            path: "Sources/SmartCodable/MacroSupport",
-        ),
+            path: "Sources/SmartCodable/MacroSupport"),
+        
         // A test target used to develop the macro implementation.
         .testTarget(
             name: "SmartCodableTests",

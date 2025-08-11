@@ -34,7 +34,6 @@ extension JSONDecoderImpl {
         if type == CGFloat.self {
             return try unwrapCGFloat() as! T
         }
-        
         if type is _JSONStringDictionaryDecodableMarker.Type {
             return try self.unwrapDictionary(as: type)
         }
@@ -48,8 +47,8 @@ extension JSONDecoderImpl {
     func unwrapFloatingPoint<T: LosslessStringConvertible & BinaryFloatingPoint>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
-            if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
-                guard let decoded = tranformer.tranform(value: value) as? T else { return nil }
+            if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+                guard let decoded = tranformer.transformFromJSON(value) as? T else { return nil }
                 return decoded
             }
             
@@ -75,8 +74,8 @@ extension JSONDecoderImpl {
     func unwrapFixedWidthInteger<T: FixedWidthInteger>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
-            if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
-                return tranformer.tranform(value: value) as? T
+            if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+                return tranformer.transformFromJSON(value) as? T
             }
             
             guard case .number(let number) = value else { return nil }
@@ -125,8 +124,8 @@ extension JSONDecoderImpl {
     
     func unwrapBoolValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> Bool? {
         
-        if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
-            return tranformer.tranform(value: value) as? Bool
+        if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+            return tranformer.transformFromJSON(value) as? Bool
         }
         
         guard case .bool(let bool) = value else { return nil }
@@ -135,8 +134,8 @@ extension JSONDecoderImpl {
     
     func unwrapStringValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> String? {
         
-        if let tranformer = cache.valueTransformer(for: additionalKey, codingPath: codingPath) {
-            return tranformer.tranform(value: value) as? String
+        if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+            return tranformer.transformFromJSON(value) as? String
         }
         
         guard case .string(let string) = value else { return nil }
@@ -144,20 +143,28 @@ extension JSONDecoderImpl {
     }
 }
 
+/// 新开了SingleContainer，此时key已经被添加到codingPath中了。
 extension JSONDecoderImpl {
-    private func unwrapDate() throws -> Date {
-        
-        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
-            if let decoded = tranformer.tranform(value: json) as? Date {
-                return decoded
-            } else {
-                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: self.codingPath, debugDescription: "Encountered Date is not valid , unknown anomaly"))
-            }
+    
+    private func unwrapCGFloat() throws -> CGFloat {
+        guard case .number(let numberString) = self.json else {
+            throw DecodingError.typeMismatch(CGFloat.self, DecodingError.Context(
+                codingPath: self.codingPath,
+                debugDescription: "Expected a JSON number for \(CGFloat.self), but found."))
         }
         
+        guard let doubleValue = Double(numberString) else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: self.codingPath,
+                debugDescription: "Parsed JSON number <\(numberString)> is not a valid Double for conversion to \(CGFloat.self)."))
+        }
+        
+        return CGFloat(doubleValue)
+    }
+    
+    private func unwrapDate() throws -> Date {
         let container = SingleValueContainer(impl: self, codingPath: codingPath, json: json)
 
-        
         if let dateDecodingStrategy = self.options.dateDecodingStrategy  {
             switch dateDecodingStrategy {
             case .deferredToDate:
@@ -206,14 +213,7 @@ extension JSONDecoderImpl {
     }
     
     private func unwrapData() throws -> Data {
-        
-        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
-            if let decoded = tranformer.tranform(value: json) as? Data {
-                return decoded
-            }
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: self.codingPath, debugDescription: "Encountered Data is not valid Base64."))
-        }
-        
+
         switch self.options.dataDecodingStrategy {
         case .base64:
             let container = SingleValueContainer(impl: self, codingPath: self.codingPath, json: self.json)
@@ -228,17 +228,7 @@ extension JSONDecoderImpl {
     }
     
     private func unwrapURL() throws -> URL {
-        
-        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
-            if let decoded = tranformer.tranform(value: json) as? URL {
-                return decoded
-            }
-            throw DecodingError.dataCorrupted(
-                DecodingError.Context(codingPath: self.codingPath,
-                                      debugDescription: "Invalid URL string."))
-        }
-        
-        
+
         let container = SingleValueContainer(impl: self, codingPath: self.codingPath, json: self.json)
         let string = try container.decode(String.self)
         
@@ -251,16 +241,7 @@ extension JSONDecoderImpl {
     }
     
     private func unwrapDecimal() throws -> Decimal {
-        
-        if let tranformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
-            if let decoded = tranformer.tranform(value: json) as? Decimal {
-                return decoded
-            }
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: self.codingPath,
-                debugDescription: "Parsed JSON number does not fit in \(Decimal.self)."))
-        }
-        
+
         guard case .number(let numberString) = self.json else {
             throw DecodingError.typeMismatch(Decimal.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: ""))
         }
@@ -275,30 +256,6 @@ extension JSONDecoderImpl {
     }
     
     
-    private func unwrapCGFloat() throws -> CGFloat {
-        if let transformer = cache.valueTransformer(for: codingPath.last, codingPath: codingPath) {
-            if let decoded = transformer.tranform(value: json) as? CGFloat {
-                return decoded
-            }
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: self.codingPath,
-                debugDescription: "Parsed JSON value cannot be transformed to \(CGFloat.self)."))
-        }
-        
-        guard case .number(let numberString) = self.json else {
-            throw DecodingError.typeMismatch(CGFloat.self, DecodingError.Context(
-                codingPath: self.codingPath,
-                debugDescription: "Expected a JSON number for \(CGFloat.self), but found."))
-        }
-        
-        guard let doubleValue = Double(numberString) else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: self.codingPath,
-                debugDescription: "Parsed JSON number <\(numberString)> is not a valid Double for conversion to \(CGFloat.self)."))
-        }
-        
-        return CGFloat(doubleValue)
-    }
     
     
     private func unwrapDictionary<T: Decodable>(as: T.Type) throws -> T {
@@ -348,6 +305,7 @@ extension Decodable {
             || Self.self == Date.self
             || Self.self == Data.self
             || Self.self == Decimal.self
+            || Self.self == CGFloat.self
             || Self.self == SmartAnyImpl.self
             || Self.self is _JSONStringDictionaryDecodableMarker.Type
         {
@@ -363,3 +321,5 @@ internal let _iso8601Formatter: ISO8601DateFormatter = {
     formatter.formatOptions = .withInternetDateTime
     return formatter
 }()
+
+

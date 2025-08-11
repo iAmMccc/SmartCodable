@@ -20,6 +20,7 @@ class EncodingCache: Cachable {
             
             var snapshot = EncodingSnapshot()
             snapshot.objectType = object
+            snapshot.codingPath = codingPath
             snapshot.transformers = object.mappingForValue()
             snapshots.append(snapshot)
         }
@@ -35,6 +36,33 @@ class EncodingCache: Cachable {
     }
 }
 
+
+extension EncodingCache {
+    /// 获取对应的值解析器
+    func valueTransformer(for key: CodingKey?, in containerPath: [CodingKey]) -> SmartValueTransformer? {
+        guard let lastKey = key else { return nil }
+        
+        guard let snapshot = findSnapShot(with: containerPath) else { return nil }
+        
+        guard let transformers = snapshot.transformers, !transformers.isEmpty else { return nil }
+        
+        
+        // 提前解析 key 映射（避免每次遍历 transformer 都重新计算）
+        let keyMappings: Set<String> = {
+            guard let mappings = snapshot.objectType?.mappingForKey() else { return [] }
+            return Set(mappings.flatMap { $0.from })
+        }()
+        
+        let transformer = transformers.first(where: { transformer in
+            transformer.location.stringValue == lastKey.stringValue
+            || keyMappings.contains(lastKey.stringValue)
+        })
+
+        return transformer
+    }
+}
+
+
 extension EncodingCache {
     
     /// Transforms a value to JSON using the appropriate transformer
@@ -46,6 +74,7 @@ extension EncodingCache {
         
         guard let top = findSnapShot(with: codingPath), let key = key else { return nil }
                 
+        // 查找对应的值转换器
         let wantKey = key.stringValue
         let targetTran = top.transformers?.first(where: { transformer in
             if wantKey == transformer.location.stringValue {
@@ -70,14 +99,16 @@ extension EncodingCache {
     }
     
     /// Performs the actual value transformation
-    private func transform<Transform: ValueTransformable>(decodedValue: Any, performer: Transform) -> Any? {
+    private func transform<Performer: ValueTransformable>(decodedValue: Any, performer: Performer) -> Any? {
         // 首先检查是否是属性包装器
-        if let propertyWrapper = decodedValue as? any PropertyWrapperInitializable {
+        if let propertyWrapper = decodedValue as? any PropertyWrapperable {
             let wrappedValue = propertyWrapper.wrappedValue
-            guard let value = wrappedValue as? Transform.Object else { return nil }
+            guard let value = wrappedValue as? Performer.Object else {
+                return nil
+            }
             return performer.transformToJSON(value)
         } else {
-            guard let value = decodedValue as? Transform.Object else { return nil }
+            guard let value = decodedValue as? Performer.Object else { return nil }
             return performer.transformToJSON(value)
         }
     }

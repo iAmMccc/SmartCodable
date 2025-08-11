@@ -13,7 +13,6 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
     open var smartDataEncodingStrategy: SmartDataEncodingStrategy = .base64
 
    
-
     /// Options set on the top-level encoder to pass down the encoding hierarchy.
     struct _Options {
         let dateEncodingStrategy: DateEncodingStrategy
@@ -42,11 +41,29 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
     /// - throws: `EncodingError.invalidValue` if a non-conforming floating-point value is encountered during encoding, and the encoding strategy is `.throw`.
     /// - throws: An error if any value throws an error during encoding.
     open override func encode<T: Encodable>(_ value: T) throws -> Data {
-        let value: JSONValue = try encodeAsJSONValue(value)
-        let writer = JSONValue.Writer(options: self.outputFormatting)
-        let bytes = writer.writeValue(value)
-
-        return Data(bytes)
+        let jsonValue: JSONValue = try encodeAsJSONValue(value)
+        let jsonObject = jsonValue.toFoundation()
+        
+        do {
+            return try JSONSerialization.data(withJSONObject: jsonObject, options: self.outputFormatting.jsonSerializationOptions)
+        } catch {
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Unable to encode the given top-level value to JSON.", underlyingError: error))
+        }
+    }
+    
+    func mapOutputFormatting(_ formatting: JSONEncoder.OutputFormatting) -> JSONSerialization.WritingOptions {
+        var options = JSONSerialization.WritingOptions()
+        
+        if formatting.contains(.prettyPrinted) {
+            options.insert(.prettyPrinted)
+        }
+        if formatting.contains(.sortedKeys) {
+            if #available(iOS 11.0, macOS 10.13, *) {
+                options.insert(.sortedKeys)
+            }
+        }
+        
+        return options
     }
 
     func encodeAsJSONValue<T: Encodable>(_ value: T) throws -> JSONValue {
@@ -90,3 +107,17 @@ extension CodingUserInfoKey {
     static let useMappedKeys = CodingUserInfoKey.init(rawValue: "Stamrt.useMappedKeys")
 }
 
+extension JSONEncoder.OutputFormatting {
+    var jsonSerializationOptions: JSONSerialization.WritingOptions {
+        var options: JSONSerialization.WritingOptions = []
+        if contains(.prettyPrinted) {
+            options.insert(.prettyPrinted)
+        }
+        if self.contains(.sortedKeys) {
+            if #available(iOS 11.0, macOS 10.13, *) {
+                options.insert(.sortedKeys)
+            }
+        }
+        return options
+    }
+}

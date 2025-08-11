@@ -20,12 +20,20 @@
  * ```
  */
 @propertyWrapper
-public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
+public struct SmartAny<T>: PropertyWrapperable {
     
     public var wrappedValue: T
 
     public init(wrappedValue: T) {
         self.wrappedValue = wrappedValue
+    }
+    
+    public func wrappedValueDidFinishMapping() -> SmartAny<T>? {
+        if var temp = wrappedValue as? SmartDecodable {
+            temp.didFinishMapping()
+            return SmartAny(wrappedValue: temp as! T)
+        }
+        return nil
     }
     
     public static func createInstance(with value: Any) -> SmartAny<T>? {
@@ -35,24 +43,16 @@ public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
         return nil
     }
 
+    
+}
+
+
+extension SmartAny: Codable {
     public init(from decoder: Decoder) throws {
         guard let decoder = decoder as? JSONDecoderImpl else {
             throw DecodingError.typeMismatch(SmartAnyImpl.self, DecodingError.Context(
                 codingPath: decoder.codingPath, debugDescription: "Expected \(Self.self) value，but an exception occurred！Please report this issue（请上报该问题）")
             )
-        }
-        let value = decoder.json
-        if let key = decoder.codingPath.last {
-            // Note the case where T is nil. nil as? T is true.
-            if let tranformer = decoder.cache.valueTransformer(for: key, codingPath: decoder.codingPath) {
-                if let decoded = tranformer.tranform(value: value) as? T {
-                    self = .init(wrappedValue: decoded)
-                    return
-                } else {
-                    throw DecodingError.typeMismatch(Self.self, DecodingError.Context(
-                        codingPath: decoder.codingPath, debugDescription: "Expected \(Self.self) value，but an exception occurred！"))
-                }
-            }
         }
                 
         if let decoded = try? decoder.unwrap(as: SmartAnyImpl.self), let peel = decoded.peel as? T {
@@ -90,16 +90,5 @@ public struct SmartAny<T>: Codable, PropertyWrapperInitializable {
             let value = SmartAnyImpl(from: wrappedValue)
             try container.encode(value)
         }
-    }
-}
-
-
-extension SmartAny: PostDecodingHookable {
-    func wrappedValueDidFinishMapping() -> SmartAny<T>? {
-        if var temp = wrappedValue as? SmartDecodable {
-            temp.didFinishMapping()
-            return SmartAny(wrappedValue: temp as! T)
-        }
-        return nil
     }
 }

@@ -41,7 +41,7 @@ public struct SmartValueTransformer {
     ///   - value: The JSON value to transform
     ///   - key: The associated coding key (if available)
     /// - Returns: The transformed value or nil if no transformer applies
-    func tranform(value: JSONValue) -> Any? {
+    func transformFromJSON(_ value: JSONValue) -> Any? {
         return performer.transformFromJSON(value.peel)
     }
 }
@@ -90,7 +90,7 @@ public struct FastTransformer<Object, JSON>: ValueTransformable {
     /// 便捷的转换器
     /// - Parameters:
     ///   - fromJSON: json 转 object
-    ///   - toJSON:  object 转 json， 如果需要转json，可以不实现。
+    ///   - toJSON:  object 转 json， 如果不需要转json，可以不实现。
     public init(fromJSON: @escaping (JSON?) -> Object?, toJSON: ((Object?) -> JSON?)? = nil) {
         self.fromJSON = fromJSON
         self.toJSON = toJSON

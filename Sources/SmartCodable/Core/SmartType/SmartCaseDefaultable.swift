@@ -42,8 +42,8 @@ public extension SmartAssociatedEnumerable {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: des))
         }
         
-        guard let tranformer = _decoder.cache.valueTransformer(for: _decoder.codingPath.last, codingPath: _decoder.codingPath),
-           let decoded = tranformer.tranform(value: _decoder.json) as? Self else {
+        guard let tranformer = _decoder.cache.valueTransformer(for: _decoder.codingPath.last, in: _decoder.codingPath.dropLast()),
+           let decoded = tranformer.transformFromJSON(_decoder.json) as? Self else {
             throw DecodingError.valueNotFound(Self.self, DecodingError.Context.init(codingPath: _decoder.codingPath, debugDescription: "No custom parsing policy is implemented for associated value enumerations"))
         }
         self = decoded

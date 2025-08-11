@@ -1,26 +1,32 @@
 
-
-1. Date的默认值值解析是参考值为2001年1月1号00:00:00
-
-2. 什么时候应该抛出异常？什么时候进行兼容？
- - 应该在当前属性解析的最后一次进行兼容。尤其是[Int]这样的情况。
-
-3. 不太推荐使用CodingKeys忽略属性的解析。建议使用@IgnoreKey。阐述原因。
+# 内部流程说明
 
 
+## CGFloat的解析
 
-## 什么情况下需要实现init方法。
-        如果您的解析模型中设置了一个非可选的模型属性，如果解析失败了，SmartCodable会提供一个这个模型属性的默认值，这就意味着该模型支持无参的初始化方法‘.init()’。
-        
-        在SmartDecodable协议中声明了init方法，这代表着协议遵循者必须实现协议中定义的init方法。
-        对于初始化方法（init）来说无法提供默认的实现，因为构造器的默认实现可能无法满足所有遵循该协议的类型的初始化需求。
-    
-        遵循 SmartDecodable 协议的类型不能避免实现 init() 方法，但如果所有属性都有默认值或是可选的，并且没有定义其他初始化方法，那么 Swift 将自动为您提供这个初始化方法。
-        
-        如果这个模型被public，那么需要实现 ‘public init() { }’ 。这是因为在 Swift 中，协议的访问级别会影响到实现该协议的类型所需的访问级别。这意味着任何遵循该协议的类型都需要公开地实现所有协议要求的方法和属性。
+#### `CGFloat` 是一个结构体（`struct`），而不是 `typealias`
+
+```
+@frozen public struct CGFloat {
+    public typealias NativeType = Double // or Float on 32-bit
+    public var native: NativeType
+}
+```
+
+- 它本质上是一个**包装类型**：包装了 `Double`（在 64 位）或 `Float`（在 32 位架构）。
+- 它提供了多个 `init(_ value: Float/Double/CGFloat)`，来方便你用普通浮点数构造。
+
+进行解析时候，或享受`Date，Data等`同等的处理方式，被当初特殊基础解析数据类型处理。
 
 
 
-## Todo
-1. 继续检查 as? 避免动态开销。
-2. getValue 不要抛出异常。
+
+
+## DecodingCache
+
+解析存储，对应的容器级别。存储时，使用容器的codingPath作为标识。通过key查询对应的内容。比如值解析器，属性初始化值。
+
+### 关于值解析器
+
+
+### 关于属性初始化值

@@ -375,7 +375,7 @@ extension JSONDecoderImpl.UnkeyedContainer {
         if var value = decodeValue as? SmartDecodable {
             value.didFinishMapping()
             if let temp = value as? T { return temp }
-        } else if let value = decodeValue as? PostDecodingHookable {
+        } else if let value = decodeValue as? (any PropertyWrapperable) {
             if let temp = value.wrappedValueDidFinishMapping() as? T {
                 return temp
             }

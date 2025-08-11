@@ -17,13 +17,32 @@ import Foundation
     so each property wrapper needs to handle this manually.
  */
 @propertyWrapper
-public struct SmartFlat<T: Codable>: Codable {
+public struct SmartFlat<T: Codable>: PropertyWrapperable {
     public var wrappedValue: T
 
     public init(wrappedValue: T) {
         self.wrappedValue = wrappedValue
     }
+    public func wrappedValueDidFinishMapping() -> SmartFlat<T>? {
+        if var temp = wrappedValue as? SmartDecodable {
+            temp.didFinishMapping()
+            return SmartFlat(wrappedValue: temp as! T)
+        }
+        return nil
+    }
+    
+    /// Creates an instance from any value if possible
+    public static func createInstance(with value: Any) -> SmartFlat? {
+        if let value = value as? T {
+            return SmartFlat(wrappedValue: value)
+        }
+        return nil
+    }
+}
 
+
+extension SmartFlat: Codable {
+    
     public init(from decoder: Decoder) throws {
         do {
             wrappedValue = try T(from: decoder)
@@ -37,26 +56,6 @@ public struct SmartFlat<T: Codable>: Codable {
     }
 }
 
-extension SmartFlat: PostDecodingHookable {
-    func wrappedValueDidFinishMapping() -> SmartFlat<T>? {
-        if var temp = wrappedValue as? SmartDecodable {
-            temp.didFinishMapping()
-            return SmartFlat(wrappedValue: temp as! T)
-        }
-        return nil
-    }
-}
-
-
-extension SmartFlat: PropertyWrapperInitializable {
-    /// Creates an instance from any value if possible
-    public static func createInstance(with value: Any) -> SmartFlat? {
-        if let value = value as? T {
-            return SmartFlat(wrappedValue: value)
-        }
-        return nil
-    }
-}
 
 
 // Used to mark the flat type

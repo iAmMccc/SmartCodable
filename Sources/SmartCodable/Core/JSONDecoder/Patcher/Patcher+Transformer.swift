@@ -196,9 +196,12 @@ private func _convertFloatToInteger<T: FixedWidthInteger>(_ float: Double) -> T?
     }
     
     // 应用转换策略
-    switch SmartCoding.numberConversionStrategy {
-    case .strict:   return T(exactly: float)
-    case .truncate: return T(float)
-    case .rounded:  return T(float.rounded())
+    switch SmartCodableOptions.numberStrategy {
+    case .strict:
+        return T(exactly: float)
+    case .truncate:
+        return T(float)
+    case .rounded:
+        return T(float.rounded())
     }
 }

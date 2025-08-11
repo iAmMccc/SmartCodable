@@ -67,11 +67,10 @@ extension _SpecialTreatmentEncoder {
             return try self.wrapObject(object as! [String: Encodable], for: additionalKey)
         default:
             
-            impl.cache.cacheSnapshot(for: E.self, codingPath: codingPath)
-            
             let encoder = self.getEncoder(for: additionalKey)
+            encoder.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
             try encodable.encode(to: encoder)
-            impl.cache.removeSnapshot(for: E.self)
+            encoder.cache.removeSnapshot(for: E.self)
 
             // If it is modified by SmartFlat, you need to encode to the upper layer to restore the data.
             if encodable is FlatType {
@@ -166,6 +165,25 @@ extension _SpecialTreatmentEncoder {
 
 
 extension _SpecialTreatmentEncoder {
+    
+    
+    /// Performs the actual value transformation
+    internal func encodeWithTransformer<Performer: ValueTransformable>(_ performer: Performer, decodedValue: Any) -> Any? {
+        // 首先检查是否是属性包装器
+        if let propertyWrapper = decodedValue as? any PropertyWrapperable {
+            let wrappedValue = propertyWrapper.wrappedValue
+            guard let value = wrappedValue as? Performer.Object else {
+                return nil
+            }
+            return performer.transformToJSON(value)
+        } else {
+            guard let value = decodedValue as? Performer.Object else { return nil }
+            return performer.transformToJSON(value)
+        }
+    }
+    
+    
+    
     internal func _converted(_ key: CodingKey) -> CodingKey {
         
         var newKey = key

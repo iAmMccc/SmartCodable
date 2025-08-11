@@ -20,25 +20,35 @@ import Combine
  */
 @propertyWrapper
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-public struct SmartPublished<Value: Codable>: Codable {
+public struct SmartPublished<Value: Codable>: PropertyWrapperable {
     
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let value = try container.decode(Value.self)
-        self.wrappedValue = value
-        publisher = Publisher(wrappedValue)
-    }
     
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(self.wrappedValue)
-    }
     public var wrappedValue: Value {
         // Notify subscribers before value changes
         willSet {
             publisher.subject.send(newValue)
         }
     }
+    public init(wrappedValue: Value) {
+        self.wrappedValue = wrappedValue
+        publisher = Publisher(wrappedValue)
+    }
+    
+    public static func createInstance(with value: Any) -> SmartPublished? {
+        if let value = value as? Value {
+            return SmartPublished(wrappedValue: value)
+        }
+        return nil
+    }
+    
+    public func wrappedValueDidFinishMapping() -> SmartPublished<Value>? {
+        if var temp = wrappedValue as? SmartDecodable {
+            temp.didFinishMapping()
+            return SmartPublished(wrappedValue: temp as! Value)
+        }
+        return nil
+    }
+    
     
     /// The publisher that exposes the wrapped value's changes
     public var projectedValue: Publisher {
@@ -75,12 +85,7 @@ public struct SmartPublished<Value: Codable>: Codable {
         }
     }
     
-    public init(wrappedValue: Value) {
-        self.wrappedValue = wrappedValue
-        publisher = Publisher(wrappedValue)
-    }
-    
-    
+
     /**
      Custom subscript for property wrapper integration with ObservableObject.
      
@@ -108,29 +113,19 @@ public struct SmartPublished<Value: Codable>: Codable {
 }
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-extension SmartPublished: PostDecodingHookable {
-    /// Handles post-mapping lifecycle events for wrapped values
-    func wrappedValueDidFinishMapping() -> SmartPublished<Value>? {
-        if var temp = wrappedValue as? SmartDecodable {
-            temp.didFinishMapping()
-            return SmartPublished(wrappedValue: temp as! Value)
-        }
-        return nil
+extension SmartPublished: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(Value.self)
+        self.wrappedValue = value
+        publisher = Publisher(wrappedValue)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.wrappedValue)
     }
 }
-
-
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-extension SmartPublished: PropertyWrapperInitializable {
-    /// Creates an instance from any value if possible
-    public static func createInstance(with value: Any) -> SmartPublished? {
-        if let value = value as? Value {
-            return SmartPublished(wrappedValue: value)
-        }
-        return nil
-    }
-}
-
 
 
 
