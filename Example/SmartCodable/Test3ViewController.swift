@@ -15,13 +15,13 @@ class Test3ViewController: BaseViewController {
             "age": 200
         ]
         
-        guard let model = Model.deserialize(from: dict) else { return }
+        guard let model = [Model].deserialize(from: [dict, dict]) else { return }
         print(model)
     }
     
     struct Model: SmartCodable {
-        @SmartIgnored
-        var name: Any?
+        
+        var name: String?
     }
 }
 
