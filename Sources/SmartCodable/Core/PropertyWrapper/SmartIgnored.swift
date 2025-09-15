@@ -62,6 +62,17 @@ public struct SmartIgnored<T>: PropertyWrapperable {
     }
 }
 
+extension SmartIgnored: Equatable where T: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        return lhs.wrappedValue == rhs.wrappedValue
+    }
+}
+
+extension SmartIgnored: Hashable where T: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        wrappedValue.hash(into: &hasher)
+    }
+}
 
 extension SmartIgnored: Codable {
     public init(from decoder: Decoder) throws {
