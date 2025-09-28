@@ -28,118 +28,35 @@ class TestViewController: BaseViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
         
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         
-        
+
         
         let dict: [String: Any] = [
-            "name": "Mccc",
-            "age": 20
+            "age": 0,
+            "name": "操作成功",
+
         ]
         
-        
-        guard let model = Model.deserialize(from: dict) else { return }
-        
+        guard let model = SubModel.deserialize(from: dict) else { return }
         print(model)
-        
-        guard let dict = model.toJSONString() else { return }
-        print(dict)
-//        print("\n")
-//
-//        
-//        guard let dict1 = model.toJSONString(useMappedKeys: true) else { return }
-//        print(dict1)
     }
-    
 
-
-    
-    struct Model: SmartCodable {
-//        var name: String? = "Mccc"
-//        var age: Int = 100
-//        
-//        @SmartDate
-//        var date: Date? = Date()
+    class Model: SmartCodable {
+        var name: String = ""
         
-        @SmartFlat
-        var sub: SubModel = SubModel()
-//        
-//        
-//        static func mappingForKey() -> [SmartKeyTransformer]? {
-//            [
-//                CodingKeys.name  <--- "nick_name",
-//                CodingKeys.age <--- "self_age"
-//            ]
-//        }
-//        
-//        static func mappingForValue() -> [SmartValueTransformer]? {
-//            [
-//                CodingKeys.name <--- Tranformer()
-//            ]
-//        }
+        required init() { }
     }
     
-    
-    struct SubModel: SmartCodable {
-//        var hobby: String = "ball"
-   
-        var name: String? = "Mccc"
-        var age: Int = 100
+    @SmartSubclass
+    class SubModel: Model {
+        @objc var age: String = ""
         
-//        @SmartHexColor
-//        var color: UIColor? = UIColor.red
-        
-        
-//        
-//        static func mappingForKey() -> [SmartKeyTransformer]? {
-//            [
-////                CodingKeys.hobby  <--- "ball_ball",
-//            ]
-//        }
-//        
-//        static func mappingForValue() -> [SmartValueTransformer]? {
-//            [
-////                CodingKeys.hobby <--- Tranformer1(),
-////                CodingKeys.color <--- SmartHexColorTransformer(colorFormat: .rgb(.zeroX))
-//            ]
-//        }
-    }
-    
-    
-    struct Tranformer: ValueTransformable {
-        func transformFromJSON(_ value: Any) -> String? {
-            return "你好"
-        }
-        
-        func transformToJSON(_ value: String) -> String? {
-            return "你好"
-        }
-        
-        typealias Object = String
-        
-        typealias JSON = String
-        
-        
-    }
-    
-    
-    struct Tranformer1: ValueTransformable {
-        func transformFromJSON(_ value: Any) -> String? {
-            return "篮球"
-        }
-        
-        func transformToJSON(_ value: String) -> String? {
-            return "篮球"
-        }
-        
-        typealias Object = String
-        
-        typealias JSON = String
-        
+        @SmartAny
+        var location: String = ""
         
     }
 }

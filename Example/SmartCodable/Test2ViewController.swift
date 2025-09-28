@@ -16,78 +16,35 @@ class Test2ViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let dict: [String: Any] = [
 
-
-            "url": ["http://www.baidu.com"],
-            
-            "float": 188.5,
-//            
-            "date": 1722152312,
-        ]
-
-        guard let model = Model.deserialize(from: dict) else { return }
-        smartPrint(value: model)
-        
-        guard let transDict = model.toJSONString(prettyPrint: true) else { return }
-        print(transDict)
     }
-}
-
-
-extension Test2ViewController {
-    struct Model: SmartCodable {
-        var url: [URL]?
-//        var float: CGFloat = 100
-//        var date: Date? = Date()
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let dict: [String: Any] = [
+            "my_name": "Tom",
+            "student": [
+                "my_age": "18"
+            ]
+        ]
+        let person = Person.deserialize(from: dict,options: [.key(.fromSnakeCase)])
+        print("1111")
+    }
+    
+    class Person: SmartCodable {
+        var myName: String?
+        var student: Student?
+        required init() {}
+    }
+    class Student: SmartCodable {
+        var myAge: String?
+        required init() {}
         
-        
-        static func mappingForValue() -> [SmartValueTransformer]? {
-            [
-                CodingKeys.url <--- URLTransformer(),
-//                CodingKeys.float <--- FloatTranformer(),
-//                CodingKeys.date <--- SmartDateTransformer(strategy: .timestamp)
+        static func mappingForKey() -> [SmartKeyTransformer]? {
+            return [
+                CodingKeys.myAge <--- "my_name"
             ]
         }
     }
 }
-struct FloatTranformer: ValueTransformable {
-    func transformFromJSON(_ value: Any) -> Object? {
-        return 200.0
-    }
-    
-    func transformToJSON(_ value: Object) -> JSON? {
-        return nil
-    }
-    
-    typealias Object = CGFloat
-    
-    typealias JSON = String
-}
-public struct URLTransformer: ValueTransformable {
 
-    public typealias JSON = [String]
-    public typealias Object = [URL]
-    private let shouldEncodeURLString: Bool
-    private let prefix: String?
 
-    /**
-     Initializes a URLTransformer with an option to encode the URL string before converting it to NSURL
-     - parameter shouldEncodeUrlString: When true (the default value), the string is encoded before being passed
-     - returns: an initialized transformer
-    */
-    public init(prefix: String? = nil, shouldEncodeURLString: Bool = true) {
-        self.shouldEncodeURLString = shouldEncodeURLString
-        self.prefix = prefix
-    }
-    
-    
-    public func transformFromJSON(_ value: Any) -> [URL]? {
-        let url = URL(string: "1")!
-        return [url]
-    }
-
-    public func transformToJSON(_ value: [URL]) -> [String]? {
-        return ["1", "2", "3"]
-    }
-}

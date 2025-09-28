@@ -295,7 +295,7 @@ extension SmartHexColor {
 
 
 
-private extension ColorObject {
+extension ColorObject {
     var rgbaComponents: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
 #if os(macOS)
         guard let converted = usingColorSpace(.deviceRGB) else { return nil }
