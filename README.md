@@ -146,7 +146,7 @@ If you are using HandyJSON and would like to replace it, follow this link.
 
 ### 📦 Swift Package Manager
 
-```
+```swift
 dependencies: [
     .package(url: "https://github.com/iAmMccc/SmartCodable.git", from: "xxx")
 ]
@@ -156,7 +156,7 @@ dependencies: [
 
 ### Usage Examples
 
-```
+```swift
 import SmartCodable
 
 struct User: SmartCodable {
@@ -176,7 +176,7 @@ To support deserialization from JSON, a class/struct need to conform to 'SmartCo
 
 To conform to 'SmartCodable', a class need to implement an empty initializer.
 
-```
+```swift
 class BasicTypes: SmartCodable {
     var int: Int = 2
     var doubleOptional: Double?
@@ -187,7 +187,7 @@ let model = BasicTypes.deserialize(from: json)
 
 For struct, since the compiler provide a default empty initializer, we use it for free.
 
-```
+```swift
 struct BasicTypes: SmartCodable {
     var int: Int = 2
     var doubleOptional: Double?
@@ -203,7 +203,7 @@ let model = BasicTypes.deserialize(from: json)
 
 Only types conforming to `SmartCodable` (or `[SmartCodable]` for arrays) can use these methods
 
-```
+```swift
 public static func deserialize(from dict: [String: Any]?, designatedPath: String? = nil,  options: Set<SmartDecodingOption>? = nil) -> Self?
 
 public static func deserialize(from json: String?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
@@ -246,7 +246,7 @@ Model.deserialize(from: json, designatedPath: "data.user.info")
 
 **3. Decoding Strategies (`options`)**
 
-```
+```swift
 let options: Set<SmartDecodingOption> = [
     .key(.convertFromSnakeCase),
     .date(.iso8601),
@@ -269,7 +269,7 @@ let options: Set<SmartDecodingOption> = [
 
 #### 2.2 Post-processing callback invoked after successful decoding
 
-```
+```swift
 struct Model: SmartCodable {
     var name: String = ""
     
@@ -285,7 +285,7 @@ struct Model: SmartCodable {
 
 Defines key mapping transformations during decoding，First non-null mapping is preferred。
 
-```
+```swift
 static func mappingForKey() -> [SmartKeyTransformer]? {
     return [
         CodingKeys.id <--- ["user_id", "userId", "id"],
@@ -310,7 +310,7 @@ Convert between JSON values and custom types
 | **SmartDateFormatTransformer** | String        | Date        | Uses DateFormatter for custom date string formats            |
 | **SmartURLTransformer**        | String        | URL         | Converts strings to URLs with optional encoding and prefixing |
 
-```
+```swift
 struct Model: SmartCodable {
     
     ...
@@ -329,7 +329,7 @@ struct Model: SmartCodable {
 
 If you need additional parsing rules, **Transformer** will implement them yourself. Follow **ValueTransformable** to implement the requirements of the protocol.
 
-```
+```swift
 public protocol ValueTransformable {
     associatedtype Object
     associatedtype JSON
@@ -344,7 +344,7 @@ public protocol ValueTransformable {
 
 **Built-in Fast Transformer Helper**
 
-```
+```swift
 static func mappingForValue() -> [SmartValueTransformer]? {
     [
         CodingKeys.name <--- FastTransformer<String, String>(fromJSON: { json in
@@ -372,7 +372,7 @@ static func mappingForValue() -> [SmartValueTransformer]? {
 
 Codable does not support Any resolution, but can be implemented using @SmartAny。
 
-```
+```swift
 struct Model: SmartCodable {
     @SmartAny var dict: [String: Any] = [:]
     @SmartAny var arr: [Any] = []
@@ -395,7 +395,7 @@ print(model)
 
 If you need to ignore the parsing of attributes, you can override `CodingKeys` or use `@IgnoredKey`.
 
-```
+```swift
 struct Model: SmartCodable {
     @IgnoredKey
     var name: String = ""
@@ -414,7 +414,7 @@ print(model)
 
 #### 3.3 @SmartFlat
 
-```
+```swift
 struct Model: SmartCodable {
     var name: String = ""
     var age: Int = 0
@@ -442,7 +442,7 @@ print(model)
 
 #### 3.4 @SmartPublished
 
-```
+```swift
 class PublishedModel: ObservableObject, SmartCodable {
     required init() {}
     
@@ -467,7 +467,7 @@ if let model = PublishedModel.deserialize(from: dict) {
 
 Adds Codable support for UIColor/NSColor using hex string encoding/decoding.
 
-```
+```swift
 struct Model: SmartCodable {
     @SmartHexColor
     var color: UIColor?
@@ -494,7 +494,7 @@ If you need inheritance support, annotate your subclass with `@SmartSubclass`.
 
 #### 4.1 Basic Usage
 
-```
+```swift
 class BaseModel: SmartCodable {
     var name: String = ""
     required init() { }
@@ -510,7 +510,7 @@ class StudentModel: BaseModel {
 
 Just implement it directly—no need for the `override` keyword.
 
-```
+```swift
 class BaseModel: SmartCodable {
     var name: String = ""
     required init() { }
@@ -532,7 +532,7 @@ class StudentModel: BaseModel {
 
 #### 4.3 Parent Class Implements Protocol Method
 
-```
+```swift
 class BaseModel: SmartCodable {
     var name: String = ""
     required init() { }
@@ -555,7 +555,7 @@ A few things to note:
 - The protocol method in the parent class must be marked with `class`.
 - The subclass should call the parent class's implementation.
 
-```
+```swift
 class BaseModel: SmartCodable {
     var name: String = ""
     required init() { }
@@ -593,7 +593,7 @@ SmartCodable automatically handles string-encoded JSON values during decoding, s
 - **Recursive Mapping**: Applies `mappingForKey()` rules to parsed nested structures
 - **Type Inference**: Determines parsing strategy (object/array) based on property type
 
-```
+```swift
 struct Model: SmartCodable {
     var hobby: Hobby?
     var hobbys: [Hobby]?
@@ -617,7 +617,7 @@ guard let model = Model.deserialize(from: dict) else { return }
 
 If attribute resolution fails, SmartCodable performs compatibility processing for thrown exceptions. Ensure that the entire parsing is not interrupted. Even better, you don't have to do anything about it.
 
-```
+```swift
 let dict = [
     "number1": "123",
     "number2": "Mccc",
@@ -656,7 +656,7 @@ This can greatly improve the analytical efficiency.
 
 To be convertable, An `enum` must conform to `SmartCaseDefaultable` protocol. Nothing special need to do now.
 
-```
+```swift
 struct Student: SmartCodable {
     var name: String = ""
     var sex: Sex = .man
@@ -675,7 +675,7 @@ let model = Student.deserialize(from: json)
 
 Make the enumeration follow **SmartAssociatedEnumerable**。Override the **mappingForValue** method and take over the decoding process yourself.
 
-```
+```swift
 struct Model: SmartCodable {
     var sex: Sex = .man
     static func mappingForValue() -> [SmartValueTransformer]? {
@@ -710,7 +710,7 @@ struct RelationEnumTranformer: ValueTransformable {
 
 It can accommodate any data structure, including nested array structures.
 
-```
+```swift
 struct Model: SmartCodable {
     var name: String = ""
     var age: Int = 0
@@ -773,7 +773,7 @@ Array<SomeModel> 👈🏻 👀
 
 If you want to use it, turn it on:
 
-```
+```swift
 SmartSentinel.debugMode = .verbose
 public enum Level: Int {
     case none
@@ -784,7 +784,7 @@ public enum Level: Int {
 
 If you want to get this log to upload to the server:
 
-```
+```swift
 SmartSentinel.onLogGenerated { logs in  }
 ```
 
