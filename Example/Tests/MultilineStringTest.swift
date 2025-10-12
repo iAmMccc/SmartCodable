@@ -15,7 +15,7 @@ private struct User: SmartCodable {
 }
 
 struct MultilineStringTest {
-    @Test("issue #116 test case")
+    @Test(.bug("https://github.com/iAmMccc/SmartCodable/issues/116"))
     func decodeMultilingDictStr() {
         let jsonString1 = """
                             {
