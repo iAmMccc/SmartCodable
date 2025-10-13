@@ -142,6 +142,7 @@
 		99F9E8A62BB5139900D68037 /* MixDecodingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F9E8A52BB5139900D68037 /* MixDecodingViewController.swift */; };
 		99FA1D502DF06B7D00560A05 /* DecodingLogViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FA1D4F2DF06B7D00560A05 /* DecodingLogViewController.swift */; };
 		AF374D4C62AA92DE0D9ED2B7 /* Pods_SmartCodable_Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5EB62463C4F6AEFEAA2A5E1E /* Pods_SmartCodable_Tests.framework */; };
+		DA0F36412E9BA4A10049EB49 /* MultilineStringTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0F36402E9BA4A10049EB49 /* MultilineStringTest.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -292,6 +293,7 @@
 		AD8215B5E8E50F277C1C4356 /* Pods-SmartCodable_Example.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SmartCodable_Example.release.xcconfig"; path = "Target Support Files/Pods-SmartCodable_Example/Pods-SmartCodable_Example.release.xcconfig"; sourceTree = "<group>"; };
 		AFEADC35BC2373F1DC69B73B /* Pods-SmartCodable_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SmartCodable_Tests.release.xcconfig"; path = "Target Support Files/Pods-SmartCodable_Tests/Pods-SmartCodable_Tests.release.xcconfig"; sourceTree = "<group>"; };
 		BC656B63C9031B22DEB5C8EB /* Pods-SmartCodable_Example.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SmartCodable_Example.debug.xcconfig"; path = "Target Support Files/Pods-SmartCodable_Example/Pods-SmartCodable_Example.debug.xcconfig"; sourceTree = "<group>"; };
+		DA0F36402E9BA4A10049EB49 /* MultilineStringTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultilineStringTest.swift; sourceTree = "<group>"; };
 		DB7246035010143E03C7616B /* Pods-SmartCodable_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SmartCodable_Tests.debug.xcconfig"; path = "Target Support Files/Pods-SmartCodable_Tests/Pods-SmartCodable_Tests.debug.xcconfig"; sourceTree = "<group>"; };
 		EBE2539D7D4ED401A0AF07CA /* Pods_SmartCodable_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SmartCodable_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F415A4253833C1D4B5A35964 /* SmartCodable.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = SmartCodable.podspec; path = ../SmartCodable.podspec; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
@@ -382,6 +384,7 @@
 		607FACE81AFB9204008FA782 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				DA0F36402E9BA4A10049EB49 /* MultilineStringTest.swift */,
 				99D17BB82B9F0CF9008ADAAB /* PerformanceTest.swift */,
 				99AE7D892B3EC02E00B474E5 /* Resource */,
 				607FACEB1AFB9204008FA782 /* Tests.swift */,
@@ -1132,6 +1135,7 @@
 				99D17BBA2B9F0CF9008ADAAB /* PerformanceTest.swift in Sources */,
 				99328D972B5138170074036A /* AreaTest.swift in Sources */,
 				607FACEC1AFB9204008FA782 /* Tests.swift in Sources */,
+				DA0F36412E9BA4A10049EB49 /* MultilineStringTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
