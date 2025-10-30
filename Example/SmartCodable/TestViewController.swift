@@ -36,27 +36,20 @@ class TestViewController: BaseViewController {
 
         
         let dict: [String: Any] = [
-            "age": 0,
+            "data": NSNull(),
             "name": "操作成功",
 
         ]
         
-        guard let model = SubModel.deserialize(from: dict) else { return }
+        guard let model = Model.deserialize(from: dict) else { return }
         print(model)
     }
 
-    class Model: SmartCodable {
+    struct Model: SmartCodable {
         var name: String = ""
         
-        required init() { }
-    }
-    
-    @SmartSubclass
-    class SubModel: Model {
-        @objc var age: String = ""
-        
         @SmartAny
-        var location: String = ""
+        var data: Any?
         
     }
 }
