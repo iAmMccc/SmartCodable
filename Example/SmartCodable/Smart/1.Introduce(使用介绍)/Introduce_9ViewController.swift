@@ -22,14 +22,15 @@ class Introduce_9ViewController: BaseCompatibilityViewController {
         
         guard let model = Model.deserialize(from: dict) else { return }
         print(model.color as Any)
+        
+        let trans = model.toDictionary()
+        print(trans)
     }
 }
 
-
 extension Introduce_9ViewController {
-    
     struct Model: SmartCodable {
-        @SmartHexColor
+        @SmartHexColor(encodeHexFormat: .rrggbbaa(.hash))
         var color: UIColor? = .white
     }
 }
