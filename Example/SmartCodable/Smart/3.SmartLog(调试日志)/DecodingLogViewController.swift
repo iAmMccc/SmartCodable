@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 class DecodingLogViewController: BaseViewController {
     

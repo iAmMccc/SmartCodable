@@ -8,7 +8,7 @@
 
 import UIKit
 
-import SmartCodable
+import SmartCodableKit
 
 // 使用属性包装器，提供一个默认配置？？ 看看是否可以实现， 提供NaN， nan
 

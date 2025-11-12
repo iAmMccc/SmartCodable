@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 class BaseCompatibilityViewController: BaseViewController {
     override func viewDidLoad() {

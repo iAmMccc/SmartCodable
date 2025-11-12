@@ -8,7 +8,7 @@
 
 import UIKit
 
-import SmartCodable
+import SmartCodableKit
 
 /// 兼容类String型，只兼容String类型的int值。
 class BaseData_StringViewController: BaseViewController {

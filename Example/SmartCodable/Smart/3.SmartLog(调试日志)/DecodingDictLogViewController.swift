@@ -9,7 +9,7 @@
 import Foundation
 
 
-import SmartCodable
+import SmartCodableKit
 
 
 /** 日志等级 详细信息请查看 SmartSentinel类

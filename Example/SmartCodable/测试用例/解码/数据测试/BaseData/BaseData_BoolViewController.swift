@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 
 /// 对Bool类型进行兼容

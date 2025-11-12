@@ -8,7 +8,7 @@
 
 import Foundation
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 /** 全局的Key映射关系
  * 1. 首字母大写转小写

@@ -10,7 +10,7 @@ import Foundation
 
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 /** 忽略Key的解析
  */

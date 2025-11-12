@@ -9,7 +9,7 @@
 import Foundation
 
 // todo enum
-import SmartCodable
+import SmartCodableKit
 
 class SpecialData_EnumViewController: BaseCompatibilityViewController {
 

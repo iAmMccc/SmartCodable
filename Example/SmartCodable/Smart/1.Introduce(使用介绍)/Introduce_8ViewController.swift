@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 /** 枚举映射失败的情况
  * codable是自动将数据映射成枚举。

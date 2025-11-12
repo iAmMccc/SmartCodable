@@ -1,5 +1,5 @@
 
-import SmartCodable
+import SmartCodableKit
 
 class Test3ViewController: BaseViewController {
     

@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 
 class SpecialData_ColorViewController: BaseCompatibilityViewController {

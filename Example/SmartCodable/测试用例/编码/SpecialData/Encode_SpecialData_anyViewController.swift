@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 class Encode_SpecialData_anyViewController: BaseViewController {
 

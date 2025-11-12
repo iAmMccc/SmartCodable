@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 class SpecialData_FloatViewController: BaseCompatibilityViewController {
 

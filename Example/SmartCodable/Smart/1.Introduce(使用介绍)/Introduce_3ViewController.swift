@@ -8,7 +8,7 @@
 
 import Foundation
 
-import SmartCodable
+import SmartCodableKit
 
 
 /** 模型数组和json之间互相转化

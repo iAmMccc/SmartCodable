@@ -9,7 +9,7 @@
 import Foundation
 
 
-import SmartCodable
+import SmartCodableKit
 
 /** 需要测试这三种改变key映射的情况
  * 1. 通过全局策略

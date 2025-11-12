@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 
 /// 数据结构不同的处理

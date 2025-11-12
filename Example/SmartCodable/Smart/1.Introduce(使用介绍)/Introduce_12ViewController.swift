@@ -8,7 +8,7 @@
 
 import Foundation
 import Combine
-import SmartCodable
+import SmartCodableKit
 
 class Introduce_12ViewController: BaseViewController {
     var cancellables = Set<AnyCancellable>()

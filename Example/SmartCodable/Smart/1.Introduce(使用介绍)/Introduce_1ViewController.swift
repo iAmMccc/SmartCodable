@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 /// 不同的数据类型转Model/Models
 class Introduce_1ViewController: BaseViewController {

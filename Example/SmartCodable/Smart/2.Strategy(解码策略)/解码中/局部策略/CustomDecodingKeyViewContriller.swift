@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 /** Key的映射关系
  * 1. 字段的重命名
  * 2. 支持多个字段重命名到一个属性上

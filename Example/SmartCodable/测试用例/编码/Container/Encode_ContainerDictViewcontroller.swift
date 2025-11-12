@@ -6,7 +6,7 @@
 //  Copyright © 2024 CocoaPods. All rights reserved.
 //
 
-import SmartCodable
+import SmartCodableKit
 
 
 class Encode_ContainerDictViewcontroller: BaseViewController {

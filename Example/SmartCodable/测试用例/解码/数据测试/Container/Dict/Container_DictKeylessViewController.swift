@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 
 /// 键缺失的兼容，使用默认值填充

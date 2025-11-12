@@ -9,7 +9,7 @@
 import Foundation
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 
 

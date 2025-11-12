@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 /// 内部会解析有结构的json字符串到模型上
 class Introduce_7ViewController: BaseViewController {

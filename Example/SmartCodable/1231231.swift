@@ -9,7 +9,7 @@
 import Foundation
 import SwiftUI
 import Combine
-import SmartCodable
+import SmartCodableKit
 
 class MyModel: ObservableObject, SmartCodable {
     required init() {

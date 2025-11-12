@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {

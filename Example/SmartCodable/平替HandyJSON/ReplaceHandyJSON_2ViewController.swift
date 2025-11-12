@@ -8,7 +8,7 @@
 
 import Foundation
 import UIKit
-import SmartCodable
+import SmartCodableKit
 import HandyJSON
 
 class ReplaceHandyJSON_2ViewController: BaseViewController {

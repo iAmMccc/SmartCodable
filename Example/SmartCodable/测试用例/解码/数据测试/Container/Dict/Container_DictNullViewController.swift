@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 /// null值的兼容，使用默认值填充。
 class Container_DictNullViewController: BaseCompatibilityViewController {

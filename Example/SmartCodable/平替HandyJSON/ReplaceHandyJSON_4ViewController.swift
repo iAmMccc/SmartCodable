@@ -10,7 +10,7 @@ import UIKit
 
 import Foundation
 import UIKit
-import SmartCodable
+import SmartCodableKit
 import HandyJSON
 
 class ReplaceHandyJSON_4ViewController: BaseViewController {

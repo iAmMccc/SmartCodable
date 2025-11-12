@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 class Container_ArrayKeylessViewController: BaseCompatibilityViewController {
 

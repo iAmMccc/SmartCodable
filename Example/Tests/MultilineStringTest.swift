@@ -6,7 +6,7 @@
 //  Copyright © 2025 CocoaPods. All rights reserved.
 //
 
-import SmartCodable
+import SmartCodableKit
 import Testing
 
 private struct User: SmartCodable {

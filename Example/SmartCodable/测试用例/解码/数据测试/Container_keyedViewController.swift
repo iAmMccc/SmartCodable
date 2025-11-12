@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 /// 兼容Int类型，只兼容String类型的int值。
 class Container_keyedViewController: BaseViewController {

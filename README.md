@@ -157,7 +157,7 @@ dependencies: [
 ### Usage Examples
 
 ```swift
-import SmartCodable
+import SmartCodableKit
 
 struct User: SmartCodable {
     var name: String = ""

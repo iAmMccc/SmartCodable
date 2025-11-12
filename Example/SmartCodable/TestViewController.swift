@@ -8,7 +8,7 @@
 
 import Foundation
 import UIKit
-import SmartCodable
+import SmartCodableKit
 import HandyJSON
 import CleanJSON
 import BTPrint

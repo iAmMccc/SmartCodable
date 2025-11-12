@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SmartCodable
+import SmartCodableKit
 
 class Support_JSONStringViewController: BaseCompatibilityViewController {
 

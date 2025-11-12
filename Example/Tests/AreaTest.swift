@@ -7,7 +7,7 @@
 //
 
 import XCTest
-import SmartCodable
+import SmartCodableKit
 import HandyJSON
 import HandyJSON
 import CleanJSON

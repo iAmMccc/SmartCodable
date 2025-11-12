@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 class Support_didFinishMappingViewController: BaseViewController {
 

@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import SmartCodable
+import SmartCodableKit
 
 
 /// 类型错误的兼容， 尝试值对值的类型转换，如果失败，使用默认值填充。

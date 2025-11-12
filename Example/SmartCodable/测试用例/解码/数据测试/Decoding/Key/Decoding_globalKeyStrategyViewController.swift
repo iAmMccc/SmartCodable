@@ -8,7 +8,7 @@
 
 import UIKit
 
-import SmartCodable
+import SmartCodableKit
 
 class Decoding_globalKeyStrategyViewController: BaseViewController {
     
