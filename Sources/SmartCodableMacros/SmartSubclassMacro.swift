@@ -96,8 +96,12 @@ public struct SmartSubclassMacro: MemberMacro {
                     if !attrs.isEmpty {
                         for attr in attrs {
                             if let attrSyntax = attr.as(AttributeSyntax.self),
-                               let wrapperName = attrSyntax.attributeName.as(IdentifierTypeSyntax.self) {
-                                effectiveType = "\(wrapperName.name.text)<\(baseType)>"
+                               let wrapperName = attrSyntax.attributeName.as(IdentifierTypeSyntax.self)?.name.text {
+                                
+                                // 如果属性使用了 @objc 修饰，则跳过它作为“属性包装器”处理
+                                if wrapperName == "objc" { continue }
+                                
+                                effectiveType = "\(wrapperName)<\(baseType)>"
                                 isWrapped = true
                                 break
                             }

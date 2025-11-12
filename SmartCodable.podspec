@@ -12,33 +12,29 @@
 
 Pod::Spec.new do |s|
   s.name             = 'SmartCodable'
-  s.version          = '5.1.0-beta.7'
+  s.version          = '5.1.5'
   s.summary          = 'Swift数据解析库'
   
   s.homepage         = 'https://github.com/iAmMccc/SmartCodable'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'Mccc' => 'https://github.com/iAmMccc' }
   s.source           = { :git => 'https://github.com/iAmMccc/SmartCodable.git', :tag => s.version.to_s }
-  
 
   s.swift_version    = '5.0'
 
-  s.ios.deployment_target = '11.0'
-  s.tvos.deployment_target = "12.0"
-  s.osx.deployment_target = '10.13'
-  s.watchos.deployment_target = '5.0'
+  s.ios.deployment_target = '13.0'
+  s.osx.deployment_target = '10.15'
+  s.tvos.deployment_target = "15.0"
+  s.watchos.deployment_target = '6.0'
   s.visionos.deployment_target = "1.0"
 
   s.default_subspecs = ['Core']
-
 
   s.subspec 'Core' do |ss|
     ss.source_files = 'Sources/SmartCodable/Core/**/*{.swift}'
   end
   
-  
   s.subspec 'Inherit' do |ss|
-      
     ss.ios.deployment_target = '13.0'
     ss.dependency 'SmartCodable/Core'
     ss.source_files = 'Sources/SmartCodable/MacroSupport/*{.swift}'

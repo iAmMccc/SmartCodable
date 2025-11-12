@@ -69,6 +69,14 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
             
         case let arr as [Any]:
             jsonObject = arr
+            
+        case let json as String:
+            guard let object = json.toJSONObject() else {
+                let error = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "不支持的 JSON 值类型"))
+                SmartSentinel.monitorAndPrint(debugDescription: "The given data was not valid JSON.", error: error, in: type)
+                throw error
+            }
+            jsonObject = object
         default:
             let error = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "不支持的 JSON 值类型"))
             SmartSentinel.monitorAndPrint(debugDescription: "The given data was not valid JSON.", error: error, in: type)

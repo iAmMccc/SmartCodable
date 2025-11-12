@@ -127,7 +127,6 @@ extension Dictionary {
 
 extension String {
     func toJSONObject() -> Any? {
-        guard starts(with: "{") || starts(with: "[") else { return nil }
         return data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) }
     }
 }

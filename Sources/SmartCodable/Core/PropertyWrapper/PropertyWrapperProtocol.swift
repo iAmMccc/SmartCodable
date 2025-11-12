@@ -31,3 +31,65 @@ public protocol PropertyWrapperable {
      */
     func wrappedValueDidFinishMapping() -> Self?
 }
+
+
+
+// ============================================================
+// 统一为所有 PropertyWrapperable 提供 Equatable / Hashable 支持
+/// 为遵循 PropertyWrapperable 的泛型 wrapper 提供默认的 Equatable 实现
+extension PropertyWrapperable where WrappedValue: Equatable, Self: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.wrappedValue == rhs.wrappedValue
+    }
+}
+
+/// 为遵循 PropertyWrapperable 的泛型 wrapper 提供默认的 Hashable 实现
+extension PropertyWrapperable where WrappedValue: Hashable, Self: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(wrappedValue)
+    }
+}
+
+// ============================================================
+// 泛型 wrapper 的空声明扩展
+// 由于 Swift 泛型限制，编译器无法自动将泛型 wrapper 标记为 Equatable / Hashable
+// 所以必须显式声明遵循协议，同时条件约束 WrappedValue
+
+extension SmartFlat: Equatable where T: Equatable {}
+extension SmartFlat: Hashable where T: Hashable {}
+
+extension SmartIgnored: Equatable where T: Equatable {}
+extension SmartIgnored: Hashable where T: Hashable {}
+
+extension SmartAny: Equatable where T: Equatable {}
+extension SmartAny: Hashable where T: Hashable {}
+
+
+
+// 非泛型
+// 因为非泛型 wrapper 的类型固定，不依赖泛型约束，所以可以直接声明协议遵循
+extension SmartDate: Equatable {}
+extension SmartDate: Hashable {}
+
+extension SmartHexColor: Equatable {
+    public static func == (lhs: SmartHexColor, rhs: SmartHexColor) -> Bool {
+        switch (lhs.wrappedValue?.rgbaComponents, rhs.wrappedValue?.rgbaComponents) {
+        case let (l?, r?):
+            return l.r == r.r && l.g == r.g && l.b == r.b && l.a == r.a
+        case (nil, nil):
+            return true
+        default:
+            return false
+        }
+    }
+}
+extension SmartHexColor: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        if let components = wrappedValue?.rgbaComponents {
+            hasher.combine(components.r)
+            hasher.combine(components.g)
+            hasher.combine(components.b)
+            hasher.combine(components.a)
+        }
+    }
+}
