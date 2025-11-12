@@ -35,12 +35,12 @@ class CaseFourViewController : BaseViewController {
 
 
 extension CaseFourViewController {
-    struct SomeDataModel: SmartCodable {
+    struct SomeDataModel: SmartCodableX {
         var name: String?
     }
 
 
-    struct ApiCommon<Element: SmartCodable>: SmartCodable {
+    struct ApiCommon<Element: SmartCodableX>: SmartCodableX {
         public var data: Element?
         public var code: Int?
         public var timeStamp: Int?

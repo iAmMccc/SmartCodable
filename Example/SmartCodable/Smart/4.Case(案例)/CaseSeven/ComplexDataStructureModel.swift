@@ -9,7 +9,7 @@
 import Foundation
 import SmartCodable
 
-struct Class: SmartCodable {
+struct Class: SmartCodableX {
 
     var name: String = ""
     var number: Int = 0
@@ -25,7 +25,7 @@ struct Class: SmartCodable {
     init() { }
 }
 
-struct Student: SmartCodable {
+struct Student: SmartCodableX {
     
     var id: Int = 0
     var sex: Sex = .man

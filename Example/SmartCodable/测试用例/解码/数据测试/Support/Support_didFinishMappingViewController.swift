@@ -104,12 +104,12 @@ class Support_didFinishMappingViewController: BaseViewController {
 
 
 extension Support_didFinishMappingViewController {
-    struct HobbysModel: SmartCodable {
+    struct HobbysModel: SmartCodableX {
         var hobbys: [HobbyModel] = []
         var optionalHobbys: [HobbyModel]?
     }
     
-    class HobbysClassModel: SmartCodable {
+    class HobbysClassModel: SmartCodableX {
         var hobbys: [HobbyClassModel] = []
         var optionalHobbys: [HobbyClassModel]?
 
@@ -120,7 +120,7 @@ extension Support_didFinishMappingViewController {
 }
 
 extension Support_didFinishMappingViewController {
-    struct PersonModel: SmartCodable {
+    struct PersonModel: SmartCodableX {
         var name: String = ""
         var hobby = HobbyModel()
         var optionalHobby: HobbyModel?
@@ -131,7 +131,7 @@ extension Support_didFinishMappingViewController {
         }
     }
     
-    class PersonClassModel: SmartCodable {
+    class PersonClassModel: SmartCodableX {
         var name: String?
         var hobby = HobbyModel()
         var optionalHobby: HobbyClassModel?
@@ -145,7 +145,7 @@ extension Support_didFinishMappingViewController {
 }
 
 extension Support_didFinishMappingViewController {
-    struct HobbyModel: SmartCodable {
+    struct HobbyModel: SmartCodableX {
         var name: String = ""
 
         mutating func didFinishMapping() {
@@ -153,7 +153,7 @@ extension Support_didFinishMappingViewController {
         }
     }
     
-    class HobbyClassModel: SmartCodable {
+    class HobbyClassModel: SmartCodableX {
         var name: String = ""
         
         required init() { }

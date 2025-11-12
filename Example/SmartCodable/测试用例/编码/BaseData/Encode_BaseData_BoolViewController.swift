@@ -34,7 +34,7 @@ class Encode_BaseData_BoolViewController: BaseViewController {
 
 
 extension Encode_BaseData_BoolViewController {
-    struct BoolAdaptive: SmartCodable {
+    struct BoolAdaptive: SmartCodableX {
         var a: Bool?
         var b: Bool = false
         

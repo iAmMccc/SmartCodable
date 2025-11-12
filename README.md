@@ -159,7 +159,7 @@ dependencies: [
 ```swift
 import SmartCodable
 
-struct User: SmartCodable {
+struct User: SmartCodableX {
     var name: String = ""
     var age: Int = 0
 }
@@ -177,7 +177,7 @@ To support deserialization from JSON, a class/struct need to conform to 'SmartCo
 To conform to 'SmartCodable', a class need to implement an empty initializer.
 
 ```swift
-class BasicTypes: SmartCodable {
+class BasicTypes: SmartCodableX {
     var int: Int = 2
     var doubleOptional: Double?
     required init() {}
@@ -188,7 +188,7 @@ let model = BasicTypes.deserialize(from: json)
 For struct, since the compiler provide a default empty initializer, we use it for free.
 
 ```swift
-struct BasicTypes: SmartCodable {
+struct BasicTypes: SmartCodableX {
     var int: Int = 2
     var doubleOptional: Double?
 }
@@ -270,7 +270,7 @@ let options: Set<SmartDecodingOption> = [
 #### 2.2 Post-processing callback invoked after successful decoding
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     var name: String = ""
     
     mutating func didFinishMapping() {
@@ -311,7 +311,7 @@ Convert between JSON values and custom types
 | **SmartURLTransformer**        | String        | URL         | Converts strings to URLs with optional encoding and prefixing |
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     
     ...
     
@@ -373,7 +373,7 @@ static func mappingForValue() -> [SmartValueTransformer]? {
 Codable does not support Any resolution, but can be implemented using @SmartAny。
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     @SmartAny var dict: [String: Any] = [:]
     @SmartAny var arr: [Any] = []
     @SmartAny var any: Any?
@@ -396,7 +396,7 @@ print(model)
 If you need to ignore the parsing of attributes, you can override `CodingKeys` or use `@IgnoredKey`.
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     @IgnoredKey
     var name: String = ""
 }
@@ -415,7 +415,7 @@ print(model)
 #### 3.3 @SmartFlat
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     var name: String = ""
     var age: Int = 0
   
@@ -423,7 +423,7 @@ struct Model: SmartCodable {
     var model: FlatModel?
    
 }
-struct FlatModel: SmartCodable {
+struct FlatModel: SmartCodableX {
     var name: String = ""
     var age: Int = 0
 }
@@ -450,7 +450,7 @@ class PublishedModel: ObservableObject, SmartCodable {
     var name: ABC?
 }
 
-struct ABC: SmartCodable {
+struct ABC: SmartCodableX {
     var a: String = ""
 }
 
@@ -468,7 +468,7 @@ if let model = PublishedModel.deserialize(from: dict) {
 Adds Codable support for UIColor/NSColor using hex string encoding/decoding.
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     @SmartHexColor
     var color: UIColor?
 }
@@ -495,7 +495,7 @@ If you need inheritance support, annotate your subclass with `@SmartSubclass`.
 #### 4.1 Basic Usage
 
 ```swift
-class BaseModel: SmartCodable {
+class BaseModel: SmartCodableX {
     var name: String = ""
     required init() { }
 }
@@ -511,7 +511,7 @@ class StudentModel: BaseModel {
 Just implement it directly—no need for the `override` keyword.
 
 ```swift
-class BaseModel: SmartCodable {
+class BaseModel: SmartCodableX {
     var name: String = ""
     required init() { }
     
@@ -533,7 +533,7 @@ class StudentModel: BaseModel {
 #### 4.3 Parent Class Implements Protocol Method
 
 ```swift
-class BaseModel: SmartCodable {
+class BaseModel: SmartCodableX {
     var name: String = ""
     required init() { }
     
@@ -556,7 +556,7 @@ A few things to note:
 - The subclass should call the parent class's implementation.
 
 ```swift
-class BaseModel: SmartCodable {
+class BaseModel: SmartCodableX {
     var name: String = ""
     required init() { }
     
@@ -594,12 +594,12 @@ SmartCodable automatically handles string-encoded JSON values during decoding, s
 - **Type Inference**: Determines parsing strategy (object/array) based on property type
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     var hobby: Hobby?
     var hobbys: [Hobby]?
 }
 
-struct Hobby: SmartCodable {
+struct Hobby: SmartCodableX {
     var name: String = ""
 }
 
@@ -624,7 +624,7 @@ let dict = [
     "number3": "Mccc"
 ]
 
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     var number1: Int?
     var number2: Int?
     var number3: Int = 1
@@ -657,7 +657,7 @@ This can greatly improve the analytical efficiency.
 To be convertable, An `enum` must conform to `SmartCaseDefaultable` protocol. Nothing special need to do now.
 
 ```swift
-struct Student: SmartCodable {
+struct Student: SmartCodableX {
     var name: String = ""
     var sex: Sex = .man
 
@@ -676,7 +676,7 @@ let model = Student.deserialize(from: json)
 Make the enumeration follow **SmartAssociatedEnumerable**。Override the **mappingForValue** method and take over the decoding process yourself.
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     var sex: Sex = .man
     static func mappingForValue() -> [SmartValueTransformer]? {
         [
@@ -711,7 +711,7 @@ struct RelationEnumTranformer: ValueTransformable {
 It can accommodate any data structure, including nested array structures.
 
 ```swift
-struct Model: SmartCodable {
+struct Model: SmartCodableX {
     var name: String = ""
     var age: Int = 0
 }

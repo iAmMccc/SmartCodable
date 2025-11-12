@@ -49,7 +49,7 @@ class BeforeDecodingViewController: BaseCompatibilityViewController {
 
 
 extension BeforeDecodingViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var ignore: String = ""
         var age: Int = 0
@@ -66,7 +66,7 @@ extension BeforeDecodingViewController {
 
 
 extension BeforeDecodingViewController {
-    struct Home: SmartCodable {
+    struct Home: SmartCodableX {
 //        var name: String = ""
 //        @IgnoredKey
 //        var age: Any?

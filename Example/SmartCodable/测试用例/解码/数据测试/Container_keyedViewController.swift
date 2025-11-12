@@ -57,7 +57,7 @@ extension Container_keyedViewController {
     }
     
     
-    struct Model1: SmartCodable {
+    struct Model1: SmartCodableX {
         
         // 无key
         var dict1: [String: String] = [:]
@@ -93,7 +93,7 @@ extension Container_keyedViewController {
     }
     
     
-    struct Model2: SmartCodable {
+    struct Model2: SmartCodableX {
         
         // 无key
         var model1 = SubModel()
@@ -111,7 +111,7 @@ extension Container_keyedViewController {
         var model8: SubModel?
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String = ""
         var age: Int?
     }
@@ -133,7 +133,7 @@ extension Container_keyedViewController {
     }
     
     
-    struct Model3: SmartCodable {
+    struct Model3: SmartCodableX {
         
         // 无key
         @SmartAny
@@ -174,7 +174,7 @@ extension Container_keyedViewController {
     }
     
     
-    struct Model4: SmartCodable {
+    struct Model4: SmartCodableX {
       
         var name: String = ""
         var age: Int = 0
@@ -184,7 +184,7 @@ extension Container_keyedViewController {
        
     }
     
-    struct FlatModel: SmartCodable {
+    struct FlatModel: SmartCodableX {
         var name: String = ""
         var age: Int = 0
         

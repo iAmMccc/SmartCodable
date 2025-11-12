@@ -40,7 +40,7 @@ extension ReplaceHandyJSON_4ViewController {
         var dict: [String: Any] = [:]
     }
     
-    struct SmartModel: SmartCodable {
+    struct SmartModel: SmartCodableX {
         @SmartAny
         var name: Any?
         @SmartAny

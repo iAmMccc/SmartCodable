@@ -26,7 +26,7 @@ class Encode_ContainerDictViewcontroller: BaseViewController {
         }
     }
     //模型
-    struct FeedModel: SmartCodable {
+    struct FeedModel: SmartCodableX {
         var dict: [String: String] = [:]
         var optionalDict: [String: String]?
     }

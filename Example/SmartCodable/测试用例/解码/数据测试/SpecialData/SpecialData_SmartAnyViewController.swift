@@ -61,7 +61,7 @@ class SpecialData_SmartAnyViewController: BaseCompatibilityViewController {
 
 
 extension SpecialData_SmartAnyViewController {
-    struct DictModel: SmartCodable {
+    struct DictModel: SmartCodableX {
         
         @SmartAny
         var complex: [String: Any] = [:]

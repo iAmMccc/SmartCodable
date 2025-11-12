@@ -60,7 +60,7 @@ extension Container_unKeyedViewController {
     }
     
     
-    struct Model1: SmartCodable {
+    struct Model1: SmartCodableX {
         
         // 无key
         var arr1: [String] = []
@@ -101,7 +101,7 @@ extension Container_unKeyedViewController {
     
 
     
-    struct Model2: SmartCodable {
+    struct Model2: SmartCodableX {
         
         // 无key
         var arr1: [String?] = []
@@ -143,7 +143,7 @@ extension Container_unKeyedViewController {
     
 
     
-    struct Model3: SmartCodable {
+    struct Model3: SmartCodableX {
         
         // 无key
         var arr1: [SubModel] = []
@@ -164,7 +164,7 @@ extension Container_unKeyedViewController {
 
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String = ""
         var age: Int?
     }
@@ -188,7 +188,7 @@ extension Container_unKeyedViewController {
         ]
     }
         
-    struct Model4: SmartCodable {
+    struct Model4: SmartCodableX {
         
         // 无key
         var arr1: [SubModel?] = []
@@ -225,7 +225,7 @@ extension Container_unKeyedViewController {
         ]
     }
         
-    struct Model5: SmartCodable {
+    struct Model5: SmartCodableX {
         
 //        // 无key
 //        @SmartAny

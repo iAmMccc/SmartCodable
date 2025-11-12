@@ -33,7 +33,7 @@ class Encode_SpecialData_colorViewController: BaseViewController {
 
 
 extension Encode_SpecialData_colorViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         @SmartHexColor
         var a: UIColor?
     }

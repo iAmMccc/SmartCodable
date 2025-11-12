@@ -53,7 +53,7 @@ class CaseEightViewController: BaseViewController {
     }
     
     
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         /// 使用SmartFlat向上取值，内部可以获取到type 和 data层级的数据，通过type判断，进行data的区分解析。
         @SmartFlat
         private var data: ModelPackage?
@@ -93,12 +93,12 @@ extension CaseEightViewController {
             }
         }
 
-        struct One: SmartCodable {
+        struct One: SmartCodableX {
             var a: String = ""
             var b: Int = 0
         }
         
-        struct Two: SmartCodable {
+        struct Two: SmartCodableX {
             var c: String = ""
             var d: Int = 0
         }

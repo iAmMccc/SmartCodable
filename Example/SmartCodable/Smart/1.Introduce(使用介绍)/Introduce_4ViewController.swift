@@ -46,14 +46,14 @@ class Introduce_4ViewController: BaseViewController {
 
 extension Introduce_4ViewController {
     
-    struct BigModel: SmartCodable {
+    struct BigModel: SmartCodableX {
         var subModel1: SubModel?
         var subModel2: SubModel = SubModel()
         var subList1: [SubModel]?
         var subList2: [SubModel] = []
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String = ""
     }
 }

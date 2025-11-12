@@ -43,7 +43,7 @@ class ConcurrenceLogViewController: BaseViewController {
     }
     
     
-    struct NewModel: SmartCodable {
+    struct NewModel: SmartCodableX {
         var new_a: String = ""
         var new_bbbbb: String = ""
         var new_c: String = ""
@@ -54,7 +54,7 @@ class ConcurrenceLogViewController: BaseViewController {
 
 
 
-    struct OldModel: SmartCodable {
+    struct OldModel: SmartCodableX {
         var old_a: String = ""
         var old_bbbbb: String = ""
         var old_c: String = ""
@@ -65,7 +65,7 @@ class ConcurrenceLogViewController: BaseViewController {
 
 
 
-    struct MiddleModel: SmartCodable {
+    struct MiddleModel: SmartCodableX {
         var middle_a: String = ""
         var middle_b: String = ""
         var middle_c: String = ""

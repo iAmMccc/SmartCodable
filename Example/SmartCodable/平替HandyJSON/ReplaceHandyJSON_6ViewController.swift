@@ -49,7 +49,7 @@ extension ReplaceHandyJSON_6ViewController {
         case women
     }
     
-    struct SmartModel: SmartCodable {
+    struct SmartModel: SmartCodableX {
         var sex: SmartSex = .man
     }
 }

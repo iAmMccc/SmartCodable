@@ -31,7 +31,7 @@ class Introduce_6ViewController: BaseViewController {
 
 extension Introduce_6ViewController {
 
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = "-"
         var nickName: String = "帅气的小伙"
     }

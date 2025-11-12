@@ -138,7 +138,7 @@ extension SpecialData_dateViewController {
 
 
 extension SpecialData_dateViewController {
-    struct DateModel: SmartCodable {
+    struct DateModel: SmartCodableX {
         var aDate: Date = Date()
         var bDate: Date?
     }

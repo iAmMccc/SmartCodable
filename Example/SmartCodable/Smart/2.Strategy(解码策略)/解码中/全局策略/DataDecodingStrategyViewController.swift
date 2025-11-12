@@ -34,7 +34,7 @@ class DataDecodingStrategyViewController: BaseViewController {
 
 extension DataDecodingStrategyViewController {
 
-    struct FeedOne: SmartCodable {
+    struct FeedOne: SmartCodableX {
         var address: Data?
     }
 }

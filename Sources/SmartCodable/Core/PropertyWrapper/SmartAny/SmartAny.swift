@@ -11,7 +11,7 @@
  * Usage Example:
  *
  * ```
- * struct UserProfile: SmartCodable {
+ * struct UserProfile: SmartCodableX {
  *     @SmartAny var name: Any?          // Can be String, Int, etc.
  *     @SmartAny var age: Any?           // Number or other types
  *     @SmartAny var metadata: [String: Any] = [:]  // Flexible dictionary
@@ -92,7 +92,7 @@ extension SmartAny: Codable {
         } else if let arr = wrappedValue as? [Any] {
             let value = arr.cover
             try container.encode(value)
-        } else if let model = wrappedValue as? SmartCodable {
+        } else if let model = wrappedValue as? SmartCodableX {
             try container.encode(model)
         } else {
             let value = SmartAnyImpl(from: wrappedValue)

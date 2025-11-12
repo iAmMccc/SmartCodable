@@ -41,7 +41,7 @@ class BaseData_Int8ViewController: BaseViewController {
 
 }
 extension BaseData_Int8ViewController {
-    struct CompatibleInt: SmartCodable {
+    struct CompatibleInt: SmartCodableX {
         var int: Int8 = 1
         var int1: Int8?
         var int2: Int8?

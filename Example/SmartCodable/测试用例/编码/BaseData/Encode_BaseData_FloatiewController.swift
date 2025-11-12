@@ -34,7 +34,7 @@ class Encode_BaseData_FloatiewController: BaseViewController {
 
 
 extension Encode_BaseData_FloatiewController {
-    struct FloatModel: SmartCodable {
+    struct FloatModel: SmartCodableX {
         var a: Double?
         var b: Double = 0
         

@@ -34,7 +34,7 @@ class SpecialData_ColorViewController: BaseCompatibilityViewController {
 
 
 extension SpecialData_ColorViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         @SmartHexColor
         var color1: UIColor?
         @SmartHexColor

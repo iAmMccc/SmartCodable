@@ -42,13 +42,13 @@ class DecodingLogViewController: BaseViewController {
         print(model)
     }
     
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var age: Int = 0
         var sub: SubModel = SubModel()
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var location: String = ""
         var hobby: String = ""
     }

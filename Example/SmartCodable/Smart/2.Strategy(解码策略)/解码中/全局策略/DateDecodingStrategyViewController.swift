@@ -36,7 +36,7 @@ class DateDecodingStrategyViewController: BaseViewController {
 
 extension DateDecodingStrategyViewController {
 
-    struct FeedOne: SmartCodable {
+    struct FeedOne: SmartCodableX {
         
         var birth: Date = Date()
         var birth1: String = ""

@@ -34,7 +34,7 @@ class Encode_SpecialData_dataViewController: BaseViewController {
 
 
 extension Encode_SpecialData_dataViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var a: Data?
         var b: Data?
         

@@ -37,7 +37,7 @@ extension ReplaceHandyJSON_2ViewController {
         }
     }
     
-    struct SmartModel: SmartCodable {
+    struct SmartModel: SmartCodableX {
         var name: String = ""
         mutating func didFinishMapping() {
             name = "我是\(name)"

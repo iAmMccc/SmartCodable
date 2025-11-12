@@ -35,7 +35,7 @@ class SpecialData_EnumViewController: BaseCompatibilityViewController {
         
     }
     
-    struct EnumModel: SmartCodable {
+    struct EnumModel: SmartCodableX {
         var a: NunmberEnum?
         var b: NunmberEnum?
         var c: NunmberEnum?

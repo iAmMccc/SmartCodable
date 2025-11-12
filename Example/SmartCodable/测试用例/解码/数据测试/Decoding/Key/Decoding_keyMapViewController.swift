@@ -35,7 +35,7 @@ class Decoding_keyMapViewController: BaseViewController {
 
 
 extension Decoding_keyMapViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var age: Int = 0
         var location: Location?
@@ -49,7 +49,7 @@ extension Decoding_keyMapViewController {
         }
     }
     
-    struct Location: SmartCodable {
+    struct Location: SmartCodableX {
         var province: String = ""
         var city: String = ""
         
@@ -60,7 +60,7 @@ extension Decoding_keyMapViewController {
         }
     }
     
-    struct Son: SmartCodable {
+    struct Son: SmartCodableX {
         var hobby: String = ""
         static func mappingForKey() -> [SmartKeyTransformer]? {
             [

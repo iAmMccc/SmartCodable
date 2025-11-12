@@ -34,7 +34,7 @@ class Encode_BaseData_IntViewController: BaseViewController {
 
 
 extension Encode_BaseData_IntViewController {
-    struct IntModel: SmartCodable {
+    struct IntModel: SmartCodableX {
         var a: Int?
         var b: Int = 0
         

@@ -29,7 +29,7 @@ class Introduce_9ViewController: BaseCompatibilityViewController {
 }
 
 extension Introduce_9ViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         @SmartHexColor(encodeHexFormat: .rrggbbaa(.hash))
         var color: UIColor? = .white
     }

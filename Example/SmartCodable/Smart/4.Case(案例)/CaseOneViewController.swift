@@ -55,13 +55,13 @@ class CaseOneViewController: BaseViewController {
 
 
 
-struct Remark: SmartCodable {
+struct Remark: SmartCodableX {
     
     var judge: String = ""
     var content: String = ""
 }
 
-struct Player: SmartCodable {
+struct Player: SmartCodableX {
     
     init() { }
     var name: String = ""

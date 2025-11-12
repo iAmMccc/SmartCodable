@@ -34,7 +34,7 @@ class Encode_SpecialData_enumViewController: BaseViewController {
 
 
 extension Encode_SpecialData_enumViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var a: NumberType?
         var b: Sex?
         

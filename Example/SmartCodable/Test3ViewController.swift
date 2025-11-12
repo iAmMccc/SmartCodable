@@ -14,7 +14,7 @@ class Test3ViewController: BaseViewController {
         print(arr)
     }
     
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         
         var name: String?
     }
@@ -24,12 +24,12 @@ class Test3ViewController: BaseViewController {
 
 
 
-struct ARTEmojiEntity: SmartCodable, Equatable {
+struct ARTEmojiEntity: SmartCodableX, Equatable {
     
     var emojis: [EmojiItem] = [] /// 表情列表
     
     // MARK: - 表情信息结构
-    struct EmojiItem: SmartCodable, Equatable {
+    struct EmojiItem: SmartCodableX, Equatable {
         var identifier: String = "" /// 表情的唯一标识符，比如 ":smile:"
         var image: String = ""      /// 表情图片
     }

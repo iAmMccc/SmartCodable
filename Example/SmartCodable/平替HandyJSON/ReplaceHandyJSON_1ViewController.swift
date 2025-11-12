@@ -48,7 +48,7 @@ extension ReplaceHandyJSON_1ViewController {
         required init() { }
     }
     
-    class SmartModel: SmartCodable {
+    class SmartModel: SmartCodableX {
         var name: String = ""
         required init() { }
     }

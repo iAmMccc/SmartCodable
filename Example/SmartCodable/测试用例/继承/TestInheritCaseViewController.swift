@@ -46,7 +46,7 @@ class TestInheritCaseViewController: BaseViewController {
     }
 
 
-    class BaseModel: SmartCodable {
+    class BaseModel: SmartCodableX {
         var name: String = ""
         var age: Int?
         var date: Date?

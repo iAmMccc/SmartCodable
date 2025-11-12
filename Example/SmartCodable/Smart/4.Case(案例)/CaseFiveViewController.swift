@@ -84,17 +84,17 @@ class CaseFiveViewController : BaseViewController {
 
 
 
-struct StringModel: SmartCodable {
+struct StringModel: SmartCodableX {
     var string: String = ""
 }
 
 
-struct DataModel: SmartCodable {
+struct DataModel: SmartCodableX {
     var name: String = ""
     var age: Int = 0
 }
 
-struct ApiConmon<Element: Codable>: SmartCodable {
+struct ApiConmon<Element: Codable>: SmartCodableX {
     init() { }
     
     var data: Element?

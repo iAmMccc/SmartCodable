@@ -42,7 +42,7 @@ class Encode_CustomKeyViewController: BaseViewController {
 
 
 extension Encode_CustomKeyViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var aKey: Date?
         var bKey: URL?
         

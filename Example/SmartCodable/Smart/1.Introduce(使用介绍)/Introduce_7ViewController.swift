@@ -30,12 +30,12 @@ class Introduce_7ViewController: BaseViewController {
 
 extension Introduce_7ViewController {
 
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var hobby: Hobby?
         var hobbys: [Hobby]?
     }
     
-    struct Hobby: SmartCodable {
+    struct Hobby: SmartCodableX {
         var name: String = ""
     }
 }

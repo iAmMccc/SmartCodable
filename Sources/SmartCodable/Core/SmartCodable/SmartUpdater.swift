@@ -8,7 +8,7 @@
 import Foundation
 
 
-public struct SmartUpdater<T: SmartCodable> {
+public struct SmartUpdater<T: SmartCodableX> {
     
     /// This method is used to parse JSON data from a Data object and use the resulting dictionary to update a target object.
     /// - Parameters:
