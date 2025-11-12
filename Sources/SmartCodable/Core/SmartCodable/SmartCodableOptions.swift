@@ -19,14 +19,7 @@ public struct SmartCodableOptions {
     ///     - .rounded:  Returns 3 (rounds to nearest)
     ///
     /// - Note: This only affects decoding process
-<<<<<<<< HEAD:Sources/SmartCodable/Core/SmartCodable/SmartCodableConfig.swift
-    public static var numberStrategy: NumberConversionStrategy {
-        get { _numberConversionStrategy }
-        set {_numberConversionStrategy = newValue }
-    }
-========
     public static var numberStrategy: NumberConversionStrategy = .strict
->>>>>>>> main:Sources/SmartCodable/Core/SmartCodable/SmartCodableOptions.swift
 
 
     /// Whether to treat JSON `null` as a decoded value for `Any`-typed property wrappers (default: `true`)
