@@ -280,7 +280,7 @@ extension JSONDecoderImpl {
                 from: value,
                 codingPath: newPath,
                 options: self.options)
-            result[key] = try dictType.elementType.createByDirectlyUnwrapping(from: newDecoder)
+            result[key] = try dictType.elementType._eraseCreateByDirectUnwrap(from: newDecoder)
         }
         return result as! T
     }
@@ -300,7 +300,7 @@ extension JSONDecoderImpl {
 
 
 extension Decodable {
-    fileprivate static func createByDirectlyUnwrapping(from decoder: JSONDecoderImpl) throws -> Self {
+    fileprivate static func createByDirectlyUnwrapping<T>(from decoder: JSONDecoderImpl, type: T.Type) throws -> Self {
         if Self.self == URL.self
             || Self.self == Date.self
             || Self.self == Data.self
@@ -311,7 +311,40 @@ extension Decodable {
         {
             return try decoder.unwrap(as: Self.self)
         }
-        return try Self.init(from: decoder)
+        decoder.cache.cacheSnapshot(for: type, codingPath: decoder.codingPath)
+        let decoded = try Self.init(from: decoder)
+        decoder.cache.removeSnapshot(for: type)
+        
+        
+        return decoded
+    }
+    
+    /// createByDirectlyUnwrapping 的 Self 是静态绑定的（一个真正的类型），
+    /// 不能直接通过 Decodable.Type 这样的「存在类型」调用。
+    ///
+    /// 例如：
+    ///     let type: Decodable.Type = Int.self
+    ///     type.createByDirectlyUnwrapping(...)   // ❌ 编译不会通过
+    ///
+    /// Swift 在协议扩展里对 static 方法的规则是：
+    /// - 必须在编译期确定具体的 Self 类型
+    /// - 协议存在类型（Decodable.Type）并不携带这个静态类型信息
+    ///
+    /// unwrapDictionary 的场景里，我们拿到的是
+    ///     dictType.elementType: Decodable.Type
+    /// 这里没有具体的 Self，因此无法直接调 createByDirectlyUnwrapping。
+    ///
+    /// _eraseCreateByDirectUnwrap 做的事很简单：
+    /// - 把静态方法的调用重新包装一层，让 Self = 实际的 metatype 本身
+    /// - 返回值用 Any 消除静态类型要求
+    ///
+    /// 最终可以通过：
+    ///     dictType.elementType._eraseCreateByDirectUnwrap(...)
+    /// 让 Swift 正确推导 Self 并调用真正的解码逻辑。
+    ///
+    /// 本质上，这是一个「存在类型调用协议扩展 static 方法」的逃逸通道。
+    fileprivate static func _eraseCreateByDirectUnwrap(from decoder: JSONDecoderImpl) throws -> Any {
+        return try self.createByDirectlyUnwrapping(from: decoder, type: self)
     }
 }
 
