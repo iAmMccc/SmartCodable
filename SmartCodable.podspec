@@ -12,7 +12,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'SmartCodable'
-  s.version          = '5.1.6'
+  s.version          = '5.1.7'
   s.summary          = 'Swift数据解析库'
   
   s.homepage         = 'https://github.com/iAmMccc/SmartCodable'
