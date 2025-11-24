@@ -37,12 +37,12 @@ class TestInheritCaseViewController: BaseViewController {
             "hobbys": ["ball", "TV"]
         ]
  
-        guard let model = SubModel.deserialize(from: dict) else { return }
-        
-        smartPrint(value: model)
-        
-        let encodeDict = model.toJSONString(prettyPrint: true) ?? ""
-        print(encodeDict)
+//        guard let model = SubModel.deserialize(from: dict) else { return }
+//        
+//        smartPrint(value: model)
+//        
+//        let encodeDict = model.toJSONString(prettyPrint: true) ?? ""
+//        print(encodeDict)
     }
 
 
@@ -70,45 +70,45 @@ class TestInheritCaseViewController: BaseViewController {
     }
     
     
-    @SmartSubclass
-    class SubModel: BaseModel {
-        var location: String = ""
-        var sex: Sex = .man
-        var birthDate: Date?
-        
-        @SmartAny var hobbys:[Any] = []
-        
-        override static func mappingForKey() -> [SmartKeyTransformer]? {
-            let trans = [ CodingKeys.location <--- "sub_location" ]
-            if let superTrans = super.mappingForKey() {
-                return superTrans + trans
-            } else {
-                return trans
-            }
-        }
-        
-        override static func mappingForValue() -> [SmartValueTransformer]? {
-            let tf = DateFormatter()
-            tf.dateFormat = "yyyy-MM-dd"
-            let trans = [ CodingKeys.birthDate <--- SmartDateTransformer(strategy: .formatted(tf)) ]
-
-            if let superTrans = super.mappingForValue() {
-                return superTrans + trans
-            } else {
-                return trans
-            }
-        }
-        
-        override func didFinishMapping() {
-            super.didFinishMapping()
-            print("子类完成了解析")
-        }
-    }
-    
-    enum Sex: Int, SmartCaseDefaultable {
-        case man = 1
-        case women = 0
-    }
+////    @SmartSubclass
+//    class SubModel: BaseModel {
+//        var location: String = ""
+//        var sex: Sex = .man
+//        var birthDate: Date?
+//        
+//        @SmartAny var hobbys:[Any] = []
+//        
+//        override static func mappingForKey() -> [SmartKeyTransformer]? {
+//            let trans = [ CodingKeys.location <--- "sub_location" ]
+//            if let superTrans = super.mappingForKey() {
+//                return superTrans + trans
+//            } else {
+//                return trans
+//            }
+//        }
+//        
+//        override static func mappingForValue() -> [SmartValueTransformer]? {
+//            let tf = DateFormatter()
+//            tf.dateFormat = "yyyy-MM-dd"
+//            let trans = [ CodingKeys.birthDate <--- SmartDateTransformer(strategy: .formatted(tf)) ]
+//
+//            if let superTrans = super.mappingForValue() {
+//                return superTrans + trans
+//            } else {
+//                return trans
+//            }
+//        }
+//        
+//        override func didFinishMapping() {
+//            super.didFinishMapping()
+//            print("子类完成了解析")
+//        }
+//    }
+//    
+//    enum Sex: Int, SmartCaseDefaultable {
+//        case man = 1
+//        case women = 0
+//    }
 }
 
 

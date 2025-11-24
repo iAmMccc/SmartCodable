@@ -8,9 +8,9 @@ PODS:
   - FBSnapshotTestCase/SwiftSupport (2.1.4):
     - FBSnapshotTestCase/Core
   - HandyJSON (5.0.0-beta.1)
+  - SmartCodable (5.2.0-beta.1):
+    - SmartCodable/Core (= 5.2.0-beta.1)
   - SmartCodable/Core (5.2.0-beta.1)
-  - SmartCodable/Inherit (5.2.0-beta.1):
-    - SmartCodable/Core
   - SnapKit (5.6.0)
 
 DEPENDENCIES:
@@ -19,7 +19,7 @@ DEPENDENCIES:
   - CleanJSON
   - FBSnapshotTestCase (~> 2.1.4)
   - HandyJSON (= 5.0.0-beta.1)
-  - SmartCodable/Inherit (from `../SmartCodable.podspec`)
+  - SmartCodable (from `../`)
   - SnapKit
 
 SPEC REPOS:
@@ -33,7 +33,7 @@ SPEC REPOS:
 
 EXTERNAL SOURCES:
   SmartCodable:
-    :path: "../SmartCodable.podspec"
+    :path: "../"
 
 SPEC CHECKSUMS:
   BTBubble: c2a296a15665a742fb547f70414ee5b5252863e3
@@ -41,9 +41,9 @@ SPEC CHECKSUMS:
   CleanJSON: 910a36465ce4829e264a902ccf6d1455fdd9f980
   FBSnapshotTestCase: 094f9f314decbabe373b87cc339bea235a63e07a
   HandyJSON: 582477127ab3ab65bd2e471815f1a7b846856978
-  SmartCodable: 7a8676cadf43ee1477dbf091d9f9892c6c76f59a
+  SmartCodable: 81e504310f45603e9019f38790ccf7fcf7c1fd66
   SnapKit: e01d52ebb8ddbc333eefe2132acf85c8227d9c25
 
-PODFILE CHECKSUM: fbd909bd1bf3747400cd705163fad38954f6a18f
+PODFILE CHECKSUM: 28d47c6bf5e397eae78051fd1e037684e55bbeb6
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

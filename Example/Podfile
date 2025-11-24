@@ -3,9 +3,9 @@ use_frameworks!
 platform :ios, '13.0'
 
 target 'SmartCodable_Example' do
-#  pod 'SmartCodable', :path => '../'
+  pod 'SmartCodable', :path => '../'
   
-  pod 'SmartCodable/Inherit', :path => '../SmartCodable.podspec'
+#  pod 'SmartCodable/Inherit', :path => '../SmartCodable.podspec'
   
   
   pod 'SnapKit'

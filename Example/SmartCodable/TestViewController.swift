@@ -28,9 +28,38 @@ class TestViewController: BaseViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        let testData: [String: Any] = [
+            "data": [
+                "friend:apply": [
+                    "popup": 124_124_124_124,
+                    "msg_code": "123"
+                ]
+            ]
+        ]
+        let data = NoAuthButtonResponse.deserialize(from: testData)
+        print(data?.data["friend:apply"] as Any)
     }
-    
-
 }
 
+class AuthApi {
+
+}
+struct NoAuthButtonResponse: SmartCodable {
+    var data: [String: NoAuthButtonItem] = [:]
+}
+
+struct NoAuthButtonItem: SmartCodable {
+    var popup: PopupType = .unsupported
+    var msg: String = ""
+    
+    static func mappingForKey() -> [SmartKeyTransformer]? {
+        return [
+            CodingKeys.msg <--- "msg_code"
+        ]
+    }
+}
+
+enum PopupType: Int, SmartCaseDefaultable {
+    case banned = 4
+    case unsupported = -1
+}
