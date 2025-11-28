@@ -825,7 +825,7 @@ SmartCodable is an open-source project dedicated to making Swift data parsing mo
 
 
 
-[💖Contributing💖](https://github.com/iAmMccc/SmartCodable/blob/main/Contributing/ContributingList.md)
+### [💖Contributing💖](https://github.com/iAmMccc/SmartCodable/blob/main/Contributing/ContributingList.md)
 
 ## License
 
