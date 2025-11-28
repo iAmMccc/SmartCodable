@@ -30,21 +30,17 @@ class Test2ViewController: BaseViewController {
         print("1111")
     }
     
-    class Person: SmartCodable {
-        var myName: String?
-        var student: Student?
-        required init() {}
-    }
-    class Student: SmartCodable {
-        var myAge: String?
-        required init() {}
-        
-        static func mappingForKey() -> [SmartKeyTransformer]? {
-            return [
-                CodingKeys.myAge <--- "my_name"
-            ]
-        }
-    }
+
 }
 
 
+class Person11: SmartCodable {
+    var myName: String?
+    var student: Student?
+    required init() {}
+}
+
+@SmartSubclass
+class Student11: Person11 {
+    var myAge: String?
+}

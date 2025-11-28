@@ -48,6 +48,7 @@ struct NoAuthButtonResponse: SmartCodable {
     var data: [String: NoAuthButtonItem] = [:]
 }
 
+
 struct NoAuthButtonItem: SmartCodable {
     var popup: PopupType = .unsupported
     var msg: String = ""
