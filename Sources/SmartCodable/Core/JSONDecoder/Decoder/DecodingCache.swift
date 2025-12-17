@@ -21,18 +21,32 @@ class DecodingCache: Cachable {
     /// - Parameter type: The Decodable type to cache
     func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
         
-        // 减少动态派发开销，is 检查是编译时静态行为，比 as? 动态转换更高效。
-        guard type is SmartDecodable.Type else { return }
         
-        if let object = type as? SmartDecodable.Type {
-            let snapshot = DecodingSnapshot()
-            snapshot.codingPath = codingPath
-            // [initialValues] Lazy initialization:
-            // Generate initial values via reflection only when first accessed,
-            // using the recorded objectType to optimize parsing performance.
-            snapshot.objectType = object
-            snapshots.append(snapshot)
+        
+        let smartType: SmartDecodable.Type?
+
+        /** 缓存条件
+         * 1. 直接是 SmartDecodable
+         * 2. 是属性包装器，且 WrappedValue 是 SmartDecodable
+         * 3. 其它情况，不关心
+        */
+        if let objectType = type as? SmartDecodable.Type {
+            smartType = objectType
+        } else if let wrapperType = type as? any PropertyWrapperable.Type {
+            smartType = wrapperType.wrappedSmartDecodableType
+        } else {
+            return
         }
+
+        guard let object = smartType else { return }
+        
+        let snapshot = DecodingSnapshot()
+        snapshot.codingPath = codingPath
+        // [initialValues] Lazy initialization:
+        // Generate initial values via reflection only when first accessed,
+        // using the recorded objectType to optimize parsing performance.
+        snapshot.objectType = object
+        snapshots.append(snapshot)
     }
     
     /// Removes the most recent snapshot for the given type
@@ -52,11 +66,6 @@ extension DecodingCache {
     /// 该方法会根据传入的 `codingPath`（代表某个解码容器的位置），
     /// 在缓存的快照中查找对应容器，并尝试获取该容器中 `key` 对应字段的初始值。
     /// 如果该容器尚未初始化初始值，则会延迟初始化一次（通过反射等方式）。
-    ///
-    /// - Parameters:
-    ///   - key: 要查找的字段对应的 `CodingKey`，若为 `nil` 则直接返回 `nil`。
-    ///   - codingPath: 当前字段所在的容器路径，用于准确定位容器上下文。
-    /// - Returns: 若存在可用的初始值且类型匹配，则返回该值；否则返回 `nil`。
     func initialValueIfPresent<T>(forKey key: CodingKey?, codingPath: [CodingKey]) -> T? {
                 
         guard let key = key else { return nil }

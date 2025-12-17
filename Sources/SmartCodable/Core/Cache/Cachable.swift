@@ -44,7 +44,7 @@ extension Cachable {
     /// - Parameter codingPath: 当前字段或容器所在的完整解码路径。
     /// - Returns: 匹配路径的快照对象，若不存在则返回 `nil`。
     func findSnapShot(with codingPath: [CodingKey]) -> SomeSnapshot? {
-        return snapshots.first { codingPathEquals($0.codingPath, codingPath) }
+        return snapshots.last { codingPathEquals($0.codingPath, codingPath) }
     }
     
     private func codingPathEquals(_ lhs: [CodingKey], _ rhs: [CodingKey]) -> Bool {

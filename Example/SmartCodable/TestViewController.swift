@@ -28,39 +28,34 @@ class TestViewController: BaseViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        let testData: [String: Any] = [
-            "data": [
-                "friend:apply": [
-                    "popup": 124_124_124_124,
-                    "msg_code": "123"
-                ]
-            ]
-        ]
-        let data = NoAuthButtonResponse.deserialize(from: testData)
-        print(data?.data["friend:apply"] as Any)
+
     }
-}
-
-class AuthApi {
-
-}
-struct NoAuthButtonResponse: SmartCodable {
-    var data: [String: NoAuthButtonItem] = [:]
-}
-
-
-struct NoAuthButtonItem: SmartCodable {
-    var popup: PopupType = .unsupported
-    var msg: String = ""
     
-    static func mappingForKey() -> [SmartKeyTransformer]? {
-        return [
-            CodingKeys.msg <--- "msg_code"
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let dict: [String: Any] = [
+            "my_name": "Tom",
+//            "nick_name": "XiaoMing",
+//            "student": [
+//                "my_age": "18"
+//            ]
         ]
+        
+        guard let student = StudentModel.deserialize(from: dict) else { return }
+        print("⭐️解析结果: my_name = \(student.flatModel.my_name), nick_name = \(student.flatModel.nick_name)")
     }
+    
+    
+    struct StudentModel: SmartCodable {
+        @SmartFlat
+        var flatModel: FlatModel = FlatModel()
+    }
+    
+    struct FlatModel: SmartCodable {
+        @SmartIgnored
+        var image: UIImage?
+        var nick_name: String = "Mccc"
+        var my_name: String = "default"
+    }
+
 }
 
-enum PopupType: Int, SmartCaseDefaultable {
-    case banned = 4
-    case unsupported = -1
-}

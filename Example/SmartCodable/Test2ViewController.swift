@@ -19,28 +19,25 @@ class Test2ViewController: BaseViewController {
 
     }
     
+    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let dict: [String: Any] = [
             "my_name": "Tom",
             "student": [
-                "my_age": "18"
+                "my_age": "18",
+                "my_name": "Tom",
             ]
         ]
-        let person = Person.deserialize(from: dict,options: [.key(.fromSnakeCase)])
-        print("1111")
+        
+        let student = StudentModel.deserialize(from: dict)
+        print("1111 \(String(describing: student))")
     }
     
-
-}
-
-
-class Person11: SmartCodable {
-    var myName: String?
-    var student: Student?
-    required init() {}
-}
-
-@SmartSubclass
-class Student11: Person11 {
-    var myAge: String?
+    
+    struct FlatModel: SmartCodable {
+        var _cover: String = "123"
+    }
+    struct StudentModel: SmartCodable {
+        var student: FlatModel?
+    }
 }

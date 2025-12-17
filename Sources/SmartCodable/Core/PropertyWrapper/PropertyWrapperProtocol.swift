@@ -21,6 +21,8 @@ public protocol PropertyWrapperable {
     
     init(wrappedValue: WrappedValue)
     
+    static var wrappedSmartDecodableType: SmartDecodable.Type? { get }
+
     static func createInstance(with value: Any) -> Self?
     
     /**
@@ -32,7 +34,35 @@ public protocol PropertyWrapperable {
     func wrappedValueDidFinishMapping() -> Self?
 }
 
+public extension PropertyWrapperable {
+    static var wrappedSmartDecodableType: SmartDecodable.Type? {
 
+        let valueType = WrappedValue.self
+
+        // 1️⃣ WrappedValue 本身是 SmartDecodable
+        if let smart = valueType as? SmartDecodable.Type {
+            return smart
+        }
+
+        // 2️⃣ WrappedValue 是 Optional<SmartDecodable>
+        if let optionalType = valueType as? _OptionalType.Type,
+           let smart = optionalType.wrappedType as? SmartDecodable.Type {
+            return smart
+        }
+
+        return nil
+    }
+}
+
+protocol _OptionalType {
+    static var wrappedType: Any.Type { get }
+}
+
+extension Optional: _OptionalType {
+    static var wrappedType: Any.Type {
+        Wrapped.self
+    }
+}
 
 // ============================================================
 // 统一为所有 PropertyWrapperable 提供 Equatable / Hashable 支持

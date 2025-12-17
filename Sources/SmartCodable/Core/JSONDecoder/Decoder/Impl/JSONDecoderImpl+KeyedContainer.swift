@@ -450,11 +450,13 @@ extension JSONDecoderImpl.KeyedContainer {
         }
         
         /// @SmartFlat的处理
+        /// 关于SmartFlat的解析，是往前一层解析，codingPath不应该增加。
         if let type = type as? FlatType.Type {
             if type.isArray {
                 return try? T(from: superDecoder(forKey: key))
             } else {
-                return try? T(from: impl)
+                // 这里需要走unwrap，需要cache。
+                return try? impl.unwrap(as: T.self)
             }
         }
 
