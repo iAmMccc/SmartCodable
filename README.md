@@ -693,18 +693,18 @@ SmartUpdater.update(&model, from: dic2)
 
 If you're looking forward to learning more about the Codable protocol and the design thinking behind SmartCodable, check it out.
 
+[👉 **learn SmartCodable**](https://github.com/iAmMccc/SmartCodable/blob/main/Document/Usages/LearnMore.md)
+
 [👉 **github discussions**](https://github.com/iAmMccc/SmartCodable/discussions)
 
-[👉 **SmartCodable Test**](https://github.com/iAmMccc/SmartCodable/blob/main/Document/README/HowToTest.md)
-
-[👉 **learn SmartCodable**](https://github.com/iAmMccc/SmartCodable/blob/main/Document/README/LearnMore.md)
+[👉 **SmartCodable Test**](https://github.com/iAmMccc/SmartCodable/blob/main/Document/Usages/HowToTest.md)
 
 
 
 ## Github Stars
 
 <p style="margin:0">
-  <img src="https://starchart.cc/iAmMccc/SmartCodable.svg" alt="Stars" width="800">
+  <img src="https://starchart.cc/iAmMccc/SmartCodable.svg" alt="Stars" width="750">
 </p>
 
 
