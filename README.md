@@ -31,13 +31,13 @@
 
 ## Features
 
-##### **Compatibility**
+### **Compatibility**
 
 - **Robust Parsing** – Handles missing keys, type mismatches, and null values safely.
 - **Safe Defaults** – Falls back to property initializers when parsing fails.
 - **Smart Type Conversion** – Converts common types automatically (e.g., `Int ⇄ String`, `Bool ⇄ String`).
 
-##### **Enhancements**
+### **Enhancements**
 
 - **Any & Collection Support** – Parses `Any`, `[Any]`, `[String: Any]` safely.
 - **Nested Path Parsing** – Decode nested JSON using designated paths.
@@ -47,20 +47,22 @@
 - **Inheritance Support** – Enables model inheritance via `@SmartSubclass`.
 - **Stringified JSON Parsing** – Converts string-encoded JSON into objects or arrays automatically.
 
-##### **Convenience**
+### **Convenience**
 
 - **Property Ignoring** – Skip specific properties with `@IgnoredKey`, including non-`Codable` fields.
 - **Flexible Input Formats** – Deserialize from dictionaries, arrays, JSON strings, or `Data`.
 
-##### **Callbacks**
+### **Callbacks**
 
 - **Post-Processing Callback** – `didFinishMapping()` runs after decoding for custom initialization or adjustments.
 
-##### **Debugging**
+### **Debugging**
 
 - **SmartSentinel Logging** – Real-time parsing logs to track errors and data issues.
 
-### Quick Start
+
+
+## Quick Start
 
 ```
 import SmartCodable
