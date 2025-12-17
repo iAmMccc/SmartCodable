@@ -1,6 +1,6 @@
-# 🙏 SmartCodable 感谢名单
+# 💖 SmartCodable 捐赠名单
 
-## 🎁 打赏记录
+## 捐赠记录
 
 | 序号 | 打赏人     | 来源   | 事由                             | 收入金额 | 计入奖金池 | 说明                           |
 | ---- | ---------- | ------ | -------------------------------- | -------- | ---------- | ------------------------------ |
@@ -21,9 +21,11 @@
 - 不涉及库功能的额外支持（如业务适配、集成调试），原则上不提供额外技术服务。
 - 每一笔打赏都被认真记录，用于团队奖金池和开发者激励，感谢每一位参与者。
 
-### Support 💖
 
-![Support](https://github.com/iAmMccc/SmartCodable/blob/main/Document/support.png)
+
+### 💖 捐赠
+
+![Support](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/Images/support.png)
 
 
 

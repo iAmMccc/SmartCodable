@@ -79,13 +79,11 @@ let user = User.deserialize(from: ["name": "John", "age": 30])
 
 | Project / Tool                                               | Description                                                  |
 | :----------------------------------------------------------- | :----------------------------------------------------------- |
-| 🔧 [HandyJSON Replacement](https://github.com/iAmMccc/SmartCodable/blob/main/Document/README/CompareWithHandyJSON.md) | Step-by-step guide to replace HandyJSON with SmartCodable in your project. |
-| 🛠 [SmartModeler](https://iammccc.github.io)                  | Companion tool for converting JSON into SmartCodable Swift models. |
-| 👀 SmartSentinel                                              | Real-time parsing logs to track errors and issues. Supports. |
-| 💖 [Contributing](https://github.com/iAmMccc/SmartCodable/blob/main/Contributing/ContributingList.md) | Support the development of SmartCodable through donations.   |
-| 🏆 Contributors                                               | Key contributors to the SmartCodable codebase.               |
-
-
+| 🔧 [HandyJSON](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/CompareWithHandyJSON.md) | Step-by-step guide to replace HandyJSON with SmartCodable in your project. |
+| 🛠 [SmartModeler](https://github.com/iAmMccc/SmartModeler)    | Companion tool for converting JSON into SmartCodable Swift models. |
+| 👀 [SmartSentinel](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/Sentinel.md) | Real-time parsing logs to track errors and issues. Supports. |
+| 💖 [Contributing](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/Contributing.md) | Support the development of SmartCodable through donations.   |
+| 🏆 [Contributors](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/Contributing.md) | Key contributors to the SmartCodable codebase.               |
 
 
 
@@ -706,12 +704,12 @@ If you're looking forward to learning more about the Codable protocol and the de
 ## Github Stars
 
 <p style="margin:0">
-  <img src="https://starchart.cc/iAmMccc/SmartCodable.svg" alt="Stars" width="700">
+  <img src="https://starchart.cc/iAmMccc/SmartCodable.svg" alt="Stars" width="800">
 </p>
 
 
 
-## Join the SmartCodable Community 🚀
+## Join Community 🚀
 
 SmartCodable is an open-source project dedicated to making Swift data parsing more robust, flexible and efficient. We welcome all developers to join our community!
 
