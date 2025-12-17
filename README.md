@@ -1,24 +1,23 @@
 <p align="center">
 <img src="https://github.com/intsig171/SmartCodable/assets/87351449/89de27ac-1760-42ee-a680-4811a043c8b1" alt="SmartCodable" title="SmartCodable" width="500"/>
 </p>
-<h1 align="center">SmartCodable - Resilient & Flexible Codable for Swift</h1>
+<h1 align="center">SmartCodable - Resilient & Flexible Codable for Swift </h1>
 
 <p align="center">
+<a href="https://github.com/iAmMccc/SmartCodable/blob/main/README_CN.md">
+    <img src="https://img.shields.io/badge/中文-可用-brightgreen.svg" alt="中文文档">
+</a>
 <a href="https://github.com/iAmMccc/SmartCodable/releases">
     <img src="https://img.shields.io/github/v/release/iAmMccc/SmartCodable?color=blue&label=version" alt="Latest Release">
 </a>
-<a href="https://www.apple.com/swift/">
-    <img src="https://img.shields.io/badge/platform-iOS%2FmacOS%2FtvOS%2FwatchOS-blue.svg" alt="Platform Support">
-</a>
+<a href="https://swift.org/">
+    <img src="https://img.shields.io/badge/Swift-5.0%2B-orange.svg" alt="Swift 5.0+">
 </a>
 <a href="https://github.com/iAmMccc/SmartCodable/wiki">
     <img src="https://img.shields.io/badge/Documentation-available-brightgreen.svg" alt="Documentation">
 </a>
 <a href="https://swift.org/package-manager/">
     <img src="https://img.shields.io/badge/SPM-supported-DE5C43.svg?style=flat" alt="SPM Supported">
-</a>
-<a href="https://swift.org/">
-    <img src="https://img.shields.io/badge/Swift-5.0%2B-orange.svg" alt="Swift 5.0+">
 </a>
 <a href="https://github.com/iAmMccc/SmartCodable/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-black.svg" alt="MIT License">
@@ -28,9 +27,7 @@
 </a>
 </p>
 
-### English | [中文](https://github.com/iAmMccc/SmartCodable/blob/main/README_CN.md) | [💖Contributing💖](https://github.com/iAmMccc/SmartCodable/blob/main/Contributing/ContributingList.md)
-
-**SmartCodable** redefines Swift data parsing by enhancing Apple's native `Codable` with production-ready resilience and flexibility.
+**SmartCodable** redefines Swift data parsing by enhancing Apple's native Codable with production-ready resilience and flexibility. It provides seamless support for default values, nested flattening, and ignored properties, reducing boilerplate while increasing reliability. 
 
 ## Features
 
