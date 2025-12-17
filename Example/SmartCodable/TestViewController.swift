@@ -48,6 +48,7 @@ class TestViewController: BaseViewController {
     struct StudentModel: SmartCodable {
         @SmartFlat
         var flatModel: FlatModel = FlatModel()
+    
     }
     
     struct FlatModel: SmartCodable {
