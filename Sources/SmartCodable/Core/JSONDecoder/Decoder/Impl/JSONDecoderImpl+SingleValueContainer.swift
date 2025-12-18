@@ -9,7 +9,7 @@ import Foundation
 
 /** 进入Single的场景
  单容器的解析
- struct Model: SmartCodable {
+ struct Model: SmartCodableX {
      var models: [String] = ["one"]
  }
  */

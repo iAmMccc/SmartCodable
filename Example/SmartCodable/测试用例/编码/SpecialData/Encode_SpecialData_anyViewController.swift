@@ -33,7 +33,7 @@ class Encode_SpecialData_anyViewController: BaseViewController {
 
 
 extension Encode_SpecialData_anyViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         @SmartAny
         var a: Any?
 //        @SmartAny

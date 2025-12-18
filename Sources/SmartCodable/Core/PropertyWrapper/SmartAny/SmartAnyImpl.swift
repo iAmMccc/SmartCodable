@@ -213,7 +213,7 @@ extension SmartAnyImpl {
         case let v as NSNumber:      return .number(v)
         case let v as String:        return .string(v)
         case let v as [String: Any]: return .dict(v.mapValues { convertToSmartAny($0) })
-        case let v as SmartCodable:
+        case let v as SmartCodableX:
             if let dict = v.toDictionary() {
                 return .dict(dict.mapValues { convertToSmartAny($0) })
             }

@@ -11,7 +11,7 @@
  * Usage Example:
  *
  * ```
- struct SomeModel: SmartCodable {
+ struct SomeModel: SmartCodableX {
      @SmartHexColor
      var titleColor: UIColor? = .white
      @SmartHexColor

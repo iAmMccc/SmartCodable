@@ -34,7 +34,7 @@ class Encode_SpecialData_urlViewController: BaseViewController {
 
 
 extension Encode_SpecialData_urlViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var a: URL?
         var b: URL?
         

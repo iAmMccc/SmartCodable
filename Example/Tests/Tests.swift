@@ -124,7 +124,7 @@ struct Airport: Codable {
 
 
 // SmartCodable
-struct Smart: SmartCodable {
+struct Smart: SmartCodableX {
     
     var name: String?
     var iata: String?
@@ -132,7 +132,7 @@ struct Smart: SmartCodable {
     var coordinates: [Double]?
     var runways: [Runway]?
     
-    struct Runway: SmartCodable {
+    struct Runway: SmartCodableX {
         enum Surface: String, SmartCaseDefaultable {            
             case rigid, flexible, gravel, sealed, unpaved, other
         }

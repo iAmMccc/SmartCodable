@@ -53,7 +53,7 @@ class CaseTwoViewController: BaseViewController {
 }
 
 extension CaseTwoViewController {
-    class BaseModel: SmartCodable {
+    class BaseModel: SmartCodableX {
         var name: String = ""
         var age: Int = 0
         

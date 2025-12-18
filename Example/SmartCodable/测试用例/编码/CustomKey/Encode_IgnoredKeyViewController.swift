@@ -40,9 +40,9 @@ class Encode_IgnoredKeyViewController: BaseViewController {
 
 
 extension Encode_IgnoredKeyViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
 //        var aKey: Date?
-        @IgnoredKey
+        @SmartIgnored
         var bKey: URL?
         
         static func mappingForKey() -> [SmartKeyTransformer]? {

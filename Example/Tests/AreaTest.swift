@@ -146,19 +146,19 @@ struct AreaCodable: Codable {
 
 
 // SmartCodable
-struct AreaSmart: SmartCodable {
+struct AreaSmart: SmartCodableX {
     
     
     var areaCode: String = ""
     var name: String = ""
     var city: [City] = []
     
-    struct City: SmartCodable {
+    struct City: SmartCodableX {
         var name: String = ""
         var areaCode: String = ""
         var district: [District] = []
         
-        struct District: SmartCodable {
+        struct District: SmartCodableX {
             var name: String = ""
             var areaCode: String = ""
         }

@@ -99,7 +99,7 @@ class Introduce_3ViewController: BaseViewController {
 
 
 extension Introduce_3ViewController {
-    struct ArrayAndModels: SmartCodable {
+    struct ArrayAndModels: SmartCodableX {
         var name: String = ""
         var className: String = ""
         var detail = ArrayAndModelsDetail()
@@ -108,7 +108,7 @@ extension Introduce_3ViewController {
         init() { }
     }
 
-    struct ArrayAndModelsDetail: SmartCodable {
+    struct ArrayAndModelsDetail: SmartCodableX {
         var detail: String = ""
         
         init() { }

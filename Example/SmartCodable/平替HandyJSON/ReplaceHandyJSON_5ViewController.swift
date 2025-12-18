@@ -48,11 +48,11 @@ protocol Baseable {
 
 extension ReplaceHandyJSON_5ViewController {
     
-    struct SmartBaseModel: SmartCodable, Baseable {
+    struct SmartBaseModel: SmartCodableX, Baseable {
         var name: String?
     }
     
-    struct SmartModel: SmartCodable, Baseable {
+    struct SmartModel: SmartCodableX, Baseable {
         var name: String?
         var age: Int?
     }

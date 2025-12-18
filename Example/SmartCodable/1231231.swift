@@ -11,7 +11,7 @@ import SwiftUI
 import Combine
 import SmartCodable
 
-class MyModel: ObservableObject, SmartCodable {
+class MyModel: ObservableObject, SmartCodableX {
     required init() {
         
     }

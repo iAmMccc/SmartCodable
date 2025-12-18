@@ -63,7 +63,7 @@ class CustomDecodingValueViewContriller: BaseViewController {
 
 extension CustomDecodingValueViewContriller {
     
-    struct SmartModel: SmartCodable {
+    struct SmartModel: SmartCodableX {
         
         var string: String = ""
         var int: Int = 0
@@ -101,7 +101,7 @@ extension CustomDecodingValueViewContriller {
         }
     }
     
-    struct SmartSubModel: SmartCodable {
+    struct SmartSubModel: SmartCodableX {
 
         var subDate: Date?
         @SmartHexColor

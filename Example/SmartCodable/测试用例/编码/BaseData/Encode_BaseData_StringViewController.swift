@@ -34,7 +34,7 @@ class Encode_BaseData_StringViewController: BaseViewController {
 
 
 extension Encode_BaseData_StringViewController {
-    struct StringModel: SmartCodable {
+    struct StringModel: SmartCodableX {
         var a: String?
         var b: String = ""
         

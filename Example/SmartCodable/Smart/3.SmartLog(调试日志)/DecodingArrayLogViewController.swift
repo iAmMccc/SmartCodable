@@ -100,7 +100,7 @@ class DecodingArrayLogViewController: BaseViewController {
 
 
 extension DecodingArrayLogViewController {
-    struct Family: SmartCodable {
+    struct Family: SmartCodableX {
         var name: String = "我的家"
 //        var location: String = ""
 //        var date: Date = Date()
@@ -109,7 +109,7 @@ extension DecodingArrayLogViewController {
         var sons: [Son] = []
     }
 
-    struct Father: SmartCodable {
+    struct Father: SmartCodableX {
         var name: String = ""
 //        var age: Int = 0
         var dog: Dog = Dog()
@@ -118,12 +118,12 @@ extension DecodingArrayLogViewController {
     }
 
 
-    struct Son: SmartCodable {
+    struct Son: SmartCodableX {
         var hobby: String = ""
 //        var age: Int = 0
     }
 
-    struct Dog: SmartCodable {
+    struct Dog: SmartCodableX {
         var hobby: String = ""
     }
 }

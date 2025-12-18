@@ -73,7 +73,7 @@ extension SpecialData_dataViewController {
 
 
 extension SpecialData_dataViewController {
-    struct DataModel: SmartCodable {
+    struct DataModel: SmartCodableX {
         var aData: Data = Data()
         var bData: Data?
     }

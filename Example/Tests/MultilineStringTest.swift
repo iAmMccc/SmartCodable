@@ -9,7 +9,7 @@
 import SmartCodable
 import Testing
 
-private struct User: SmartCodable {
+private struct User: SmartCodableX {
     var name: String = ""
     var age: Int = 0
 }

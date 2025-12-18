@@ -37,7 +37,7 @@ extension Introduce_10ViewController {
         print(models)
     }
     
-    struct Family: SmartCodable {
+    struct Family: SmartCodableX {
         
         var name: String?
         var id: String?
@@ -56,7 +56,7 @@ extension Introduce_10ViewController {
         print(models)
     }
     
-    struct Home: SmartCodable {
+    struct Home: SmartCodableX {
         
         @SmartAny
         var arr1: [Any]?
@@ -207,36 +207,36 @@ extension Introduce_10ViewController {
     
     
     
-    struct PathModel: SmartCodable {
+    struct PathModel: SmartCodableX {
         var name: String?
         var age: Int?
     }
     
-    struct NestedArrayModel: SmartCodable {
+    struct NestedArrayModel: SmartCodableX {
         var name: String?
         var friends: [Friend]?
         
-        struct Friend: SmartCodable {
+        struct Friend: SmartCodableX {
             var name: String = ""
             var age: Int = 0
         }
     }
     
-    struct PathArrayModel: SmartCodable {
+    struct PathArrayModel: SmartCodableX {
         var name: [String]?
     }
     
-    struct Course: SmartCodable {
+    struct Course: SmartCodableX {
         var code: String?
         var title: String?
     }
     
-    struct Department: SmartCodable {
+    struct Department: SmartCodableX {
         var name: String?
         var courses: [Course]?
     }
     
-    struct School: SmartCodable {
+    struct School: SmartCodableX {
         var name: String?
         var departments: [Department]?
     }

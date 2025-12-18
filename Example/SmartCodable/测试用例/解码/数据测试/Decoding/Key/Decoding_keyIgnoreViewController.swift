@@ -39,7 +39,7 @@ class Decoding_keyIgnoreViewController: BaseViewController {
 
 
 extension Decoding_keyIgnoreViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var ignore: String = ""
         var age: Int = 0
@@ -54,11 +54,11 @@ extension Decoding_keyIgnoreViewController {
         }
     }
     
-    struct Location: SmartCodable {
+    struct Location: SmartCodableX {
         var province: String = ""
         
         // 忽略解析
-        @IgnoredKey
+        @SmartIgnored
         var city: String = "area123"
     }
 }

@@ -73,7 +73,7 @@ class Introduce_5ViewController: BaseViewController {
 }
 
 extension Introduce_5ViewController {
-    struct AnyModel: SmartCodable {
+    struct AnyModel: SmartCodableX {
         @SmartAny
         var sex: Any?
         @SmartAny

@@ -36,7 +36,7 @@ class Decoding_valueMapViewController: BaseViewController {
 extension Decoding_valueMapViewController {
     
     
-    struct Feed: SmartCodable {
+    struct Feed: SmartCodableX {
         var int: Int?
         var string: String?
         var date: Date?
@@ -56,7 +56,7 @@ extension Decoding_valueMapViewController {
         }
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String?
     }
     

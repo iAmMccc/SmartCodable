@@ -32,14 +32,14 @@ class Support_JSONStringViewController: BaseCompatibilityViewController {
         }
     }
     
-    struct JSONStringModel: SmartCodable {
+    struct JSONStringModel: SmartCodableX {
         var name: String?
         var age: Int?
         var love: Love = Love()
         var loves: [Love] = []
     }
     
-    struct Love: SmartCodable {
+    struct Love: SmartCodableX {
         var name: String = ""
     }
 }

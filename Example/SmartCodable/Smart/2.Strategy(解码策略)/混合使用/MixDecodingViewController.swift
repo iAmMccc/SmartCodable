@@ -49,7 +49,7 @@ class MixDecodingViewController: BaseViewController {
 
 extension MixDecodingViewController {
     
-    struct SmartModel: SmartCodable {
+    struct SmartModel: SmartCodableX {
         
 //        var ignoreKey: String?
 

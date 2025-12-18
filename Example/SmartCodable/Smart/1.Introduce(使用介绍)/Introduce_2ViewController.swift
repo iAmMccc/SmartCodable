@@ -106,7 +106,7 @@ class Introduce_2ViewController: BaseViewController {
 }
 
 extension Introduce_2ViewController {
-    struct JsonToModel: SmartCodable {
+    struct JsonToModel: SmartCodableX {
         var name: String = ""
         var className: String = ""
         var detail: JsonToModelDetail = JsonToModelDetail()
@@ -115,7 +115,7 @@ extension Introduce_2ViewController {
         init() { }
     }
 
-    struct JsonToModelDetail: SmartCodable {
+    struct JsonToModelDetail: SmartCodableX {
         var detail: String = ""
         
         init() { }

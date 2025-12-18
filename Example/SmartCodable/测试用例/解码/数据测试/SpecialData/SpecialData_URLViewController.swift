@@ -32,7 +32,7 @@ class SpecialData_URLViewController: BaseCompatibilityViewController {
         }
     }
     
-    struct URLModel: SmartCodable {
+    struct URLModel: SmartCodableX {
         var a: URL?
         var b: URL?
         var c: URL?

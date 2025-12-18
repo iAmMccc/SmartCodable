@@ -50,7 +50,7 @@ class CustomDecodingKeyViewContriller: BaseViewController {
 
 extension CustomDecodingKeyViewContriller {
     
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var age: Int?
         var sex: String?

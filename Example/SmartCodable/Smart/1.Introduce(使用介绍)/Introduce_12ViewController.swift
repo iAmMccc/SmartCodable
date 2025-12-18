@@ -48,14 +48,14 @@ class Introduce_12ViewController: BaseViewController {
 }
 
 // 定义 PublishedModel，并实现反序列化
-class PublishedModel: ObservableObject, SmartCodable {
+class PublishedModel: ObservableObject, SmartCodableX {
     required init() {}
     
     @SmartPublished
     var name: ABC?
 }
 
-struct ABC: SmartCodable {
+struct ABC: SmartCodableX {
     var a: String = ""
 }
 

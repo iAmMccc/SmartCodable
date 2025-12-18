@@ -31,7 +31,7 @@ class FinishMappingViewController: BaseViewController {
 
 extension FinishMappingViewController {
     
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         mutating func didFinishMapping() {
             name = "我是\(name)"

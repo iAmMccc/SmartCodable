@@ -34,7 +34,7 @@ class Encode_SpecialData_dateViewController: BaseViewController {
 
 
 extension Encode_SpecialData_dateViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var a: Date?
         var b: Date?
         

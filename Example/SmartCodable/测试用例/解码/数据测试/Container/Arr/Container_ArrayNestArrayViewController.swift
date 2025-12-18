@@ -41,18 +41,18 @@ class Container_ArrayNestArrayViewController: BaseCompatibilityViewController {
 
 }
 extension Container_ArrayNestArrayViewController {
-    struct PersonModel: SmartCodable {
+    struct PersonModel: SmartCodableX {
         var loves: [Love]?
         var sons: [SonModel]?
     }
 
-    struct SonModel: SmartCodable {
+    struct SonModel: SmartCodableX {
         var name: String?
         var age: Int?
         var love: Love?
     }
 
-    struct Love: SmartCodable {
+    struct Love: SmartCodableX {
         var name: String = ""
         var time: CGFloat = 0.0
     }

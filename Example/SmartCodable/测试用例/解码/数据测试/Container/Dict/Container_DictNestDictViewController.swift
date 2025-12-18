@@ -41,20 +41,20 @@ class Container_DictNestDictViewController: BaseCompatibilityViewController {
 
 
 extension Container_DictNestDictViewController {
-    struct FatherModel: SmartCodable {
+    struct FatherModel: SmartCodableX {
         var name: String = "father"
         var age: Int = 100
         var love: Love = Love()
         var son: SonModel = SonModel()
     }
     
-    struct SonModel: SmartCodable {
+    struct SonModel: SmartCodableX {
         var name: String?
         var age: Int?
         var love: Love?
     }
     
-    struct Love: SmartCodable {
+    struct Love: SmartCodableX {
         var name: String = "足球"
         var time: CGFloat = 5.5
     }

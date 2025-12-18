@@ -58,7 +58,7 @@ class Container_ArrayNestDictViewController: BaseCompatibilityViewController {
 
 }
 extension Container_ArrayNestDictViewController {
-    struct PersonModel: SmartCodable {
+    struct PersonModel: SmartCodableX {
         var name: String = ""
         var age: Int = 0
         var father: FatherModel = FatherModel()
@@ -66,19 +66,19 @@ extension Container_ArrayNestDictViewController {
         var son: SonModel?
     }
     
-    struct FatherModel: SmartCodable {
+    struct FatherModel: SmartCodableX {
         var name: String?
         var age: Int?
         var love: Love?
     }
 
-    struct SonModel: SmartCodable {
+    struct SonModel: SmartCodableX {
         var name: String?
         var age: Int?
         var love: Love?
     }
 
-    struct Love: SmartCodable {
+    struct Love: SmartCodableX {
         var name: String = ""
         var time: CGFloat = 0.0
     }

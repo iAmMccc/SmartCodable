@@ -42,7 +42,7 @@ class BaseData_FloatViewController: BaseViewController {
          */
     }
     
-    struct CompatibleFloat: SmartCodable {
+    struct CompatibleFloat: SmartCodableX {
         var floatValue: Float = 0
         var floatValue1: Float = 0
         var floatValue2: Float = 0

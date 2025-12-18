@@ -40,7 +40,7 @@ class Introduce_8ViewController: BaseCompatibilityViewController {
 
 extension Introduce_8ViewController {
     
-    struct CompatibleEnum: SmartCodable {
+    struct CompatibleEnum: SmartCodableX {
 
         init() { }
         var number: NumberType = .two

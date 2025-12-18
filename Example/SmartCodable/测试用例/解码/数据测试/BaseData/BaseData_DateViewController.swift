@@ -38,7 +38,7 @@ class BaseData_DateViewController: BaseViewController {
 
 }
 extension BaseData_DateViewController {
-    struct DateModel: SmartCodable {
+    struct DateModel: SmartCodableX {
         var a: Date?
         var b: Date?
         var c: Date?

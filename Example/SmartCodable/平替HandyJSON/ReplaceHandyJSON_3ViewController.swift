@@ -45,7 +45,7 @@ extension ReplaceHandyJSON_3ViewController {
         }
     }
     
-    struct SmartModel: SmartCodable {
+    struct SmartModel: SmartCodableX {
         var name: String = ""
         var age: Int?
         var ignoreKey: String = "忽略的key"

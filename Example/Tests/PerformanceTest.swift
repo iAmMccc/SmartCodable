@@ -80,7 +80,7 @@ struct CodableModel: Codable {
 }
 
 // SmartCodable
-struct SmartModel: SmartCodable {
+struct SmartModel: SmartCodableX {
     
     var name: String?
     var iata: String?
@@ -88,7 +88,7 @@ struct SmartModel: SmartCodable {
     var coordinates: [Double]?
     var runways: [Runway]?
     
-    struct Runway: SmartCodable {
+    struct Runway: SmartCodableX {
         enum Surface: String, SmartCaseDefaultable {            
             case rigid, flexible, gravel, sealed, unpaved, other
         }

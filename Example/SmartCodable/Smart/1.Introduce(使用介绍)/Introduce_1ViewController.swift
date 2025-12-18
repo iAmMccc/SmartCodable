@@ -49,11 +49,11 @@ class Introduce_1ViewController: BaseViewController {
 
 
 extension Introduce_1ViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var two = SubModel()
     }
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String = ""
     }
 }

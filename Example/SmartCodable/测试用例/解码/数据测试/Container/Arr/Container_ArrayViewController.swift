@@ -33,7 +33,7 @@ class Container_ArrayViewController: BaseViewController {
 
 }
 extension Container_ArrayViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         
         var arr1: [String] = []
         var arr2: [String] = []
@@ -45,7 +45,7 @@ extension Container_ArrayViewController {
         var models3: [SubModel] = []
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String = ""
     }
 }

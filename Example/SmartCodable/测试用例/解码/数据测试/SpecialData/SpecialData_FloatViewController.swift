@@ -37,7 +37,7 @@ class SpecialData_FloatViewController: BaseCompatibilityViewController {
         
     }
     
-    struct FloatModel: SmartCodable {
+    struct FloatModel: SmartCodableX {
         var a: Double?
         var b: Double?
         var c: Double?

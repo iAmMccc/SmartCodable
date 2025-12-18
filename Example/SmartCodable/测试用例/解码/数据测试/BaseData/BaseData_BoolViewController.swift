@@ -80,7 +80,7 @@ extension BaseData_BoolViewController {
         return dict
     }
     
-    struct BoolAdaptive: SmartCodable {
+    struct BoolAdaptive: SmartCodableX {
         init() { }
         
         var a: Bool?

@@ -43,7 +43,7 @@ class CaseThreeViewController: BaseViewController {
     }
 }
 
-struct CaseThreeModel: SmartCodable {
+struct CaseThreeModel: SmartCodableX {
     
     var name: String = ""
     var age: String = ""

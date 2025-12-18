@@ -45,7 +45,7 @@ class ReplaceHandyJSON_7ViewController: BaseViewController {
         return nil
     }
     
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String?
         var age: Int?
     }

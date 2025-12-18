@@ -42,7 +42,7 @@ class BaseData_IntViewController: BaseViewController {
 
 }
 
-struct CompatibleInt: SmartCodable {
+struct CompatibleInt: SmartCodableX {
     var int: Int = 1
     var int1: Int?
     var int2: Int?

@@ -27,7 +27,7 @@ class Introduce_11ViewController: BaseCompatibilityViewController {
 //        SmartUpdater.update(&model, from: dic2)
         smartPrint(value: model)
     }
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var name: String = ""
         var age: Int = 0
     }

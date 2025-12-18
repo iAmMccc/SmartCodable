@@ -77,39 +77,39 @@ class KeyDecodingStrategyViewController: BaseCompatibilityViewController {
 
 
 extension KeyDecodingStrategyViewController {
-    struct ModelFirst: SmartCodable {
+    struct ModelFirst: SmartCodableX {
         var name: String = ""
         var age: String = ""
         var sex: String = ""
         var sub: SubModelFirst?
     }
     
-    struct SubModelFirst: SmartCodable {
+    struct SubModelFirst: SmartCodableX {
         var name: String = ""
     }
 }
 
 extension KeyDecodingStrategyViewController {
-    struct ModelSecond: SmartCodable {
+    struct ModelSecond: SmartCodableX {
         var Name: String = ""
         var Age: Int = 0
         var Sex: String = ""
         var Sub: SubModelSecond?
     }
     
-    struct SubModelSecond: SmartCodable {
+    struct SubModelSecond: SmartCodableX {
         var Name: String = ""
     }
 }
 
 extension KeyDecodingStrategyViewController {
-    struct ModelThird: SmartCodable {
+    struct ModelThird: SmartCodableX {
         var nickName: String = ""
         var selfAge: Int = 0
         var subInfo: SubModelThird?
     }
     
-    struct SubModelThird: SmartCodable {
+    struct SubModelThird: SmartCodableX {
         var realName: String = ""
     }
 }

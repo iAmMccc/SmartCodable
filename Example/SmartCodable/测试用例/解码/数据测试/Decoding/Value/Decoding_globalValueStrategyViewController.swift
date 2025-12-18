@@ -37,7 +37,7 @@ extension Decoding_globalValueStrategyViewController {
         }
     }
     
-    struct FeedOne: SmartCodable {
+    struct FeedOne: SmartCodableX {
         var address: Data?
     }
 }
@@ -58,7 +58,7 @@ extension Decoding_globalValueStrategyViewController {
         smartPrint(value: model)
     }
     
-    struct FeedTwo: SmartCodable {
+    struct FeedTwo: SmartCodableX {
         
         var birth: Date = Date()
         var birth1: String = ""

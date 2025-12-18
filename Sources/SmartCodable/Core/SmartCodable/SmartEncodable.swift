@@ -87,7 +87,7 @@ extension SmartEncodable {
     ///
     /// - Example:
     ///   ```
-    ///   struct Model: SmartCodable {
+    ///   struct Model: SmartCodableX {
     ///       var data: String
     ///       static func mappingForKey() -> [SmartKeyTransformer]? {
     ///           [CodingKeys.data <--- ["json_data", "alt_data"]]

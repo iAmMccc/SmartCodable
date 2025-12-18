@@ -7,9 +7,6 @@
 
 import Foundation
 
-@available(*, deprecated, renamed: "SmartIgnored")
-public typealias IgnoredKey = SmartIgnored
-
 /**
  A property wrapper that marks a property to be ignored during encoding/decoding.
  

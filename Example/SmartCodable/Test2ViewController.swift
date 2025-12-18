@@ -34,10 +34,10 @@ class Test2ViewController: BaseViewController {
     }
     
     
-    struct FlatModel: SmartCodable {
+    struct FlatModel: SmartCodableX {
         var _cover: String = "123"
     }
-    struct StudentModel: SmartCodable {
+    struct StudentModel: SmartCodableX {
         var student: FlatModel?
     }
 }

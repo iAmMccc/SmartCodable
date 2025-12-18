@@ -19,7 +19,6 @@ import BTPrint
  1. 重构数据转换方式，抛弃`JSONParser`，使用官方的`JSONSerialization`。让解析更安全。
  2. 明确 `DecodingCache` 和 `EncodingCache` 的路径是当前 `Container` 的 `codingPath`，通过key在其中寻找对应的初始化值或值解析器。
  3. 梳理并优化值解析器逻辑。
- 4. `@IgnoredKey` 更名为 `@SmartIgnored`.
  5. 优化 `CGFloat` 解析逻辑，`CGFloat` 在解析中是一个复合容器，可以划归跟`URL`、`Date`同样的处理方式。
  */
 
@@ -45,13 +44,13 @@ class TestViewController: BaseViewController {
     }
     
     
-    struct StudentModel: SmartCodable {
+    struct StudentModel: SmartCodableX {
         @SmartFlat
         var flatModel: FlatModel = FlatModel()
     
     }
     
-    struct FlatModel: SmartCodable {
+    struct FlatModel: SmartCodableX {
         @SmartIgnored
         var image: UIImage?
         var nick_name: String = "Mccc"

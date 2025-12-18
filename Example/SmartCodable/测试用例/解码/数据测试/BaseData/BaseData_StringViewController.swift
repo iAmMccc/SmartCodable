@@ -37,7 +37,7 @@ class BaseData_StringViewController: BaseViewController {
          string4的值为 nil
          */
     }
-    struct CompatibleString: SmartCodable {
+    struct CompatibleString: SmartCodableX {
         var string1: String = ""
         var string2: String = ""
         var string3: String = ""

@@ -47,7 +47,7 @@ class FloatDecodingStrategyViewController: BaseViewController {
 
 extension FloatDecodingStrategyViewController {
 
-    struct FeedOne: SmartCodable {
+    struct FeedOne: SmartCodableX {
         var float: Float = 0
     }
 }

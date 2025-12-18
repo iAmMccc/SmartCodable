@@ -35,7 +35,7 @@ class Encode_SpecialData_modelViewController: BaseViewController {
 
 
 extension Encode_SpecialData_modelViewController {
-    struct Model: SmartCodable {
+    struct Model: SmartCodableX {
         var a: SubModel?
         
         static func mappingForValue() -> [SmartValueTransformer]? {
@@ -45,7 +45,7 @@ extension Encode_SpecialData_modelViewController {
         }
     }
     
-    struct SubModel: SmartCodable {
+    struct SubModel: SmartCodableX {
         var name: String = ""
         
         static func mappingForValue() -> [SmartValueTransformer]? {
