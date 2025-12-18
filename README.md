@@ -64,7 +64,7 @@
 
 ## Quick Start
 
-```
+```swift
 import SmartCodable
 
 struct User: SmartCodableX {
