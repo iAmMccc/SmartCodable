@@ -180,7 +180,7 @@ public static func deserializePlist(from data: Data?, designatedPath: String? = 
 
 **2. Deep Path Navigation (`designatedPath`)**
 
-```
+```swift
 // JSON Structure:
 {
   "data": {
