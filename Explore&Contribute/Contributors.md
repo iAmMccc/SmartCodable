@@ -12,7 +12,6 @@
 | **大大东**   | 开发组员   | [dadadong](https://github.com/dadadong)                   | 专注Apple生态，有追求的iOS开发者~                            |
 | **胖头鱼**   | 开发组员   | [whereAreTheGuGuda](https://github.com/whereAreTheGuGuda) | 正在搞跨端，前端，iOS，python已解锁。                        |
 | **Charles**  | 开发组员   | [dgpGitH](https://github.com/dgpGitH)                     | Vibe Coder / AI product builder                              |
-| 塞外哪有桑葚 | 开发组员   | [cba023](https://github.com/cba023)                       | 暂无个人简介。                                               |
 
 > 排名不分先后
 
