@@ -6,14 +6,13 @@
 
 | 维护者       | 职责       | 个人主页                                                  | 简介                                                         |
 | ------------ | ---------- | --------------------------------------------------------- | ------------------------------------------------------------ |
-| iMccc        | 主要开发者 | [iAmMccc](https://github.com/iAmMccc)                     | 热爱代码的表达力，追求简洁、清晰、可维护的工程实践。         |
-| 石子涵       | 开发组员   | [Rock-Connotation](https://github.com/Rock-Connotation)   | iOS开发工程师，软件工程本科，曾任字节跳动与百度，专注高 DAU 移动产品开发、架构优化及跨团队协作，重视工程质量与经验沉淀。 |
-| 大大东       | 开发组员   | [dadadong](https://github.com/dadadong)                   | 暂无个人简介。                                               |
-| 胖头鱼       | 开发组员   | [whereAreTheGuGuda](https://github.com/whereAreTheGuGuda) | 暂无个人简介。                                               |
-| Charles      | 开发组员   |                                                           | 暂无个人简介。                                               |
-| 兰皮鼠       | 开发组员   |                                                           | 暂无个人简介。                                               |
-| Miles        | 开发组员   |                                                           | 暂无个人简介。                                               |
-| 塞外哪有桑葚 | 开发组员   |                                                           | 暂无个人简介。                                               |
+| **iMccc**    | 主要开发者 | [iAmMccc](https://github.com/iAmMccc)                     | 热爱代码的表达力，追求简洁、清晰、可维护的工程实践。         |
+| **Miles**    | 开发组员   | [Miles-Matheson](https://github.com/Miles-Matheson)       | 10年iOS开发工程师，UI仔，逆向开发工程师。                    |
+| **石子涵**   | 开发组员   | [Rock-Connotation](https://github.com/Rock-Connotation)   | iOS开发工程师，软件工程本科，曾任字节跳动与百度，专注高 DAU 移动产品开发、架构优化及跨团队协作，重视工程质量与经验沉淀。 |
+| **大大东**   | 开发组员   | [dadadong](https://github.com/dadadong)                   | 专注Apple生态，有追求的iOS开发者~                            |
+| **胖头鱼**   | 开发组员   | [whereAreTheGuGuda](https://github.com/whereAreTheGuGuda) | 正在搞跨端，前端，iOS，python已解锁。                        |
+| **Charles**  | 开发组员   | [dgpGitH](https://github.com/dgpGitH)                     | Vibe Coder / AI product builder                              |
+| 塞外哪有桑葚 | 开发组员   | [cba023](https://github.com/cba023)                       | 暂无个人简介。                                               |
 
 > 排名不分先后
 
@@ -33,8 +32,6 @@
 | [faimin](https://github.com/faimin)                     | #116 | json string misjudgment        |
 | [Tangson817](https://github.com/Tangson817)             | #94  | 替换自定义转码器               |
 | [wangyuchaogeek](https://github.com/wangyuchaogeek)     | #87  | 并发日志崩溃                   |
-
-
 
 
 
