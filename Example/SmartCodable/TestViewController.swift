@@ -32,30 +32,20 @@ class TestViewController: BaseViewController {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let dict: [String: Any] = [
-            "my_name": "Tom",
-//            "nick_name": "XiaoMing",
-//            "student": [
-//                "my_age": "18"
-//            ]
+            "frinds": ["Tom", 1],
         ]
         
-        guard let student = StudentModel.deserialize(from: dict) else { return }
-        print("⭐️解析结果: my_name = \(student.flatModel.my_name), nick_name = \(student.flatModel.nick_name)")
+        guard let student = Model.deserialize(from: dict) else { return }
+        print("⭐️解析结果: my_name = \(student.frinds)")
     }
     
-    
-    struct StudentModel: SmartCodableX {
-        @SmartFlat
-        var flatModel: FlatModel = FlatModel()
-    
-    }
-    
-    struct FlatModel: SmartCodableX {
-        @SmartIgnored
-        var image: UIImage?
-        var nick_name: String = "Mccc"
-        var my_name: String = "default"
-    }
 
+    struct Model: SmartDecodable {
+        @SmartLossy
+        var frinds: [Int] = []
+    }
 }
+
+
+
 

@@ -2,7 +2,7 @@
 //  TestInheritCaseViewController.swift
 //  SmartCodable_Example
 //
-//  Created by qixin on 2025/5/6.
+//  Created by Mccc on 2025/5/6.
 //  Copyright © 2025 CocoaPods. All rights reserved.
 //
 

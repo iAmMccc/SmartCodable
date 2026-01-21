@@ -2,7 +2,7 @@
 //  DecodingLogViewController.swift
 //  SmartCodable_Example
 //
-//  Created by qixin on 2025/6/4.
+//  Created by Mccc on 2025/6/4.
 //  Copyright © 2025 CocoaPods. All rights reserved.
 //
 

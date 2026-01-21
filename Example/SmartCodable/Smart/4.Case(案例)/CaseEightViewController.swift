@@ -2,7 +2,7 @@
 //  CaseEightViewController.swift
 //  SmartCodable_Example
 //
-//  Created by qixin on 2025/7/24.
+//  Created by Mccc on 2025/7/24.
 //  Copyright © 2025 CocoaPods. All rights reserved.
 //
 

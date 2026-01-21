@@ -2,7 +2,7 @@
 //  ReplaceHandyJSON_7ViewController.swift
 //  SmartCodable_Example
 //
-//  Created by qixin on 2024/9/3.
+//  Created by Mccc on 2024/9/3.
 //  Copyright © 2024 CocoaPods. All rights reserved.
 //
 

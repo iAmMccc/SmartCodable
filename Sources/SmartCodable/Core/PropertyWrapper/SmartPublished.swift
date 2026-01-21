@@ -2,7 +2,7 @@
 //  SmartPublished.swift
 //  SmartCodable
 //
-//  Created by qixin on 2024/9/26.
+//  Created by Mccc on 2024/9/26.
 //
 
 import Foundation

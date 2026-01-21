@@ -2,7 +2,7 @@
 //  HexColorTransformer.swift
 //  SmartCodable
 //
-//  Created by qixin on 2025/7/23.
+//  Created by Mccc on 2025/7/23.
 //
 
 import Foundation
