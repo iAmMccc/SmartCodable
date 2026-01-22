@@ -45,12 +45,12 @@ class TestViewController: BaseViewController {
         print("⭐️解析结果: others = \(student.others)")
     }
     struct Model: SmartCodableX {
-        @SmartCompact
+        @SmartCompact.Array
         var ages: [Int] = []
-        @SmartCompact
+        @SmartCompact.Array
         var frinds: [Frind] = []
 
-        @SmartCompact
+        @SmartCompact.Array
         var others: [Any] = []
     }
     

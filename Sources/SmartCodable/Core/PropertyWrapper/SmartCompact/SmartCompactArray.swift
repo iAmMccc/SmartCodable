@@ -5,29 +5,23 @@
 //  Created by Mccc on 2026/1/21.
 //
 
-@propertyWrapper
-public struct SmartCompact<T>: PropertyWrapperable {
-    
-    public var wrappedValue: [T]
-    
-    public init(wrappedValue: [T]) {
-        self.wrappedValue = wrappedValue
-    }
-    
-    public func wrappedValueDidFinishMapping() -> SmartCompact? {
-        guard var temp = wrappedValue as? SmartDecodable else { return nil }
-        temp.didFinishMapping()
-        return SmartCompact(wrappedValue: temp as! [T])
-    }
-    
-    /// Creates an instance from any value if possible
-    public static func createInstance(with value: Any) -> SmartCompact? {
-        guard let value = value as? [T] else { return nil }
-        return SmartCompact(wrappedValue: value)
+
+
+private struct DummyDecodable: Decodable { }
+
+extension SmartCompact {
+    @propertyWrapper
+    public struct Array<T> {
+        
+        public var wrappedValue: [T]
+        
+        public init(wrappedValue: [T]) {
+            self.wrappedValue = wrappedValue
+        }
     }
 }
 
-extension SmartCompact: Codable {
+extension SmartCompact.Array: Codable {
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
         var result: [T] = []
@@ -69,6 +63,3 @@ extension SmartCompact: Codable {
         }
     }
 }
-
-
-private struct DummyDecodable: Decodable { }

@@ -10,34 +10,42 @@ import SmartCodable
 
 
 
-
 class Test2ViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-
     }
     
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let dict: [String: Any] = [
-            "my_name": "Tom",
-            "student": [
-                "my_age": "18",
-                "my_name": "Tom",
-            ]
+            "frinds": [
+                "a": [],
+                "b": "b",
+                "c": NSNull(),
+                "d": 1,
+                "f": true
+            ],
+            "ages": ["a": 1, "b": 2, "c": "3","d": 4],
+            "names": [ "name1": "Tim", "name2": 2, "name3": []]
         ]
         
-        let student = StudentModel.deserialize(from: dict)
-        print("1111 \(String(describing: student))")
+        guard let student = Model.deserialize(from: dict) else { return }
+        print("⭐️解析结果: frinds = \(student.frinds)")
+        print("⭐️解析结果: ages = \(student.ages)")
+        print("⭐️解析结果: names = \(student.names)")
+
     }
     
-    
-    struct FlatModel: SmartCodableX {
-        var _cover: String = "123"
-    }
-    struct StudentModel: SmartCodableX {
-        var student: FlatModel?
+    struct Model: SmartDecodable {
+        @SmartCompact.Dictionary
+        var frinds: [String: Any] = [:]
+        
+        @SmartCompact.Dictionary
+        var ages: [String: Int] = [:]
+        
+        @SmartCompact.Dictionary
+        var names: [String: String] = [:]
     }
 }

@@ -1,4 +1,14 @@
-# 💖 SmartCodable 捐赠名单
+# 💖 SmartCodable 捐赠
+
+
+
+## 💖 捐赠
+
+![Support](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/Images/support.png)
+
+
+
+
 
 ## 捐赠记录
 
@@ -11,21 +21,11 @@
 | 5    | **原来如此 | QQ红包 | 协助支持后续打赏                 | 8.88     | 2.5        | 70% 支持人收益，30% 计入奖金池 |
 | 6    | bn         | 支付宝 | 打赏支持                         | 10.24    | 10         |                                |
 
-
-
-
-
 ### 资金说明
 
 - 捐赠和打赏资金**主要用于开发团队激励**（奶茶奖励）。
 - 不涉及库功能的额外支持（如业务适配、集成调试），原则上不提供额外技术服务。
 - 每一笔打赏都被认真记录，用于团队奖金池和开发者激励，感谢每一位参与者。
-
-
-
-### 💖 捐赠
-
-![Support](https://github.com/iAmMccc/SmartCodable/blob/main/Explore%26Contribute/Images/support.png)
 
 
 

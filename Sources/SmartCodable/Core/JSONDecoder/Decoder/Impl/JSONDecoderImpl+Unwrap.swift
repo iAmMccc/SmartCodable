@@ -343,7 +343,7 @@ extension Decodable {
     /// 让 Swift 正确推导 Self 并调用真正的解码逻辑。
     ///
     /// 本质上，这是一个「存在类型调用协议扩展 static 方法」的逃逸通道。
-    fileprivate static func _eraseCreateByDirectUnwrap(from decoder: JSONDecoderImpl) throws -> Any {
+    static func _eraseCreateByDirectUnwrap(from decoder: JSONDecoderImpl) throws -> Any {
         return try self.createByDirectlyUnwrapping(from: decoder, type: self)
     }
 }

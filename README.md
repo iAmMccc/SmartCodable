@@ -4,9 +4,6 @@
 <h1 align="center">SmartCodable - Resilient & Flexible Codable for Swift </h1>
 
 <p align="center">
-<a href="https://github.com/iAmMccc/SmartCodable/blob/main/README_CN.md">
-    <img src="https://img.shields.io/badge/中文-可用-brightgreen.svg" alt="中文文档">
-</a>
 <a href="https://github.com/iAmMccc/SmartCodable/releases">
     <img src="https://img.shields.io/github/v/release/iAmMccc/SmartCodable?color=blue&label=version" alt="Latest Release">
 </a>
@@ -26,6 +23,7 @@
     <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki">
 </a>
 </p>
+
 
 **SmartCodable** redefines Swift data parsing by enhancing Apple's native Codable with production-ready resilience and flexibility. It provides seamless support for default values, nested flattening, and ignored properties, reducing boilerplate while increasing reliability. 
 
@@ -438,6 +436,46 @@ let model = Model.deserialize(from: dict)
 print(model)
 // print: Model(color: UIExtendedSRGBColorSpace 0.490196 0.647059 0.890196 1)
 ```
+
+
+
+#### 3.6 @SmartCompact
+
+Adds Codable support for arrays and dictionaries with tolerant decoding.
+
+- **@SmartCompact.Array**
+  When decoding an array, any element that cannot be decoded to the target element type will be skipped instead of failing the whole decode.
+- **@SmartCompact.Dictionary**
+  When decoding a dictionary, any key-value pair that cannot be decoded will be skipped instead of failing the whole decode.
+
+```Swift
+struct Model: Decodable {
+    // Array may contain invalid values, those will be ignored
+    @SmartCompact.Array
+    var ages: [Int]
+
+    // Dictionary may contain invalid entries, those will be ignored
+    @SmartCompact.Dictionary
+    var info: [String: String]
+}
+
+let dict: [String: Any] = [
+    "ages": ["Tom", 1, [:], 2, 3, "4"],
+    "info": [
+        "name": "Tom",
+        "age": 18,
+        "extra": [:]
+    ]
+]
+
+let model = try! JSONDecoder().decode(Model.self, from: JSONSerialization.data(withJSONObject: dict))
+print(model)
+// print: Model(ages: [1, 2, 3, 4], info: ["name": "Tom", "age": "18"])
+```
+
+
+
+
 
 
 
