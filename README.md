@@ -47,7 +47,7 @@
 
 ### **Convenience**
 
-- **Property Ignoring** – Skip specific properties with `@IgnoredKey`, including non-`Codable` fields.
+- **Property Ignoring** – Skip specific properties with `@SmartIgnored`, including non-`Codable` fields.
 - **Flexible Input Formats** – Deserialize from dictionaries, arrays, JSON strings, or `Data`.
 
 ### **Callbacks**
@@ -346,13 +346,13 @@ print(model)
 
 
 
-#### 3.2 @IgnoredKey
+#### 3.2 @SmartIgnored
 
-If you need to ignore the parsing of attributes, you can override `CodingKeys` or use `@IgnoredKey`.
+If you need to ignore the parsing of attributes, you can override `CodingKeys` or use `@SmartIgnored`.
 
 ```swift
 struct Model: SmartCodableX {
-    @IgnoredKey
+    @SmartIgnored
     var name: String = ""
 }
 
@@ -641,7 +641,7 @@ When the type conversion fails, the initialization value of the currently parsed
 
 When you parse very large data, try to avoid the compatibility of parsing exceptions, such as: more than one attribute is declared in the attribute, and the declared attribute type does not match. 
 
-Do not use @IgnoredKey when there are attributes that do not need to be parsed, override CodingKeys to ignore unwanted attribute parsing. 
+Do not use @SmartIgnored when there are attributes that do not need to be parsed, override CodingKeys to ignore unwanted attribute parsing. 
 
 This can greatly improve the analytical efficiency.
 
