@@ -6,19 +6,28 @@ let package = Package(
     name: "SmartCodable",
     platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .macCatalyst(.v13), .visionOS(.v1)],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
+        // Core library without macro support (no swift-syntax dependency)
+        // Recommended for users who don't need inheritance features
         .library(
             name: "SmartCodable",
             targets: ["SmartCodable"]
         ),
+        // Full library with macro support (includes swift-syntax dependency)
+        // Use this if you need @SmartSubclass and inheritance features
+        .library(
+            name: "SmartCodableWithMacros",
+            targets: ["SmartCodable", "SmartCodableInherit"]
+        ),
+        // Legacy product name for backward compatibility
+        // Deprecated: Use SmartCodableWithMacros instead
         .library(
             name: "SmartCodableInherit",
             targets: ["SmartCodableInherit"]
         )
     ],
     dependencies: [
-        // Depend on the latest Swift 5.9 SwiftSyntax
-        .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.0"..<"700.0.0")
+        // Depend on the Swift 5.9+ SwiftSyntax for macro support
+        .package(url: "https://github.com/swiftlang/swift-syntax", from: "509.0.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
