@@ -40,7 +40,7 @@ Pod::Spec.new do |s|
     ss.source_files = 'Sources/SmartCodable/MacroSupport/*{.swift}'
     
     # 这些配置项与宏相关，只放在 MacroSupport subspec 中
-    ss.preserve_paths = ["Package.swift", "Sources/SmartCodableMacros", "Tests", "Bin"]
+    ss.preserve_paths = ["Package.swift", "Package@swift-5.9.swift", "Sources/SmartCodableMacros", "Tests", "Bin"]
 
     ss.pod_target_xcconfig = {
       "OTHER_SWIFT_FLAGS" => "-Xfrontend -load-plugin-executable -Xfrontend $(PODS_BUILD_DIR)/SmartCodable/release/SmartCodableMacros-tool#SmartCodableMacros",
@@ -65,5 +65,4 @@ Pod::Spec.new do |s|
     }
   end
 end
-
 

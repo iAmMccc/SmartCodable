@@ -122,6 +122,11 @@ dependencies: [
 ]
 ```
 
+Notes:
+
+- `SmartCodable` (runtime) works without Swift Macros.
+- `SmartCodableInherit` (inheritance + macros) requires **Xcode 15+** and **Swift 5.9+**. Older SwiftPM toolchains will only expose the runtime library.
+
 
 
 ## Documentation
@@ -756,5 +761,4 @@ SmartCodable is an open-source project dedicated to making Swift data parsing mo
 <p>
   <img src="https://github.com/user-attachments/assets/7b1f8108-968e-4a38-91dd-b99abdd3e500" alt="JoinUs" width="700">
 </p>
-
 

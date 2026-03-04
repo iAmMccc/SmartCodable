@@ -62,6 +62,131 @@ class Tests: XCTestCase {
         let res = deepEqualDict(dic, modelDic!)
         XCTAssertTrue(res)
     }
+
+    /// Verifies @SmartSubclass macro generates init(from:)/encode(to:) that preserve both
+    /// inherited (name) and subclass (age) properties by calling super methods correctly.
+    /// Tests Issue #128 fix: if SwiftSyntax modules fail to load, macro expansion breaks.
+    func testSmartSubclassDecodeEncodeKeepsInheritedAndSubclassFields() {
+        let dict: [String: Any] = [
+            "name": "Linus",
+            "age": 35
+        ]
+
+        guard let model = SubModel.deserialize(from: dict) else {
+            XCTFail("SubModel 反序列化失败")
+            return
+        }
+
+        XCTAssertEqual(model.name, "Linus")
+        XCTAssertEqual(model.age, 35)
+
+        let encoded = model.toDictionary()
+        XCTAssertEqual(encoded?["name"] as? String, "Linus")
+        XCTAssertEqual(encoded?["age"] as? Int, 35)
+    }
+
+    /// Verifies @SmartSubclass correctly excludes lazy properties from Codable synthesis.
+    /// Lazy properties must use their initializer closure, not JSON data — decoding into them
+    /// would bypass deferred initialization semantics. The macro detects `lazy var` modifiers
+    /// and omits them from CodingKeys/init(from:)/encode(to:) (SmartSubclassMacro.swift:88-91).
+    func testSmartSubclassSkipsLazyPropertyDuringDecodeAndEncode() {
+        let dict: [String: Any] = [
+            "name": "Ada",
+            "age": 22,
+            "desc": "should-be-ignored"
+        ]
+
+        guard let model = SubModel.deserialize(from: dict) else {
+            XCTFail("SubModel 反序列化失败")
+            return
+        }
+
+        XCTAssertEqual(model.desc, "我的名字是Ada")
+
+        let encoded = model.toDictionary()
+        XCTAssertNil(encoded?["desc"])
+    }
+
+    /// Verifies @SmartSubclass generates `required init()` when needed to satisfy Swift's
+    /// inheritance requirements. BaseModel declares `required init()`, so all subclasses must
+    /// provide it. The macro detects missing required inits (SmartSubclassMacro.swift:197-206)
+    /// and generates them. Without this, SubModel wouldn't compile.
+    func testSmartSubclassGeneratesRequiredInit() {
+        let model = SubModel()
+        XCTAssertEqual(model.name, "")
+        XCTAssertEqual(model.age, 0)
+    }
+
+    /// Verifies @SmartSubclass works across multiple inheritance levels by chaining super
+    /// init(from:)/encode(to:) without losing any fields.
+    func testSmartSubclassMultiLevelInheritanceKeepsAllFields() {
+        let dict: [String: Any] = [
+            "name": "Grace",
+            "height": 170,
+            "age": 30
+        ]
+
+        guard let model = MultiLevelSubModel.deserialize(from: dict) else {
+            XCTFail("MultiLevelSubModel 反序列化失败")
+            return
+        }
+
+        XCTAssertEqual(model.name, "Grace")
+        XCTAssertEqual(model.height, 170)
+        XCTAssertEqual(model.age, 30)
+
+        let encoded = model.toDictionary()
+        XCTAssertEqual(encoded?["name"] as? String, "Grace")
+        XCTAssertEqual(encoded?["height"] as? Int, 170)
+        XCTAssertEqual(encoded?["age"] as? Int, 30)
+    }
+
+    /// Verifies missing subclass keys keep defaults (decodeIfPresent + ?? self.property),
+    /// rather than failing decoding or overwriting defaults.
+    func testSmartSubclassMissingKeysKeepsDefaults() {
+        let dict: [String: Any] = [
+            "name": "Linus"
+            // "age" intentionally missing
+        ]
+
+        guard let model = SubModel.deserialize(from: dict) else {
+            XCTFail("SubModel 反序列化失败")
+            return
+        }
+
+        XCTAssertEqual(model.name, "Linus")
+        XCTAssertEqual(model.age, 0)
+    }
+
+    /// Verifies @SmartSubclass correctly treats property wrappers as wrappers and assigns the
+    /// backing storage (_property) during decoding. This is important for read-only wrappers
+    /// where assigning to the wrapped property is impossible.
+    func testSmartSubclassPropertyWrapperBackedStorageEncodesAndDecodes() {
+        let dict: [String: Any] = [
+            "name": "Alan",
+            "age": 42
+        ]
+
+        guard let model = WrappedSubModel.deserialize(from: dict) else {
+            XCTFail("WrappedSubModel 反序列化失败")
+            return
+        }
+
+        XCTAssertEqual(model.name, "Alan")
+        XCTAssertEqual(model.age, 42)
+
+        let encoded = model.toDictionary()
+        XCTAssertEqual(encoded?["name"] as? String, "Alan")
+        XCTAssertEqual(encoded?["age"] as? Int, 42)
+    }
+
+    /// Verifies @SmartSubclass does not generate a duplicate `required init()` when one is
+    /// already provided in the subclass (otherwise it would be a compile-time error).
+    func testSmartSubclassDoesNotDuplicateRequiredInitWhenProvided() {
+        let model = SubModelWithCustomRequiredInit()
+        XCTAssertEqual(model.name, "")
+        XCTAssertEqual(model.age, 7)
+    }
 }
 
 
@@ -95,6 +220,61 @@ class SubModel: BaseModel {
         print("执行了")
         return "我的名字是\(self.name)"
     }()
+}
+
+// MARK: - Issue-128 regression models
+class MultiLevelBaseModel: SmartCodable {
+    var name: String = ""
+    required init() { }
+}
+
+@SmartSubclass
+class MultiLevelMiddleModel: MultiLevelBaseModel {
+    var height: Int = 0
+}
+
+@SmartSubclass
+class MultiLevelSubModel: MultiLevelMiddleModel {
+    var age: Int = 0
+}
+
+@propertyWrapper
+struct SingleValueReadOnly<Value: Codable>: Codable {
+    let wrappedValue: Value
+
+    init(wrappedValue: Value) {
+        self.wrappedValue = wrappedValue
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        wrappedValue = try container.decode(Value.self)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(wrappedValue)
+    }
+}
+
+class WrappedBaseModel: SmartCodable {
+    var name: String = ""
+    required init() { }
+}
+
+@SmartSubclass
+class WrappedSubModel: WrappedBaseModel {
+    @SingleValueReadOnly var age: Int = 0
+}
+
+@SmartSubclass
+class SubModelWithCustomRequiredInit: BaseModel {
+    var age: Int = 0
+
+    required override init() {
+        super.init()
+        age = 7
+    }
 }
 
 // MARK: - Test JSON Encode
