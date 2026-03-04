@@ -10,7 +10,8 @@ let package = Package(
     // where macro targets and swift-syntax dependencies are defined.
     platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6)],
     products: [
-        // 纯运行时库，不依赖宏或 SwiftSyntax
+        // Core library without macro support (no swift-syntax dependency)
+        // Recommended for users who don't need inheritance features
         .library(
             name: "SmartCodable",
             targets: ["SmartCodable"]
