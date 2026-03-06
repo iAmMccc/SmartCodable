@@ -13,6 +13,20 @@ import SwiftSyntaxMacros
 
 /// A macro that automatically implements SmartCodable inheritance support
 public struct SmartSubclassMacro: MemberMacro {
+    private enum SynthesizedMemberAccess {
+        case inheritedDefault
+        case publicVisible
+
+        var prefix: String {
+            switch self {
+            case .inheritedDefault:
+                return ""
+            case .publicVisible:
+                return "public "
+            }
+        }
+    }
+
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
@@ -47,6 +61,7 @@ public struct SmartSubclassMacro: MemberMacro {
 
         // 获取类的属性
         let properties = try extractProperties(from: classDecl)
+        let memberAccess = synthesizedMemberAccess(for: classDecl)
         
         var members: [DeclSyntax] = []
         
@@ -54,17 +69,17 @@ public struct SmartSubclassMacro: MemberMacro {
         members.append(generateCodingKeysEnum(for: properties))
 
         // 生成init(from:)方法
-        members.append(generateInitFromDecoder(for: properties))
+        members.append(generateInitFromDecoder(for: properties, access: memberAccess))
 
         // 生成encode(to:)方法
-        members.append(generateEncodeToEncoder(for: properties))
+        members.append(generateEncodeToEncoder(for: properties, access: memberAccess))
         
 
         if hasRequiredInitializer(classDecl) {
             return members
         } else {
             // 生成required init()方法
-            members.append(generateRequiredInit())
+            members.append(generateRequiredInit(access: memberAccess))
             return members
         }
     }
@@ -148,7 +163,10 @@ public struct SmartSubclassMacro: MemberMacro {
     }
       
     // 辅助方法：生成init(from:)方法
-    private static func generateInitFromDecoder(for properties: [ModelMemberProperty]) -> DeclSyntax {
+    private static func generateInitFromDecoder(
+        for properties: [ModelMemberProperty],
+        access: SynthesizedMemberAccess
+    ) -> DeclSyntax {
         let decodingStatements = properties.map { property in
             let propertyName = property.accessName
             let propertyType = property.type
@@ -163,7 +181,7 @@ public struct SmartSubclassMacro: MemberMacro {
         }.joined(separator: "\n")
           
         return """
-        required init(from decoder: Decoder) throws {
+        \(raw: access.prefix)required init(from decoder: Decoder) throws {
             try super.init(from: decoder)
               
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -173,7 +191,10 @@ public struct SmartSubclassMacro: MemberMacro {
     }
       
     // 辅助方法：生成encode(to:)方法
-    private static func generateEncodeToEncoder(for properties: [ModelMemberProperty]) -> DeclSyntax {
+    private static func generateEncodeToEncoder(
+        for properties: [ModelMemberProperty],
+        access: SynthesizedMemberAccess
+    ) -> DeclSyntax {
         let encodingStatements = properties.map { property in
             if property.type.hasSuffix("?") {
                 return "try container.encodeIfPresent(\(property.accessName), forKey: .\(property.codingKeyName))"
@@ -183,7 +204,7 @@ public struct SmartSubclassMacro: MemberMacro {
         }.joined(separator: "\n")
           
         return """
-        override func encode(to encoder: Encoder) throws {
+        \(raw: access.prefix)override func encode(to encoder: Encoder) throws {
             try super.encode(to: encoder)
               
             var container = encoder.container(keyedBy: CodingKeys.self)
@@ -206,11 +227,22 @@ public struct SmartSubclassMacro: MemberMacro {
     }
     
     // 辅助方法：生成required init()方法
-    private static func generateRequiredInit() -> DeclSyntax {
+    private static func generateRequiredInit(access: SynthesizedMemberAccess) -> DeclSyntax {
         return """
-        required init() {
+        \(raw: access.prefix)required init() {
             super.init()
         }
         """
+    }
+
+    private static func synthesizedMemberAccess(for classDecl: ClassDeclSyntax) -> SynthesizedMemberAccess {
+        if classDecl.modifiers.contains(where: { modifier in
+            let name = modifier.name.text
+            return name == "public" || name == "open"
+        }) {
+            return .publicVisible
+        }
+
+        return .inheritedDefault
     }
 }
