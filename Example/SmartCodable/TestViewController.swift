@@ -31,32 +31,21 @@ class TestViewController: BaseViewController {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let dict: [String: Any] = [
-            "ages": ["Tom", 1, [:], 2, 3, "4"],
-            "frinds": [
-                [], ["name": "Tom"], ["name": "小明"], ["name": "Mccc"],
-            ],
-            "others": [1, "Tom", ["name": "Tom"]]
-        ]
         
-        guard let student = Model.deserialize(from: dict) else { return }
-        print("⭐️解析结果: ages = \(student.ages)")
-        print("⭐️解析结果: frinds = \(student.frinds)")
-        print("⭐️解析结果: others = \(student.others)")
+        var model = Model()
+        model.date = Date()
+        
+        let dict = model.toDictionary(options: [.date(.millisecondsSince1970)])
+
+        print(dict)
+        //  {expiryTime = XXXX(秒)}, 并不是毫秒
     }
     struct Model: SmartCodableX {
-        @SmartCompact.Array
-        var ages: [Int] = []
-        @SmartCompact.Array
-        var frinds: [Frind] = []
-
-        @SmartCompact.Array
-        var others: [Any] = []
+        
+        var date: Date?
     }
     
-    struct Frind: SmartCodableX {
-        var name: String = ""
-    }
+
 }
 
 
