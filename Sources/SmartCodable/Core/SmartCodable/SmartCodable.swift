@@ -8,9 +8,5 @@
 
 public typealias SmartCodableX = SmartDecodable & SmartEncodable
 
-/// Backward-compatible name.
-public typealias SmartCodable = SmartCodableX
-
-
 // 用在泛型解析中
 extension Array: SmartCodableX where Element: SmartCodableX { }
