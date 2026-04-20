@@ -97,7 +97,7 @@ extension JSONDecoderImpl.UnkeyedContainer {
     }
 
     mutating func decode(_ type: String.Type) throws -> String {
-        guard let value = try? self.getNextValue(ofType: Bool.self) else {
+        guard let value = try? self.getNextValue(ofType: String.self) else {
             return try forceDecode()
         }
         guard case .string(let string) = value else {
@@ -248,7 +248,6 @@ extension JSONDecoderImpl.UnkeyedContainer {
 
     
     mutating func decodeIfPresent(_ type: String.Type) throws -> String? {
-        self.currentIndex += 1
         guard let value = try? self.getNextValue(ofType: String.self) else {
             return optionalDecode()
         }

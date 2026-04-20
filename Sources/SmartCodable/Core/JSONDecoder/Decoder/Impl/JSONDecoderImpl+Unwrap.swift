@@ -47,8 +47,8 @@ extension JSONDecoderImpl {
     func unwrapFloatingPoint<T: LosslessStringConvertible & BinaryFloatingPoint>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
-            if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-                guard let decoded = tranformer.transformFromJSON(value) as? T else { return nil }
+            if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+                guard let decoded = transformer.transformFromJSON(value) as? T else { return nil }
                 return decoded
             }
             
@@ -74,8 +74,8 @@ extension JSONDecoderImpl {
     func unwrapFixedWidthInteger<T: FixedWidthInteger>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
             
-            if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-                return tranformer.transformFromJSON(value) as? T
+            if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+                return transformer.transformFromJSON(value) as? T
             }
             
             guard case .number(let number) = value else { return nil }
@@ -124,8 +124,8 @@ extension JSONDecoderImpl {
     
     func unwrapBoolValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> Bool? {
         
-        if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-            return tranformer.transformFromJSON(value) as? Bool
+        if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+            return transformer.transformFromJSON(value) as? Bool
         }
         
         guard case .bool(let bool) = value else { return nil }
@@ -134,8 +134,8 @@ extension JSONDecoderImpl {
     
     func unwrapStringValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> String? {
         
-        if let tranformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
-            return tranformer.transformFromJSON(value) as? String
+        if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+            return transformer.transformFromJSON(value) as? String
         }
         
         guard case .string(let string) = value else { return nil }
