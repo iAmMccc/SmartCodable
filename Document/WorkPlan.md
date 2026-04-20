@@ -6,59 +6,12 @@
 
 ---
 
-## Phase 1: 代码质量优化 - Bug 修复与拼写修正
+## Phase 1-3: 代码质量优化
 
 **状态：** 已完成  
-**详情：** [Phase1-BugFixes.md](Phase1-BugFixes.md)
+**详情：** [CodeOptimization.md](CodeOptimization.md)
 
----
-
-## Phase 2: 代码质量优化 - 线程安全
-
-**状态：** 已完成  
-**详情：** [Phase2-ThreadSafety.md](Phase2-ThreadSafety.md)
-
-### 目标
-修复全局可变状态的线程安全问题。
-
-### 涉及问题
-| # | 问题 | 文件 | 说明 |
-|---|------|------|------|
-| 1 | `SmartCodableOptions` 全局可变状态无同步保护 | `SmartCodableOptions.swift` | 多线程下 `numberStrategy`、`ignoreNull` 存在数据竞争 |
-| 2 | `SmartSentinel._mode` 和 `cache` 无同步保护 | `SmartSentinel.swift` | `LogCache` 是 struct 作为 static var，写操作会竞争 |
-| 3 | `@unchecked Sendable` 标记不安全 | `SmartJSONEncoder.swift`、`SmartJSONDecoder.swift` | 有可变属性却声称 Sendable |
-| 4 | `_iso8601Formatter` 全局共享 | `JSONDecoderImpl+Unwrap.swift` | DateFormatter 非线程安全 |
-
-### 注意事项
-- 不破坏公共 API
-- 加锁方案优先使用 `NSLock`（兼容 iOS 13+）
-- 评估是否需要将 `SmartCodableOptions` 改为 per-decoder 配置
-
----
-
-## Phase 3: 代码质量优化 - 重构
-
-**状态：** 已完成  
-**详情：** [Phase3-Refactor.md](Phase3-Refactor.md)
-
-### 目标
-消除代码重复，改善可维护性。
-
-### 涉及问题
-| # | 问题 | 说明 |
-|---|------|------|
-| 1 | `didFinishMapping` 在 KeyedContainer 和 UnkeyedContainer 中重复实现 | 提取到共享位置 |
-| 2 | SmartAny 整数类型推断：10 种类型顺序尝试，约 20 行重复代码 | 简化为循环 |
-| 3 | `SmartCompact.Array/Dictionary` 未遵循 `PropertyWrapperable` 协议 | 与其他属性包装器不一致 |
-| 4 | `preconditionFailure` / `fatalError` 用于可恢复的错误 | 生产环境不应崩溃，应 throw |
-| 5 | 日志代码无条件编译保护 | Release 构建中仍有运行时开销 |
-| 6 | LogCache 无容量上限 | debugMode 开启时内存无限增长 |
-| 7 | Encoder/Decoder 之间 snake_case 转换逻辑重复 | 提取到共享工具模块 |
-| 8 | SmartDate.swift 重复 `import Foundation` | 清理 |
-
-### 注意事项
-- 每个重构点独立提交
-- 不改变公开接口签名
+包含：Bug 修复、拼写修正、线程安全、重构评估。
 
 ---
 
@@ -66,11 +19,8 @@
 
 **状态：** 待开始
 
-### 目标
-重新组织 README 结构，提升项目第一印象。
-
 ### 计划内容
-- 重新组织结构（Quick Start -> 核心功能 -> 高级用法 -> 迁移指南 -> FAQ）
+- 重新组织结构（Quick Start → 核心功能 → 高级用法 → 迁移指南 → FAQ）
 - 补充"为什么选择 SmartCodable"对比章节
 - 预留 Benchmark 数据展示位
 - 补充架构图 / 工作原理简图
@@ -81,27 +31,18 @@
 
 **状态：** 待开始
 
-### 目标
-提供量化的性能对比数据，增强选型说服力。
-
 ### 计划内容
 - 建立独立 Benchmark Target
 - 对比对象：原生 Codable、SmartCodable、HandyJSON
 - 覆盖场景：简单模型、嵌套模型、大数组（1000+）、类型不匹配容错
 - 输出可视化数据（表格 / 图表）
-
-### 注意事项
-- 注明测试环境（设备、系统版本、Swift 版本）
-- 提供可复现的运行脚本
+- 注明测试环境（设备、系统版本、Swift 版本），提供可复现的运行脚本
 
 ---
 
 ## Phase 6: 补充单元测试
 
 **状态：** 待开始
-
-### 目标
-提升测试覆盖率，保障重构信心。
 
 ### 计划内容
 - 类型转换边界（Int 溢出、Float 精度、Bool/Int 区分）
@@ -117,7 +58,7 @@
 **状态：** 待开始
 
 ### 计划内容
-- API 对照表（HandyJSON API -> SmartCodable API）
+- API 对照表（HandyJSON API → SmartCodable API）
 - 常见迁移踩坑记录
 - 可选：自动化迁移脚本
 
