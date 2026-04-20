@@ -5,10 +5,16 @@
 //  Created by Mccc on 2023/8/1.
 //
 
-
+import Foundation
 
 /// Global coding/decoding configuration namespace for SmartCodable
 public struct SmartCodableOptions {
+
+    private static let lock = NSLock()
+
+    private static var _numberStrategy: NumberConversionStrategy = .strict
+    private static var _ignoreNull: Bool = true
+
     /// Number conversion strategy during decoding (default: .strict)
     ///
     /// - Description: Controls how to handle precision loss when converting JSON numbers (e.g., floating-point) to target types (e.g., integer)
@@ -19,7 +25,18 @@ public struct SmartCodableOptions {
     ///     - .rounded:  Returns 3 (rounds to nearest)
     ///
     /// - Note: This only affects decoding process
-    public static var numberStrategy: NumberConversionStrategy = .strict
+    public static var numberStrategy: NumberConversionStrategy {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _numberStrategy
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _numberStrategy = newValue
+        }
+    }
 
 
     /// Whether to treat JSON `null` as a decoded value for `Any`-typed property wrappers (default: `true`)
@@ -29,7 +46,18 @@ public struct SmartCodableOptions {
     /// - Behavior:
     ///   - 当为 `true`（默认）时：遇到 JSON 字段值为 `null`，属性包装器**不会**把 `NSNull`/`nil` 赋给目标 `Any`，而是跳过赋值（保持属性的默认值或原有值）。
     ///   - 当为 `false` 时：遇到 JSON 字段值为 `null`，属性包装器会把 `NSNull()`（或解码为 `nil`，取决于你的实现）作为解析结果赋给 `Any`，从而能在运行时检测到该字段为 `null`。
-    public static var ignoreNull: Bool = true
+    public static var ignoreNull: Bool {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _ignoreNull
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _ignoreNull = newValue
+        }
+    }
 }
 
 

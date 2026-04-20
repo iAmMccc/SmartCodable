@@ -15,7 +15,8 @@
 
 ## Phase 2: 代码质量优化 - 线程安全
 
-**状态：** 待开始
+**状态：** 已完成  
+**详情：** [Phase2-ThreadSafety.md](Phase2-ThreadSafety.md)
 
 ### 目标
 修复全局可变状态的线程安全问题。

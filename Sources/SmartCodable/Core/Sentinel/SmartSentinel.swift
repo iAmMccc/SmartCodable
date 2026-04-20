@@ -11,43 +11,53 @@ import Foundation
 /// Central logging configuration and utilities
 public struct SmartSentinel {
     
+    private static let modeLock = NSLock()
+
     /// Set debugging mode, default is none.
     /// Note: When not debugging, set to none to reduce overhead.
     public static var debugMode: Level {
-        get { return _mode }
-        set { _mode = newValue }
+        get {
+            modeLock.lock()
+            defer { modeLock.unlock() }
+            return _mode
+        }
+        set {
+            modeLock.lock()
+            defer { modeLock.unlock() }
+            _mode = newValue
+        }
     }
-    
+
     /// 设置回调方法，传递解析完成时的日志记录
     public static func onLogGenerated(handler: @escaping (String) -> Void) {
         handlerQueue.sync {
             self.logsHandler = handler
         }
     }
-    
+
     /// Set up different levels of padding
     public static let space: String = "   "
     /// Set the markup for the model
     public static let keyContainerSign: String = "╆━ "
-    
+
     public static let unKeyContainerSign: String = "╆━ "
-    
+
     /// Sets the tag for the property
     public static let attributeSign: String = "┆┄ "
-    
-    
+
+
     /// 是否满足日志记录的条件
     fileprivate static var isValid: Bool {
         return debugMode != .none
     }
-    
+
     private static var _mode = Level.none
-    
+
     private static var cache = LogCache()
-    
+
     /// 回调闭包，用于在解析完成时传递日志
     private static var logsHandler: ((String) -> Void)?
-    
+
     /// 用于同步访问 logsHandler 的队列
     private static let handlerQueue = DispatchQueue(label: "com.smartcodable.handler", qos: .utility)
 
