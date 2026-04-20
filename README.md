@@ -67,7 +67,26 @@ let user3 = User.deserialize(from: ["name": "John", "age": "30"])
 // User(name: "John", age: 30)
 ```
 
-For struct, the compiler provides a default empty initializer. For class, you need `required init() {}`.
+To conform to `SmartCodable`, a class needs to implement an empty initializer:
+
+```swift
+class BasicTypes: SmartCodableX {
+    var int: Int = 2
+    var doubleOptional: Double?
+    required init() {}
+}
+let model = BasicTypes.deserialize(from: json)
+```
+
+For struct, the compiler provides a default empty initializer:
+
+```swift
+struct BasicTypes: SmartCodableX {
+    var int: Int = 2
+    var doubleOptional: Double?
+}
+let model = BasicTypes.deserialize(from: json)
+```
 
 
 
@@ -91,7 +110,15 @@ dependencies: [
 | Basic       | `pod 'SmartCodable'`         | iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+ |
 | Inheritance | `pod 'SmartCodable/Inherit'` | iOS 13+, macOS 11+, Xcode 15+, Swift 5.9+ |
 
-> ⚠️ The Inheritance pod depends on `swift-syntax`, which may take longer on first build.
+> ⚠️ **Important Notes**:
+> - If you don't have strong inheritance requirements, the basic version is recommended.
+> - Inheritance features require **Swift Macro support**, **Xcode 15+**, and **Swift 5.9+**.
+
+> 📌 **About Swift Macros Support (CocoaPods)**:
+> - Requires downloading `swift-syntax` dependencies for the first time (may take longer).
+> - CocoaPods internally sets `user_target_xcconfig["OTHER_SWIFT_FLAGS"]` to load the macro plugin during build.
+> - This may affect your main target's build flags and lead to subtle differences in complex projects or CI environments.
+> - If needed, please [open an issue](https://github.com/iAmMccc/SmartCodable/issues) for custom setups.
 
 
 
@@ -99,21 +126,26 @@ dependencies: [
 
 ### 1. Deserialization
 
-Supports multiple input formats:
+Only types conforming to `SmartCodable` (or `[SmartCodable]` for arrays) can use these methods:
 
 ```swift
-// From Dictionary
-let model = Model.deserialize(from: dict)
+public static func deserialize(from dict: [String: Any]?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 
-// From JSON String
-let model = Model.deserialize(from: jsonString)
+public static func deserialize(from json: String?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 
-// From Data
-let model = Model.deserialize(from: data)
+public static func deserialize(from data: Data?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 
-// Array
-let models = [Model].deserialize(from: array)
+public static func deserializePlist(from data: Data?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 ```
+
+**Multi-Format Input Support:**
+
+| Input Type  | Example Usage                         | Internal Conversion                   |
+|:------------|:--------------------------------------|:--------------------------------------|
+| Dictionary  | `Model.deserialize(from: dict)`       | Directly processes native collections |
+| Array       | `[Model].deserialize(from: arr)`      | Directly processes native collections |
+| JSON String | `Model.deserialize(from: jsonString)` | Converts to `Data` via UTF-8          |
+| Data        | `Model.deserialize(from: data)`       | Processes directly                    |
 
 **Deep Path Navigation** — Extract nested data directly:
 
@@ -132,6 +164,17 @@ let options: Set<SmartDecodingOption> = [
 ]
 let model = Model.deserialize(from: json, options: options)
 ```
+
+| Strategy Type      | Available Options                     | Description              |
+|:-------------------|:--------------------------------------|:-------------------------|
+| **Key Decoding**   | `.fromSnakeCase`                      | snake_case → camelCase   |
+|                    | `.firstLetterLower`                   | "FirstName" → "firstName"|
+|                    | `.firstLetterUpper`                   | "firstName" → "FirstName"|
+| **Date Decoding**  | `.iso8601`, `.secondsSince1970`, etc. | Full Codable date strategies |
+| **Data Decoding**  | `.base64`                             | Binary data processing   |
+| **Float Decoding** | `.convertToString`, `.throw`          | NaN/∞ handling           |
+
+> ⚠️ **Important**: Only one strategy per type is allowed (last one wins if duplicates exist)
 
 ### 2. Key Mapping
 
@@ -197,6 +240,34 @@ public protocol ValueTransformable {
 | `@SmartCompact.Array` | Skip invalid array elements | `@SmartCompact.Array var ids: [Int]` |
 | `@SmartCompact.Dictionary` | Skip invalid dict entries | `@SmartCompact.Dictionary var info: [String: String]` |
 
+**@SmartAny example** — support `Any` types that Codable can't handle natively:
+
+```swift
+struct Model: SmartCodableX {
+    @SmartAny var dict: [String: Any] = [:]
+    @SmartAny var arr: [Any] = []
+    @SmartAny var any: Any?
+}
+let dict: [String: Any] = [
+    "dict": ["name": "Lisa"],
+    "arr": [1, 2, 3],
+    "any": "Mccc"
+]
+let model = Model.deserialize(from: dict)
+// Model(dict: ["name": "Lisa"], arr: [1, 2, 3], any: "Mccc")
+```
+
+**@SmartIgnored example** — skip property during decoding:
+
+```swift
+struct Model: SmartCodableX {
+    @SmartIgnored
+    var name: String = ""
+}
+let model = Model.deserialize(from: ["name": "Mccc"])
+// Model(name: "")  — "name" was ignored, keeps default
+```
+
 **@SmartFlat example** — flatten nested fields into parent:
 
 ```swift
@@ -240,7 +311,46 @@ class StudentModel: BaseModel {
 }
 ```
 
-The macro generates `CodingKeys`, `init(from:)`, and `encode(to:)` automatically. See [Inheritance Guide](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md) for advanced usage (protocol methods in parent/subclass).
+The macro generates `CodingKeys`, `init(from:)`, and `encode(to:)` automatically.
+
+> For using inheritance on lower versions, refer to: [Inheritance in Lower Versions](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md)
+
+**Subclass implements protocol method** — just implement directly, no `override` needed for protocol methods:
+
+```swift
+@SmartSubclass
+class StudentModel: BaseModel {
+    var age: Int?
+    override static func mappingForKey() -> [SmartKeyTransformer]? {
+        [ CodingKeys.age <--- "stu_age" ]
+    }
+}
+```
+
+**Both parent and subclass implement protocol method** — parent must use `class func`, subclass calls `super`:
+
+```swift
+class BaseModel: SmartCodableX {
+    var name: String = ""
+    required init() { }
+    class func mappingForKey() -> [SmartKeyTransformer]? {
+        [ CodingKeys.name <--- "stu_name" ]
+    }
+}
+
+@SmartSubclass
+class StudentModel: BaseModel {
+    var age: Int?
+    override static func mappingForKey() -> [SmartKeyTransformer]? {
+        let trans = [ CodingKeys.age <--- "stu_age" ]
+        if let superTrans = super.mappingForKey() {
+            return trans + superTrans
+        } else {
+            return trans
+        }
+    }
+}
+```
 
 ### 6. Enum Support
 
@@ -253,14 +363,33 @@ enum Sex: String, SmartCaseDefaultable {
 }
 ```
 
-**Enums with associated values** — conform to `SmartAssociatedEnumerable` + provide a transformer:
+**Enums with associated values** — conform to `SmartAssociatedEnumerable` and provide a transformer via `mappingForValue()`:
 
 ```swift
+struct Model: SmartCodableX {
+    var sex: Sex = .man
+    static func mappingForValue() -> [SmartValueTransformer]? {
+        [ CodingKeys.sex <--- SexTransformer() ]
+    }
+}
+
 enum Sex: SmartAssociatedEnumerable {
     case man, woman, other(String)
 }
 
-// In model's mappingForValue(), provide a custom transformer
+struct SexTransformer: ValueTransformable {
+    typealias Object = Sex
+    typealias JSON = String
+    func transformFromJSON(_ value: Any?) -> Sex? {
+        guard let str = value as? String else { return nil }
+        switch str {
+        case "man": return .man
+        case "woman": return .woman
+        default: return .other(str)
+        }
+    }
+    func transformToJSON(_ value: Sex?) -> String? { nil }
+}
 ```
 
 ### 7. Post-Processing & Update
@@ -283,7 +412,28 @@ var model = Model.deserialize(from: initialData)!
 SmartUpdater.update(&model, from: newData)
 ```
 
-### 8. Stringified JSON
+### 8. Compatibility
+
+SmartCodable handles parsing failures gracefully, ensuring the entire model never fails:
+
+```swift
+let dict = ["number1": "123", "number2": "Mccc", "number3": "Mccc"]
+
+struct Model: SmartCodableX {
+    var number1: Int?
+    var number2: Int?
+    var number3: Int = 1
+}
+// Result: Model(number1: 123, number2: nil, number3: 1)
+```
+
+- **Type conversion**: `"123"` (String) → `123` (Int) automatically
+- **Default fill**: When conversion fails, uses the property's initializer value (`number3 = 1`)
+- **Optional handling**: When conversion fails for optionals, returns `nil` (`number2 = nil`)
+
+**Performance tip for large data**: When parsing very large datasets, avoid unnecessary compatibility overhead — use `CodingKeys` to exclude unused properties instead of `@SmartIgnored`, as it's more efficient.
+
+### 9. Stringified JSON
 
 SmartCodable auto-detects and parses string-encoded JSON:
 
@@ -295,7 +445,7 @@ struct Model: SmartCodableX {
 // hobby is parsed as Hobby(name: "sleep"), not a raw string
 ```
 
-### 9. Debugging
+### 10. Debugging
 
 ```swift
 SmartSentinel.debugMode = .verbose  // .none | .verbose | .alert

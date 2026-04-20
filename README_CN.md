@@ -66,7 +66,26 @@ let user3 = User.deserialize(from: ["name": "John", "age": "30"])
 // User(name: "John", age: 30)
 ```
 
-struct 由编译器提供默认空初始化器。class 需要手动实现 `required init() {}`。
+遵循 `SmartCodable` 的 class 需要实现空初始化器：
+
+```swift
+class BasicTypes: SmartCodableX {
+    var int: Int = 2
+    var doubleOptional: Double?
+    required init() {}
+}
+let model = BasicTypes.deserialize(from: json)
+```
+
+struct 由编译器提供默认空初始化器，可以直接使用：
+
+```swift
+struct BasicTypes: SmartCodableX {
+    var int: Int = 2
+    var doubleOptional: Double?
+}
+let model = BasicTypes.deserialize(from: json)
+```
 
 
 
@@ -90,7 +109,15 @@ dependencies: [
 | 基础版 | `pod 'SmartCodable'` | iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+ |
 | 继承版 | `pod 'SmartCodable/Inherit'` | iOS 13+, macOS 11+, Xcode 15+, Swift 5.9+ |
 
-> ⚠️ 继承版依赖 `swift-syntax`，首次编译可能耗时较长。
+> ⚠️ **重要说明**：
+> - 如果没有强继承需求，推荐使用基础版
+> - 继承功能需要 **Swift Macro 支持**、**Xcode 15+** 和 **Swift 5.9+**
+
+> 📌 **关于 Swift Macros 支持（CocoaPods）**：
+> - 首次编译需要下载 `swift-syntax` 依赖（可能耗时较长）
+> - CocoaPods 内部会设置 `user_target_xcconfig["OTHER_SWIFT_FLAGS"]` 来加载宏插件
+> - 在复杂项目或 CI 环境中可能会影响主 target 的编译标志
+> - 如有问题，请 [提交 Issue](https://github.com/iAmMccc/SmartCodable/issues)
 
 
 
@@ -98,21 +125,26 @@ dependencies: [
 
 ### 1. 反序列化
 
-支持多种输入格式：
+只有遵循 `SmartCodable`（或 `[SmartCodable]` 数组）的类型才能使用以下方法：
 
 ```swift
-// 字典
-let model = Model.deserialize(from: dict)
+public static func deserialize(from dict: [String: Any]?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 
-// JSON 字符串
-let model = Model.deserialize(from: jsonString)
+public static func deserialize(from json: String?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 
-// Data
-let model = Model.deserialize(from: data)
+public static func deserialize(from data: Data?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 
-// 数组
-let models = [Model].deserialize(from: array)
+public static func deserializePlist(from data: Data?, designatedPath: String? = nil, options: Set<SmartDecodingOption>? = nil) -> Self?
 ```
+
+**多格式输入支持：**
+
+| 输入类型 | 使用示例 | 内部转换 |
+|:--------|:--------|:--------|
+| 字典 | `Model.deserialize(from: dict)` | 直接处理原生集合 |
+| 数组 | `[Model].deserialize(from: arr)` | 直接处理原生集合 |
+| JSON 字符串 | `Model.deserialize(from: jsonString)` | 通过 UTF-8 转为 Data |
+| Data | `Model.deserialize(from: data)` | 直接处理 |
 
 **嵌套路径提取** — 直接定位深层数据：
 
@@ -131,6 +163,17 @@ let options: Set<SmartDecodingOption> = [
 ]
 let model = Model.deserialize(from: json, options: options)
 ```
+
+| 策略类型 | 可选项 | 说明 |
+|:--------|:------|:-----|
+| **Key 解码** | `.fromSnakeCase` | snake_case → camelCase |
+|              | `.firstLetterLower` | "FirstName" → "firstName" |
+|              | `.firstLetterUpper` | "firstName" → "FirstName" |
+| **Date 解码** | `.iso8601`、`.secondsSince1970` 等 | 完整的 Codable 日期策略 |
+| **Data 解码** | `.base64` | 二进制数据处理 |
+| **Float 解码** | `.convertToString`、`.throw` | NaN/∞ 处理 |
+
+> ⚠️ **注意**：每种类型只能设置一个策略（重复时最后一个生效）
 
 ### 2. Key 映射
 
@@ -196,6 +239,34 @@ public protocol ValueTransformable {
 | `@SmartCompact.Array` | 容错数组解析，跳过无效元素 | `@SmartCompact.Array var ids: [Int]` |
 | `@SmartCompact.Dictionary` | 容错字典解析，跳过无效键值对 | `@SmartCompact.Dictionary var info: [String: String]` |
 
+**@SmartAny 示例** — 支持 Codable 原生不支持的 `Any` 类型：
+
+```swift
+struct Model: SmartCodableX {
+    @SmartAny var dict: [String: Any] = [:]
+    @SmartAny var arr: [Any] = []
+    @SmartAny var any: Any?
+}
+let dict: [String: Any] = [
+    "dict": ["name": "Lisa"],
+    "arr": [1, 2, 3],
+    "any": "Mccc"
+]
+let model = Model.deserialize(from: dict)
+// Model(dict: ["name": "Lisa"], arr: [1, 2, 3], any: "Mccc")
+```
+
+**@SmartIgnored 示例** — 跳过属性解码：
+
+```swift
+struct Model: SmartCodableX {
+    @SmartIgnored
+    var name: String = ""
+}
+let model = Model.deserialize(from: ["name": "Mccc"])
+// Model(name: "")  — "name" 被忽略，保持默认值
+```
+
 **@SmartFlat 示例** — 将嵌套字段扁平化到父模型：
 
 ```swift
@@ -239,7 +310,46 @@ class StudentModel: BaseModel {
 }
 ```
 
-宏会自动生成 `CodingKeys`、`init(from:)` 和 `encode(to:)`。高级用法（父类/子类协议方法）参见 [继承指南](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md)。
+宏会自动生成 `CodingKeys`、`init(from:)` 和 `encode(to:)`。
+
+> 低版本继承方案参见：[低版本继承指南](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md)
+
+**子类实现协议方法** — 直接实现即可：
+
+```swift
+@SmartSubclass
+class StudentModel: BaseModel {
+    var age: Int?
+    override static func mappingForKey() -> [SmartKeyTransformer]? {
+        [ CodingKeys.age <--- "stu_age" ]
+    }
+}
+```
+
+**父类和子类同时实现协议方法** — 父类需使用 `class func`，子类调用 `super`：
+
+```swift
+class BaseModel: SmartCodableX {
+    var name: String = ""
+    required init() { }
+    class func mappingForKey() -> [SmartKeyTransformer]? {
+        [ CodingKeys.name <--- "stu_name" ]
+    }
+}
+
+@SmartSubclass
+class StudentModel: BaseModel {
+    var age: Int?
+    override static func mappingForKey() -> [SmartKeyTransformer]? {
+        let trans = [ CodingKeys.age <--- "stu_age" ]
+        if let superTrans = super.mappingForKey() {
+            return trans + superTrans
+        } else {
+            return trans
+        }
+    }
+}
+```
 
 ### 6. 枚举支持
 
@@ -252,14 +362,33 @@ enum Sex: String, SmartCaseDefaultable {
 }
 ```
 
-**带关联值的枚举** — 遵循 `SmartAssociatedEnumerable` 并提供自定义转换器：
+**带关联值的枚举** — 遵循 `SmartAssociatedEnumerable` 并通过 `mappingForValue()` 提供自定义转换器：
 
 ```swift
+struct Model: SmartCodableX {
+    var sex: Sex = .man
+    static func mappingForValue() -> [SmartValueTransformer]? {
+        [ CodingKeys.sex <--- SexTransformer() ]
+    }
+}
+
 enum Sex: SmartAssociatedEnumerable {
     case man, woman, other(String)
 }
 
-// 在模型的 mappingForValue() 中提供自定义转换器
+struct SexTransformer: ValueTransformable {
+    typealias Object = Sex
+    typealias JSON = String
+    func transformFromJSON(_ value: Any?) -> Sex? {
+        guard let str = value as? String else { return nil }
+        switch str {
+        case "man": return .man
+        case "woman": return .woman
+        default: return .other(str)
+        }
+    }
+    func transformToJSON(_ value: Sex?) -> String? { nil }
+}
 ```
 
 ### 7. 解码回调与模型更新
@@ -282,7 +411,28 @@ var model = Model.deserialize(from: initialData)!
 SmartUpdater.update(&model, from: newData)
 ```
 
-### 8. 字符串化 JSON 自动解析
+### 8. 容错兼容
+
+SmartCodable 优雅地处理解析失败，确保整个模型永不崩溃：
+
+```swift
+let dict = ["number1": "123", "number2": "Mccc", "number3": "Mccc"]
+
+struct Model: SmartCodableX {
+    var number1: Int?
+    var number2: Int?
+    var number3: Int = 1
+}
+// 结果: Model(number1: 123, number2: nil, number3: 1)
+```
+
+- **类型转换兼容**：`"123"`（String）→ `123`（Int）自动转换
+- **默认值填充**：转换失败时，使用属性声明时的初始值（`number3 = 1`）
+- **可选类型处理**：转换失败时，可选属性返回 `nil`（`number2 = nil`）
+
+**大数据解析性能建议**：解析大数据时，避免不必要的容错开销——使用 `CodingKeys` 排除不需要的属性，比 `@SmartIgnored` 效率更高。
+
+### 9. 字符串化 JSON 自动解析
 
 SmartCodable 能自动识别并解析字符串形式的 JSON：
 
@@ -294,7 +444,7 @@ struct Model: SmartCodableX {
 // hobby 被解析为 Hobby(name: "sleep")，而非原始字符串
 ```
 
-### 9. 调试日志
+### 10. 调试日志
 
 ```swift
 SmartSentinel.debugMode = .verbose  // .none | .verbose | .alert
