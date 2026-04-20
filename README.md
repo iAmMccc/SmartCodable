@@ -25,6 +25,8 @@
 </p>
 
 
+English | [中文](README_CN.md)
+
 **SmartCodable** enhances Apple's native Codable with production-ready resilience. When standard Codable fails on a single missing field or type mismatch, your entire model is lost. SmartCodable gracefully recovers — falling back to defaults, converting types automatically, and never interrupting the parse.
 
 ## Why SmartCodable?
