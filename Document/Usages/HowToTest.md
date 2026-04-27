@@ -6,18 +6,24 @@
 # 编译项目
 swift build
 
-# 运行测试（注意：当前测试文件存在模块名冲突问题，swift test 可能编译失败）
-swift test
-```
+# 运行包级测试
+swift test -v
 
-> ⚠️ 已知问题：`Tests/Example.swift` 中 `SmartCodable` 作为类型名与模块名冲突，导致 `swift test` 编译失败。`swift build` 可以正常通过。这是一个待修复的问题。
+# 线程检测 lane（核心解码器 / 全局状态改动后建议执行）
+swift test --sanitize=thread
+```
 
 ## 测试文件位置
 
 ```
 Tests/
-├── Example.swift                              # 集成测试
-└── SmartSubclassMacroAccessControlTests.swift  # 宏访问控制测试
+├── TestSupport.swift                           # 共享测试模型与辅助工具
+├── DecodeTests.swift                           # 基础解码与 key mapping
+├── EncodeTests.swift                           # 编码与 useMappedKeys
+├── SmartSubclassIntegrationTests.swift         # @SmartSubclass 运行时集成
+├── DecodeEdgeCaseTests.swift                   # 解码边界情况：数组索引对齐、数值策略、空值捕获、诊断日志
+├── GlobalOptionsConcurrencyTests.swift         # 全局配置并发安全测试
+└── SmartSubclassMacroAccessControlTests.swift  # 纯宏展开访问控制断言
 ```
 
 ## 手动验证场景
@@ -106,6 +112,6 @@ final class MyTests: XCTestCase {
 ## 质量保障流程
 
 1. **开发自测**：修改代码后，手动验证上述场景
-2. **CI 构建**：GitHub Actions 自动执行 `swift build` 和 `swift test`
+2. **CI 构建**：至少执行 `swift build` 和 `swift test -v`；涉及核心解码器或全局状态时追加 `swift test --sanitize=thread`
 3. **社区验证**：版本发布前在 QQ 交流群（群号：865036731）进行线上验证
 4. **Beta 测试**：大版本更新发布 beta 版公测，周期 2-4 周
