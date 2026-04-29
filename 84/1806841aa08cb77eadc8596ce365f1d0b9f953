@@ -1,0 +1,26 @@
+Sources/SmartCodable/Core/JSONValue/JSONValue.swift
+  b4e9d6a1081ab9ee 130-131
+Sources/SmartCodable/Core/PropertyWrapper/SmartAny/SmartAnyImpl.swift
+  b4e9d6a1081ab9ee 263-264,268-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "841806841aa08cb77eadc8596ce365f1d0b9f953",
+  "prompts": {
+    "b4e9d6a1081ab9ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a55e8ad-3f56-4785-b437-0abbd50a70cc",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "iAmMccc",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 2,
+      "accepted_lines": 8,
+      "overriden_lines": 0,
+      "messages_url": "https://usegitai.com/cas/7a30092c1eda296897b97f1f50faac27a4c4154eb1b5a1eadd07f4ccbcf7d24f"
+    }
+  }
+}
