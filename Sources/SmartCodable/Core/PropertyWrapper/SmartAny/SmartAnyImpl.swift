@@ -260,8 +260,13 @@ extension JSONDecoderImpl {
             }
         case .number(let number):
             if number.contains(".") { // 浮点数
-                if number.contains("e") { // 检查字符串中是否包含字符 e，这表示数字可能以科学计数法表示
+                // JSON 规范（RFC 8259）允许 e / E 两种写法，这里需要大小写都兼容
+                if number.contains("e") || number.contains("E") { // 科学计数法
                     if let temp = container.decodeIfPresent(Decimal.self) as? NSNumber {
+                        return .number(temp)
+                    }
+                    // Decimal 无法覆盖次正规数（如 ±E-324）等极小值，回退到 Double 兜底
+                    if let temp = container.decodeIfPresent(Double.self) as? NSNumber {
                         return .number(temp)
                     }
                 } else {

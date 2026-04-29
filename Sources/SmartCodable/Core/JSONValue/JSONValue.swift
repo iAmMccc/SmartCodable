@@ -127,7 +127,8 @@ extension JSONValue {
 extension NSNumber {
     static func fromJSONNumber(_ string: String) -> NSNumber? {
         let decIndex = string.firstIndex(of: ".")
-        let expIndex = string.firstIndex(of: "e")
+        // JSON 规范允许大写 E 作为科学计数法标记，这里需要一并识别
+        let expIndex = string.firstIndex(where: { $0 == "e" || $0 == "E" })
         let isInteger = decIndex == nil && expIndex == nil
         let isNegative = string.utf8[string.utf8.startIndex] == UInt8(ascii: "-")
         let digitCount = string[string.startIndex..<(expIndex ?? string.endIndex)].count
