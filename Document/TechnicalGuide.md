@@ -29,14 +29,9 @@ SmartCodable (主模块)
 │   ├── Sentinel/               # 调试日志系统
 │   └── JSONValue/              # 内部 JSON 中间表示
 
-SmartCodableMacros (编译器插件，Swift 5.9+)
-└── SmartSubclassMacro          # @SmartSubclass 宏实现
-
-SmartCodableInherit (桥接模块)
-└── 宏声明的 public 接口
 ```
 
-**两份 Package.swift 的原因：** `Package.swift`（Swift 5.8）不含宏依赖，`Package@swift-5.9.swift` 包含 SwiftSyntax 依赖。这样 Swift 5.9 以下的项目也能使用核心功能。
+> 类继承能力（`@SmartSubclass`）已抽离到独立的配套库 [SmartCodableMacro](https://github.com/iAmMccc/SmartCodableMacro)，避免本库引入 swift-syntax 依赖。
 
 ---
 
@@ -217,26 +212,7 @@ struct Model: SmartCodable {
 
 ## 八、继承支持（@SmartSubclass）
 
-Swift 的 Codable 不自动处理子类属性。`@SmartSubclass` 宏在编译期生成：
-
-- `CodingKeys` 枚举（仅包含子类自身的属性）
-- `init(from: Decoder)`（先调 super，再解码子类属性）
-- `encode(to: Encoder)`（先调 super，再编码子类属性）
-- `required init()`（如果不存在）
-
-```swift
-class Base: SmartCodable {
-    var name: String = ""
-    required init() {}
-}
-
-@SmartSubclass
-class Sub: Base {
-    var age: Int = 0    // 宏会自动生成解码/编码逻辑
-}
-```
-
-**注意：** 宏依赖 SwiftSyntax，通过独立的 subspec/target 隔离。不使用继承的项目不需要引入。
+类继承能力已迁移至独立仓库 [SmartCodableMacro](https://github.com/iAmMccc/SmartCodableMacro)，请参考该仓库文档。
 
 ---
 

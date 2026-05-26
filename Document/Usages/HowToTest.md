@@ -20,10 +20,8 @@ Tests/
 ├── TestSupport.swift                           # 共享测试模型与辅助工具
 ├── DecodeTests.swift                           # 基础解码与 key mapping
 ├── EncodeTests.swift                           # 编码与 useMappedKeys
-├── SmartSubclassIntegrationTests.swift         # @SmartSubclass 运行时集成
 ├── DecodeEdgeCaseTests.swift                   # 解码边界情况：数组索引对齐、数值策略、空值捕获、诊断日志
-├── GlobalOptionsConcurrencyTests.swift         # 全局配置并发安全测试
-└── SmartSubclassMacroAccessControlTests.swift  # 纯宏展开访问控制断言
+└── GlobalOptionsConcurrencyTests.swift         # 全局配置并发安全测试
 ```
 
 ## 手动验证场景
@@ -59,7 +57,6 @@ Tests/
 | @SmartFlat | 嵌套对象扁平化到父级 |
 | @SmartCompact | 数组/字典容错解析 |
 | 枚举解码 | SmartCaseDefaultable、SmartAssociatedEnumerable |
-| 继承 | @SmartSubclass 子类属性正确解码 |
 | didFinishMapping | 回调在解码后执行 |
 | SmartUpdater | 增量更新已有模型 |
 

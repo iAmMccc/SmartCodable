@@ -93,31 +93,34 @@ let model = BasicTypes.deserialize(from: json)
 
 ### Swift Package Manager
 
+> 🚧 **7.0 当前处于 beta 阶段。** 最新 beta 版本为 `7.0.0-beta.1`，请使用 `exact:` 引入 —— `from:` 不会匹配 prerelease 版本。
+
 ```swift
 dependencies: [
-    .package(url: "https://github.com/iAmMccc/SmartCodable.git", from: "xxx")
+    .package(url: "https://github.com/iAmMccc/SmartCodable.git", exact: "7.0.0-beta.1")
 ]
 ```
 
-- `SmartCodable`（核心模块）无需 Swift Macro 支持
-- `SmartCodableInherit`（通过 `@SmartSubclass` 实现继承）需要 **Xcode 15+** 和 **Swift 5.9+**
+7.0 正式版发布后，可改为：
 
-### CocoaPods
+```swift
+dependencies: [
+    .package(url: "https://github.com/iAmMccc/SmartCodable.git", from: "7.0.0")
+]
+```
 
-| 版本 | 安装方式 | 环境要求 |
-|:----|:--------|:--------|
-| 基础版 | `pod 'SmartCodable'` | iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+ |
-| 继承版 | `pod 'SmartCodable/Inherit'` | iOS 13+, macOS 11+, Xcode 15+, Swift 5.9+ |
+- `SmartCodable` 提供核心解析能力，无任何外部依赖。
+- 如需通过 `@SmartSubclass` 支持类继承，请使用配套的 [SmartCodableMacro](https://github.com/iAmMccc/SmartCodableMacro)。
 
-> ⚠️ **重要说明**：
-> - 如果没有强继承需求，推荐使用基础版
-> - 继承功能需要 **Swift Macro 支持**、**Xcode 15+** 和 **Swift 5.9+**
+### CocoaPods（旧版本）
 
-> 📌 **关于 Swift Macros 支持（CocoaPods）**：
-> - 首次编译需要下载 `swift-syntax` 依赖（可能耗时较长）
-> - CocoaPods 内部会设置 `user_target_xcconfig["OTHER_SWIFT_FLAGS"]` 来加载宏插件
-> - 在复杂项目或 CI 环境中可能会影响主 target 的编译标志
-> - 如有问题，请 [提交 Issue](https://github.com/iAmMccc/SmartCodable/issues)
+从 7.0 开始，SmartCodable 不再通过 CocoaPods 发布。**如必须使用 CocoaPods，请继续使用 6.x 系列**，6.x 代码保留在 [`6.1.0`](https://github.com/iAmMccc/SmartCodable/tree/6.1.0) 分支：
+
+```ruby
+pod 'SmartCodable', '~> 6.1'
+```
+
+6.x 后续仅修复关键问题，所有新特性将在 7.x 及之后版本中发布 —— 强烈建议迁移到 Swift Package Manager。
 
 
 
@@ -296,60 +299,17 @@ struct Model: Decodable {
 
 ### 5. 继承支持
 
-使用 `@SmartSubclass` 标注子类（需要 Swift 5.9+）：
+类继承能力已迁移到独立的配套库 —— [SmartCodableMacro](https://github.com/iAmMccc/SmartCodableMacro)。它依赖 `swift-syntax`，所以单独发布以保持核心库轻量、零依赖。
+
+需要使用 `@SmartSubclass` 时，请额外引入（当前为 beta）：
 
 ```swift
-class BaseModel: SmartCodableX {
-    var name: String = ""
-    required init() {}
-}
-
-@SmartSubclass
-class StudentModel: BaseModel {
-    var age: Int = 0
-}
+dependencies: [
+    .package(url: "https://github.com/iAmMccc/SmartCodableMacro.git", exact: "1.0.0-beta.1")
+]
 ```
 
-宏会自动生成 `CodingKeys`、`init(from:)` 和 `encode(to:)`。
-
-> 低版本继承方案参见：[低版本继承指南](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md)
-
-**子类实现协议方法** — 直接实现即可：
-
-```swift
-@SmartSubclass
-class StudentModel: BaseModel {
-    var age: Int?
-    override static func mappingForKey() -> [SmartKeyTransformer]? {
-        [ CodingKeys.age <--- "stu_age" ]
-    }
-}
-```
-
-**父类和子类同时实现协议方法** — 父类需使用 `class func`，子类调用 `super`：
-
-```swift
-class BaseModel: SmartCodableX {
-    var name: String = ""
-    required init() { }
-    class func mappingForKey() -> [SmartKeyTransformer]? {
-        [ CodingKeys.name <--- "stu_name" ]
-    }
-}
-
-@SmartSubclass
-class StudentModel: BaseModel {
-    var age: Int?
-    override static func mappingForKey() -> [SmartKeyTransformer]? {
-        let trans = [ CodingKeys.age <--- "stu_age" ]
-        if let superTrans = super.mappingForKey() {
-            return trans + superTrans
-        } else {
-            return trans
-        }
-    }
-}
-```
+> 低于 Swift 5.9 的继承使用方案参见：[低版本继承指南](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md)
 
 ### 6. 枚举支持
 

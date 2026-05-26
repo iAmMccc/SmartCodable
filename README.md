@@ -94,31 +94,34 @@ let model = BasicTypes.deserialize(from: json)
 
 ### Swift Package Manager
 
+> 🚧 **7.0 is currently in beta.** The latest beta is `7.0.0-beta.1`. Use `exact:` for now — `from:` does not match prerelease versions.
+
 ```swift
 dependencies: [
-    .package(url: "https://github.com/iAmMccc/SmartCodable.git", from: "xxx")
+    .package(url: "https://github.com/iAmMccc/SmartCodable.git", exact: "7.0.0-beta.1")
 ]
 ```
 
-- `SmartCodable` (core) works without Swift Macros.
-- `SmartCodableInherit` (inheritance via `@SmartSubclass`) requires **Xcode 15+** and **Swift 5.9+**.
+Once 7.0 is stable, switch to:
 
-### CocoaPods
+```swift
+dependencies: [
+    .package(url: "https://github.com/iAmMccc/SmartCodable.git", from: "7.0.0")
+]
+```
 
-| Version     | Installation                 | Requirements |
-|:------------|:-----------------------------|:-------------|
-| Basic       | `pod 'SmartCodable'`         | iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+ |
-| Inheritance | `pod 'SmartCodable/Inherit'` | iOS 13+, macOS 11+, Xcode 15+, Swift 5.9+ |
+- `SmartCodable` provides the core parsing capabilities with no external dependencies.
+- For class inheritance via `@SmartSubclass`, see the companion package [SmartCodableMacro](https://github.com/iAmMccc/SmartCodableMacro).
 
-> ⚠️ **Important Notes**:
-> - If you don't have strong inheritance requirements, the basic version is recommended.
-> - Inheritance features require **Swift Macro support**, **Xcode 15+**, and **Swift 5.9+**.
+### CocoaPods (legacy)
 
-> 📌 **About Swift Macros Support (CocoaPods)**:
-> - Requires downloading `swift-syntax` dependencies for the first time (may take longer).
-> - CocoaPods internally sets `user_target_xcconfig["OTHER_SWIFT_FLAGS"]` to load the macro plugin during build.
-> - This may affect your main target's build flags and lead to subtle differences in complex projects or CI environments.
-> - If needed, please [open an issue](https://github.com/iAmMccc/SmartCodable/issues) for custom setups.
+Starting from 7.0, SmartCodable no longer ships via CocoaPods. **If you must stay on CocoaPods, please use the 6.x series**, which is preserved on the [`6.1.0`](https://github.com/iAmMccc/SmartCodable/tree/6.1.0) branch:
+
+```ruby
+pod 'SmartCodable', '~> 6.1'
+```
+
+The 6.x line will receive critical fixes only. All new features will land in 7.x and beyond — we strongly recommend migrating to Swift Package Manager.
 
 
 
@@ -297,60 +300,17 @@ struct Model: Decodable {
 
 ### 5. Inheritance
 
-Annotate subclasses with `@SmartSubclass` (requires Swift 5.9+):
+Class inheritance support has been moved to a separate package — [SmartCodableMacro](https://github.com/iAmMccc/SmartCodableMacro). It depends on `swift-syntax`, so we ship it independently to keep this core library lightweight and dependency-free.
+
+Add it alongside SmartCodable when you need `@SmartSubclass` (currently in beta):
 
 ```swift
-class BaseModel: SmartCodableX {
-    var name: String = ""
-    required init() {}
-}
-
-@SmartSubclass
-class StudentModel: BaseModel {
-    var age: Int = 0
-}
+dependencies: [
+    .package(url: "https://github.com/iAmMccc/SmartCodableMacro.git", exact: "1.0.0-beta.1")
+]
 ```
 
-The macro generates `CodingKeys`, `init(from:)`, and `encode(to:)` automatically.
-
-> For using inheritance on lower versions, refer to: [Inheritance in Lower Versions](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md)
-
-**Subclass implements protocol method** — just implement directly, no `override` needed for protocol methods:
-
-```swift
-@SmartSubclass
-class StudentModel: BaseModel {
-    var age: Int?
-    override static func mappingForKey() -> [SmartKeyTransformer]? {
-        [ CodingKeys.age <--- "stu_age" ]
-    }
-}
-```
-
-**Both parent and subclass implement protocol method** — parent must use `class func`, subclass calls `super`:
-
-```swift
-class BaseModel: SmartCodableX {
-    var name: String = ""
-    required init() { }
-    class func mappingForKey() -> [SmartKeyTransformer]? {
-        [ CodingKeys.name <--- "stu_name" ]
-    }
-}
-
-@SmartSubclass
-class StudentModel: BaseModel {
-    var age: Int?
-    override static func mappingForKey() -> [SmartKeyTransformer]? {
-        let trans = [ CodingKeys.age <--- "stu_age" ]
-        if let superTrans = super.mappingForKey() {
-            return trans + superTrans
-        } else {
-            return trans
-        }
-    }
-}
-```
+> For inheritance usage on Swift versions prior to 5.9, see [Inheritance in Lower Versions](https://github.com/iAmMccc/SmartCodable/blob/main/Document/QA/QA2.md).
 
 ### 6. Enum Support
 
