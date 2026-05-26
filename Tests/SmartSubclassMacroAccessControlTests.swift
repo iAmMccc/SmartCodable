@@ -3,11 +3,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 @testable import SmartCodableMacros
 
-/// Tests for `@SmartSubclass` macro access control inference.
-///
-/// These tests verify that the macro correctly derives access modifiers for
-/// synthesized members (`init(from:)`, `encode(to:)`, `init()`) based on the
-/// visibility of the host class.
+/// @SmartSubclass 宏访问控制测试：验证宏根据宿主类可见性生成匹配的访问修饰符
 final class SmartSubclassMacroAccessControlTests: XCTestCase {
     private let macros: [String: Macro.Type] = [
         "SmartSubclass": SmartSubclassMacro.self
@@ -15,7 +11,7 @@ final class SmartSubclassMacroAccessControlTests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Base model definition shared across all test cases.
+    /// 共享的父类定义模板
     private let baseModelDefinition = """
         class BaseModel {
             var name: String = ""
@@ -26,13 +22,7 @@ final class SmartSubclassMacroAccessControlTests: XCTestCase {
         }
         """
 
-    /// Asserts macro expansion with consistent base model context.
-    ///
-    /// - Parameters:
-    ///   - classDeclaration: The subclass declaration with `@SmartSubclass` attribute.
-    ///   - expectedClassOutput: The expected expanded source code.
-    ///   - file: Source file for failure reporting.
-    ///   - line: Line number for failure reporting.
+    /// 统一断言宏展开结果（自动拼接父类上下文）
     private func assertAccessControlMacroExpansion(
         classDeclaration: String,
         expectedClassOutput: String,
@@ -62,7 +52,7 @@ final class SmartSubclassMacroAccessControlTests: XCTestCase {
 
     // MARK: - Tests
 
-    /// Verifies that `public` class generates members with `public` modifiers.
+    /// public 类 → 生成的 init(from:)、encode(to:)、init() 均带 public
     func testPublicClassExpansionAddsPublicAccessModifiers() {
         assertAccessControlMacroExpansion(
             classDeclaration: """
@@ -100,7 +90,7 @@ final class SmartSubclassMacroAccessControlTests: XCTestCase {
         )
     }
 
-    /// Verifies that `open` class generates members with `public` modifiers (Phase 1).
+    /// open 类 → 生成的成员使用 public（非 open，因为无法跨模块 override）
     func testOpenClassExpansionAddsPublicAccessModifiers() {
         assertAccessControlMacroExpansion(
             classDeclaration: """
@@ -138,7 +128,7 @@ final class SmartSubclassMacroAccessControlTests: XCTestCase {
         )
     }
 
-    /// Verifies that internal/default class does not add explicit `public` modifiers.
+    /// internal（默认）类 → 生成的成员不加显式访问修饰符
     func testInternalClassDoesNotAddPublicAccessModifiers() {
         assertAccessControlMacroExpansion(
             classDeclaration: """
@@ -176,7 +166,7 @@ final class SmartSubclassMacroAccessControlTests: XCTestCase {
         )
     }
 
-    /// Verifies that existing `required init()` prevents duplicate generation.
+    /// 已有 required init() 时宏跳过生成，不产生重复定义
     func testClassWithExistingRequiredInitSkipsGeneratedInit() {
         assertAccessControlMacroExpansion(
             classDeclaration: """

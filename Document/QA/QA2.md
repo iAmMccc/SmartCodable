@@ -1,6 +1,31 @@
-# #QA2 支持继承关系的解析
+# QA2 支持继承关系的解析
 
+## 推荐方案：@SmartSubclass（SmartCodable 5.0+）
 
+从 SmartCodable 5.0 开始，推荐使用 `@SmartSubclass` 宏处理继承。这是最简洁的方案，宏会在编译期自动生成 `CodingKeys`、`init(from:)` 和 `encode(to:)`：
+
+```swift
+class BaseModel: SmartCodable {
+    var name: String = ""
+    required init() { }
+}
+
+@SmartSubclass
+class Model: BaseModel {
+    var age: Int = 0
+}
+
+let dict = ["name": "小明", "age": 10] as [String : Any]
+guard let model = Model.deserialize(from: dict) else { return }
+print(model.age)   // 10
+print(model.name)  // 小明
+```
+
+> ⚠️ 需要 **Swift 5.9+** 和 **Xcode 15+**。如果使用低版本，请参考下方的替代方案。
+
+---
+
+以下是低版本或特殊场景下的替代方案。
 
 ## HandyJSON 如何处理继承的解析
 

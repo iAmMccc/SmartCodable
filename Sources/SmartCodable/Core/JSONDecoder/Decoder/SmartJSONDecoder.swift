@@ -107,9 +107,9 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
 extension CodingUserInfoKey {
     /// This parsing tag is used to summarize logs.
 
-    static var parsingMark = CodingUserInfoKey.init(rawValue: "Stamrt.parsingMark")
+    static var parsingMark = CodingUserInfoKey.init(rawValue: "Smart.parsingMark")
     
-    static var logContextHeader = CodingUserInfoKey.init(rawValue: "Stamrt.logContext.header")
-    static var logContextFooter = CodingUserInfoKey.init(rawValue: "Stamrt.logContext.footer")
+    static var logContextHeader = CodingUserInfoKey.init(rawValue: "Smart.logContext.header")
+    static var logContextFooter = CodingUserInfoKey.init(rawValue: "Smart.logContext.footer")
 }
 

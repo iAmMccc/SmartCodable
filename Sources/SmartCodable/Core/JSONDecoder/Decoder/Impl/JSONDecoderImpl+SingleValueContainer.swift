@@ -112,8 +112,8 @@ extension JSONDecoderImpl.SingleValueContainer {
         if let decoded = impl.unwrapFixedWidthInteger(from: self.value, as: T.self) {
             return decoded
         }
-        if let trnas = Patcher<T>.convertToType(from: value, impl: impl) {
-            return trnas
+        if let trans = Patcher<T>.convertToType(from: value, impl: impl) {
+            return trans
         } else {
             throw DecodingError.dataCorrupted(.init(
                 codingPath: codingPath,
@@ -126,8 +126,8 @@ extension JSONDecoderImpl.SingleValueContainer {
         if let decoded = impl.unwrapFloatingPoint(from: value, as: T.self) {
             return decoded
         }
-        if let trnas = Patcher<T>.convertToType(from: value, impl: impl) {
-            return trnas
+        if let trans = Patcher<T>.convertToType(from: value, impl: impl) {
+            return trans
         } else {
             throw DecodingError.typeMismatch(T.self, .init(
                 codingPath: codingPath,

@@ -1,4 +1,4 @@
-# #QA 3 支持属性初始化值填充
+# QA3 支持属性初始化值填充
 
 
 
@@ -10,13 +10,13 @@
 
 就会解析异常，抛出DecodingError。
 
-```
+```swift
 do {
-    let _decoder = JSONDecoder()
-    let decodeValue = try _decoder.decode(type, from: self)
+    let decoder = SmartJSONDecoder()
+    let decodeValue = try decoder.decode(type, from: data)
     return decodeValue
 } catch {
-    SmartLog.logError(error, className: "\(type)")
+    // SmartCodable 内部会捕获异常并进行容错处理
     return nil
 }
 ```
@@ -124,26 +124,24 @@ if let model = NameModel.deserialize(dict: dict) {
 }
 ```
 
-为了实现该功能，SmartCodable放弃了重写 **JSONKeyedDecodingContainer** 协议方法。 重新实现了 **JSONDecoder**，即： **SmartJSONDecoder**。
+为了实现该功能，SmartCodable 重新实现了完整的 JSON 解码器（`SmartJSONDecoder`），而非仅重写 `JSONKeyedDecodingContainer` 的协议方法。
 
-使用DecodingDefaults类记录当前正在解析的Model：
+核心实现在 `DecodingCache` 中，通过快照机制记录当前正在解析的 Model 的初始值：
 
-```
-mutating func recordAttributeValues<T: Decodable>(for type: T.Type, codingPath: [CodingKey]) {
-    // 直接使用反射初始化对象，如果T符合SmartDecodable协议
-    if let object = type as? SmartDecodable.Type {
-        let instance = object.init()
-        // 使用反射获取属性名称和值
-        let mirror = Mirror(reflecting: instance)
-        mirror.children.forEach { child in
-            if let key = child.label {
-                containers[key] = child.value
-            }
-        }
-        self.typeName = "\(type)"
-        self.codingPath = codingPath
-    }
+```swift
+// DecodingCache.swift 简化示意
+func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
+    guard let smartType = type as? SmartDecodable.Type else { return }
+    let snapshot = DecodingSnapshot(objectType: smartType, codingPath: codingPath)
+    snapshots.append(snapshot)
+}
+
+// 懒加载：首次需要默认值时才通过 Mirror 反射获取
+private func populateInitialValues(snapshot: DecodingSnapshot) {
+    guard let type = snapshot.objectType else { return }
+    let mirror = Mirror(reflecting: type.init())
+    // 提取所有属性的初始值存入 snapshot.initialValues
 }
 ```
 
-在解析失败的时候，从存储中找到初始值填充。 
+当某个属性解码失败时，从快照中找到该属性的初始值进行填充。这种懒加载设计避免了每次解码都进行反射，只有在真正需要回退默认值时才会触发。

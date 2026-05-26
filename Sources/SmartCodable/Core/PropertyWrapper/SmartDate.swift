@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Foundation
 
 #if os(iOS) || os(tvOS) || os(watchOS)
 import UIKit
