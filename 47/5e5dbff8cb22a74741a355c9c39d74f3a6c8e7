@@ -1,0 +1,117 @@
+Example/ExampleApp/ExampleApp/Base.lproj/LaunchScreen.storyboard
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-25
+Document/Usages/HowToTest.md
+  s_32cc12a901d9f1::t_6818ed2bc02dff 24
+Example/ExampleApp/ExampleApp.xcodeproj/project.pbxproj
+  s_32cc12a901d9f1::t_2befcd98973a6d 11,44,88,373,375
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-9,12-43,46-87,90-119,121-361,363,365-368,374,376-380
+Example/ExampleApp/ExampleApp/Common/DemoCatalog.swift
+  s_32cc12a901d9f1::t_4f16d2422eae22 1-67
+Example/ExampleApp/ExampleApp/01_Basic/BasicDecodeDemoViewController.swift
+  s_32cc12a901d9f1::t_0d61baf9d3f963 1-58
+Example/ExampleApp/ExampleApp/01_Basic/EncodeDemoViewController.swift
+  s_32cc12a901d9f1::t_8355db7b49fd31 1-50
+Example/ExampleApp/ExampleApp/02_Strategy/PostDecodeStrategyDemoViewController.swift
+  s_32cc12a901d9f1::t_c2484cfb961390 55
+  s_32cc12a901d9f1::t_332486d9df951b 1-54,56-58
+Example/ExampleApp/ExampleApp/01_Basic/OptionalAndDefaultsDemoViewController.swift
+  s_32cc12a901d9f1::t_a020eb69b69be6 1-37
+Example/ExampleApp/ExampleApp/03_Log/SmartSentinelDemoViewController.swift
+  s_32cc12a901d9f1::t_b57fc4a5799bd4 1-59
+Example/ExampleApp/ExampleApp/04_Cases/GenericDecodeDemoViewController.swift
+  s_32cc12a901d9f1::t_068d322d9ff8ea 1-53
+Example/ExampleApp/ExampleApp/Info.plist
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-23
+Example/ExampleApp/ExampleApp/01_Basic/KeyMappingDemoViewController.swift
+  s_32cc12a901d9f1::t_0dd43e038d3eee 1-41
+Example/ExampleApp/ExampleApp/04_Cases/SingleValueDemoViewController.swift
+  s_32cc12a901d9f1::t_01d89725e33588 62
+  s_32cc12a901d9f1::t_51a31cad29eebf 1-61,63-66
+Example/ExampleApp/ExampleApp/04_Cases/TypeDispatchDemoViewController.swift
+  s_32cc12a901d9f1::t_fdd5cff2852718 1-24,26-34,36-37,41-88
+  s_32cc12a901d9f1::t_921a9e7237a67b 25,35,38-40
+Example/ExampleApp/ExampleApp/06_Enums/EnumDecodeDemoViewController.swift
+  s_32cc12a901d9f1::t_299c1ec85b9ada 31
+  s_32cc12a901d9f1::t_98271403e70b04 1-30,32-100
+Example/ExampleApp/ExampleApp/02_Strategy/InDecodeStrategyDemoViewController.swift
+  s_32cc12a901d9f1::t_a245cc494ad062 35,39
+  s_32cc12a901d9f1::t_09f81214a8a9c8 1-34,36-38,40-49
+Example/ExampleApp/ExampleApp/07_Inheritance/InheritanceLinkViewController.swift
+  s_32cc12a901d9f1::t_d67e9cd400be84 1-56
+Document/TechnicalGuide.md
+  s_32cc12a901d9f1::t_21c2842ef21c08 34
+  s_32cc12a901d9f1::t_da74fc167f0c7d 215
+README.md
+  s_32cc12a901d9f1::t_a8856e2fef09e1 97-106,116,120,122
+  s_32cc12a901d9f1::t_1b29856f8d9f05 303,308,310,313
+  s_32cc12a901d9f1::t_57d66439cc4bdf 305,309
+  s_32cc12a901d9f1::t_5257fe543e7b33 118,121,124
+  s_32cc12a901d9f1::t_cf728f438cf990 109,113-114
+Example/ExampleApp/ExampleApp/Assets.xcassets/AccentColor.colorset/Contents.json
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-11
+Example/ExampleApp/ExampleApp/Assets.xcassets/AppIcon.appiconset/Contents.json
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-35
+Example/ExampleApp/ExampleApp.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-7
+Package.swift
+  s_32cc12a901d9f1::t_d2d563a6e4db11 1,6-13,21-26
+Example/ExampleApp/ExampleApp/RootViewController.swift
+  s_32cc12a901d9f1::t_0cb313af1842a2 1-60
+Example/ExampleApp/ExampleApp/01_Basic/TypeCoercionDemoViewController.swift
+  s_32cc12a901d9f1::t_329153b05223e6 1-41
+Example/ExampleApp/ExampleApp/04_Cases/CustomCodableDemoViewController.swift
+  s_32cc12a901d9f1::t_ea8e8311db5e42 1-69
+Example/ExampleApp/ExampleApp/05_Wrappers/SmartAnyDemoViewController.swift
+  s_32cc12a901d9f1::t_d72238c047b2f0 1-46
+README_CN.md
+  s_32cc12a901d9f1::t_5d09e455c95f0a 304,308
+  s_32cc12a901d9f1::t_05d205afa4a097 302,307,309,312
+  s_32cc12a901d9f1::t_4ec653e4992754 108,112-113
+  s_32cc12a901d9f1::t_3d95bbd1780346 96-105,115,119,121
+  s_32cc12a901d9f1::t_5f6d0c7698cc7f 117,120,123
+Example/ExampleApp/ExampleApp/05_Wrappers/SmartFlatDemoViewController.swift
+  s_32cc12a901d9f1::t_3fa49945a5f2a1 1-46
+Example/ExampleApp/ExampleApp/07_Inheritance/TestViewController.swift
+  s_32cc12a901d9f1::t_8be9395ab1ac2b 1-37
+Example/ExampleApp/ExampleApp/SceneDelegate.swift
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-9,11-13
+  s_32cc12a901d9f1::t_68c2f063c78d89 10
+Example/ExampleApp/ExampleApp/04_Cases/MultiKeyMappingDemoViewController.swift
+  s_32cc12a901d9f1::t_3fbef5a4863f9a 1-41
+Example/ExampleApp/ExampleApp/02_Strategy/PreDecodeStrategyDemoViewController.swift
+  s_32cc12a901d9f1::t_6a191304517d15 1-46
+Example/ExampleApp/ExampleApp/Base.lproj/Main.storyboard
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-24
+Example/ExampleApp/ExampleApp/01_Basic/ValueTransformDemoViewController.swift
+  s_32cc12a901d9f1::t_356673beba4324 1-67
+Example/ExampleApp/ExampleApp/05_Wrappers/SmartPublishedDemoViewController.swift
+  s_32cc12a901d9f1::t_0d43da00199d8a 1-60
+Example/ExampleApp/ExampleApp/AppDelegate.swift
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-13
+Example/ExampleApp/ExampleApp/Common/DemoBaseViewController.swift
+  s_32cc12a901d9f1::t_57411c8d3ce2b8 1-119
+Example/ExampleApp/ExampleApp/Assets.xcassets/Contents.json
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-6
+Example/ExampleApp/ExampleApp/Common/DemoEntry.swift
+  s_32cc12a901d9f1::t_4a9b9d1da1b72f 1-14
+Example/ExampleApp/ExampleApp/05_Wrappers/SmartIgnoredDemoViewController.swift
+  s_32cc12a901d9f1::t_25bdfe9d39b9ac 1-45
+Example/ExampleApp/ExampleApp.xcodeproj/xcshareddata/xcschemes/ExampleApp.xcscheme
+  s_32cc12a901d9f1::t_86f3532e87bca3 1-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "475e5dbff8cb22a74741a355c9c39d74f3a6c8e7",
+  "prompts": {},
+  "sessions": {
+    "s_32cc12a901d9f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39a55477-d17f-4cf3-b1fc-6ae100595d4e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "iAmMccc <562863544@qq.com>"
+    }
+  }
+}
