@@ -2,7 +2,7 @@
 //  SmartLossyDictionary.swift
 //  SmartCodable
 //
-//  Created by qixin on 2026/1/22.
+//  Created by Mccc on 2026/1/22.
 //
 
 import Foundation
