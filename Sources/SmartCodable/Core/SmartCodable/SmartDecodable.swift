@@ -7,38 +7,57 @@
 
 import Foundation
 
-/**
- A protocol that enhances Swift's Decodable with additional customization options for decoding.
- 
- Conforming types gain:
- - Post-decoding mapping callbacks
- - Custom key and value transformation strategies
- - Convenient deserialization methods
- 
- Requirements:
- - Implement `didFinishMapping()` for post-processing
- - Optionally provide key/value mapping strategies
- */
-public protocol SmartDecodable: Decodable {
-    /// Callback invoked after successful decoding for post-processing
+/// Mapping hooks shared by decode-only and encode-only SmartCodable models.
+///
+/// The default implementations live on this shared protocol instead of being
+/// duplicated on both `SmartDecodable` and `SmartEncodable`. Types conforming
+/// to `SmartCodableX` conform to both protocols; if both protocol extensions
+/// supplied the same defaults, Swift would see two equally valid witnesses for
+/// `didFinishMapping()`, `mappingForKey()`, and `mappingForValue()` and report
+/// "multiple matching functions".
+///
+/// This protocol keeps the shared contract in one place:
+/// - `SmartDecodable` models keep their existing default mapping hooks.
+/// - `SmartEncodable` models get the same defaults without empty stubs.
+/// - `SmartCodableX` has one witness source, avoiding composition ambiguity.
+public protocol SmartMappable {
+    /// Callback invoked after successful decoding for post-processing.
     mutating func didFinishMapping()
-    
-    /// Defines key mapping transformations during decoding
-    /// First non-null mapping is preferred
+
+    /// Defines key mapping transformations during decoding.
+    /// First non-null mapping is preferred.
     static func mappingForKey() -> [SmartKeyTransformer]?
-    
-    /// Defines value transformation strategies during decoding
+
+    /// Defines value transformation strategies during decoding.
     static func mappingForValue() -> [SmartValueTransformer]?
-    
+
     init()
 }
 
-
-extension SmartDecodable {
+/// Default no-op mapping hooks for models that do not need custom behavior.
+///
+/// Returning `nil` preserves the "no mapping configured" semantics used by the
+/// encoder and decoder caches.
+extension SmartMappable {
     public mutating func didFinishMapping() { }
     public static func mappingForKey() -> [SmartKeyTransformer]? { return nil }
     public static func mappingForValue() -> [SmartValueTransformer]? { return nil }
 }
+
+/**
+ A protocol that enhances Swift's Decodable with additional customization options for decoding.
+
+ Conforming types gain:
+ - Post-decoding mapping callbacks
+ - Custom key and value transformation strategies
+ - Convenient deserialization methods
+
+ Requirements:
+ - Provide `init()`
+ - Optionally override `didFinishMapping()` for post-processing
+ - Optionally provide key/value mapping strategies
+ */
+public protocol SmartDecodable: Decodable, SmartMappable { }
 
 
 /// Options for SmartCodable parsing
@@ -55,7 +74,8 @@ public enum SmartDecodingOption: Hashable {
     /// The mapping strategy for keys during parsing
     case key(JSONDecoder.SmartKeyDecodingStrategy)
     
-    /// 附加用于日志系统的上下文信息，例如网络请求的 URL、参数、调用位置等。
+    /// Additional context for the logging system, such as request URL,
+    /// parameters, call site, and related metadata.
     case logContext(header: String, footer: String)
     
     /// Handles the hash value, ignoring the impact of associated values.
@@ -227,8 +247,8 @@ extension Array where Element: SmartDecodable {
 }
 
 
-// MARK: - 内部实现
-/// 解析Model类型
+// MARK: - Internal Implementation
+/// Parses a model type.
 fileprivate func _deserializeDict<T>(input: Any, type: T.Type, options: Set<SmartDecodingOption>? = nil) -> T? where T: SmartDecodable {
 
     do {
@@ -241,7 +261,7 @@ fileprivate func _deserializeDict<T>(input: Any, type: T.Type, options: Set<Smar
     }
 }
 
-/// 解析[Model]类型
+/// Parses an array of model types.
 fileprivate func _deserializeArray<T>(input: Any, type: [T].Type, options: Set<SmartDecodingOption>? = nil) -> [T]? where T: SmartDecodable {
 
     do {
@@ -288,8 +308,5 @@ fileprivate func createDecoder<T>(type: T.Type, options: Set<SmartDecodingOption
     
     return _decoder
 }
-
-
-
 
 

@@ -8,5 +8,9 @@
 
 public typealias SmartCodableX = SmartDecodable & SmartEncodable
 
-// 用在泛型解析中
-extension Array: SmartCodableX where Element: SmartCodableX { }
+// Used for generic parsing.
+// SmartDecodable and SmartEncodable both inherit from SmartMappable. Swift does
+// not infer this Array extension's conditional conformance to inherited
+// protocols, so the shared mapping protocol must be listed explicitly with the
+// same Element constraint.
+extension Array: SmartMappable, SmartCodableX where Element: SmartCodableX { }

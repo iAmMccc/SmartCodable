@@ -8,25 +8,20 @@
 import Foundation
 
 
-public protocol SmartEncodable: Encodable {
-    /// The callback for when mapping is complete
-    mutating func didFinishMapping()
-  
-    /// The mapping relationship of decoding keys
-    static func mappingForKey() -> [SmartKeyTransformer]?
-    
-    /// The strategy for decoding values
-    static func mappingForValue() -> [SmartValueTransformer]?
-    
-    init()
-}
+/// A protocol that enhances Swift's Encodable with SmartCodable mapping hooks.
+///
+/// Mapping hook requirements live in `SmartMappable`, so encode-only models can
+/// share the same default implementations as decode-only models without
+/// duplicate protocol-extension witnesses.
+public protocol SmartEncodable: Encodable, SmartMappable { }
 
 
 /// Options for SmartCodable parsing
 public enum SmartEncodingOption: Hashable {
     
     
-    /// date的默认策略是ReferenceDate（参考日期是指2001年1月1日 00:00:00 UTC），以秒为单位。
+    /// The default date policy is ReferenceDate (January 1, 2001 00:00:00 UTC),
+    /// in seconds.
     case date(JSONEncoder.DateEncodingStrategy)
     
     case data(JSONEncoder.SmartDataEncodingStrategy)
@@ -71,7 +66,7 @@ extension SmartEncodable {
 
     /// Serializes into a dictionary
     /// - Parameter useMappedKeys: Whether to use the mapped key during encoding. The default value is false.
-    ///   -- CodingKeys.array <--- "out_array", 为ture时，使用"out_array"。
+    ///   -- CodingKeys.array <--- "out_array"; when true, uses "out_array".
     /// - Parameter options: encoding options
     /// - Returns: dictionary
     

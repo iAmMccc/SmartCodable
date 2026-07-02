@@ -1,9 +1,27 @@
 import XCTest
 @testable import SmartCodable
 
-/// 序列化测试：验证模型编码时 CodingKey 映射的还原行为
+/// Serialization tests for restoring CodingKey mappings while encoding models.
 final class EncodeTests: XCTestCase {
-    /// toDictionary(useMappedKeys:)：编码时使用 CodingKey 映射还原原始字段名
+    /// Regression test model for encode-only conformance with no custom mapping hooks.
+    struct EncodableOnlyModel: SmartEncodable {
+        var name: String = "linus"
+        var age: Int = 42
+    }
+
+    func testSmartEncodableProvidesMappingDefaults() {
+        XCTAssertNil(EncodableOnlyModel.mappingForKey())
+        XCTAssertNil(EncodableOnlyModel.mappingForValue())
+
+        var model = EncodableOnlyModel()
+        model.didFinishMapping()
+
+        let encoded = model.toDictionary()
+        XCTAssertEqual(encoded?["name"] as? String, "linus")
+        XCTAssertEqual(encoded?["age"] as? Int, 42)
+    }
+
+    /// toDictionary(useMappedKeys:) restores original field names from CodingKey mappings.
     func testToDictionaryUseMappedKeysProducesOriginalPayloadShape() {
         let original: [String: Any] = [
             "id": 563,
@@ -40,7 +58,7 @@ final class EncodeTests: XCTestCase {
         XCTAssertEqual(subscription?["status"] as? String, "past_due")
     }
 
-    /// toJSONString(useMappedKeys:)：JSON字符串输出中包含映射后的原始字段名
+    /// toJSONString(useMappedKeys:) includes mapped original field names in JSON output.
     func testToJSONStringIncludesMappedKeysWhenRequested() {
         var model = WorkspaceSubscription()
         model.cancelAtPeriodEnd = true
