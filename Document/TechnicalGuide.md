@@ -19,10 +19,10 @@ SmartCodable (主模块)
 ├── Core/
 │   ├── SmartCodable/           # 核心协议：SmartDecodable, SmartEncodable
 │   ├── JSONDecoder/            # 自定义解码器（完整实现，非包装系统 JSONDecoder）
-│   │   ├── Decoder/            # SmartJSONDecoder 入口 + JSONDecoderImpl 核心
+│   │   ├── Decoder/            # SmartJSONDecoder 入口 + JSONDecoderImpl 核心 + DecodingSnapshot（模型上下文）
 │   │   ├── Impl/               # KeyedContainer / UnkeyedContainer / SingleValueContainer
 │   │   ├── Patcher/            # 类型转换 + 默认值提供
-│   │   └── Cache/              # 解码缓存（快照机制）
+│   │   └── Cache/              # 编码缓存（编码侧快照机制）
 │   ├── JSONEncoder/            # 自定义编码器
 │   ├── PropertyWrapper/        # 属性包装器（SmartAny, SmartIgnored, SmartFlat 等）
 │   ├── Transformer/            # 值转换器（日期、颜色、URL 等）
@@ -51,18 +51,20 @@ SmartJSONDecoder.smartDecode(type, from: data)    // SmartJSONDecoder.swift
 JSONDecoderImpl.unwrap(as: type)                  // JSONDecoderImpl+Unwrap.swift
   ├── 特殊类型直接处理：Date, Data, URL, Decimal, CGFloat, Dictionary
   └── 普通类型：
-      └── cache.withSnapshot(for:codingPath:)     // 建立异常安全的快照作用域
-          └── type.init(from: self)               // 触发 Codable 标准流程
+      └── decoderForEntry(type)                   // 为本次类型入口准备局部上下文
+          ├── modelSnapshot = DecodingSnapshot(objectType:)  // Smart 模型每次入口新建
+          └── type.init(from: entry)              // 触发 Codable 标准流程
               ↓
               KeyedContainer 初始化               // JSONDecoderImpl+KeyedContainer.swift
-                ├── _convertDictionary()          // 应用 Key Mapping
+                ├── snapshot = impl.modelSnapshot // 容器创建时固定绑定所属模型
+                ├── _convertDictionary()          // 应用 Key Mapping（owner 来自固定 snapshot）
                 │   ├── SmartKeyDecodingStrategy  // snake_case → camelCase 等
                 │   └── KeysMapper.convertFrom()  // 自定义 mappingForKey()
                 └── 逐属性解码：
-                    ├── 1. 检查 ValueTransformer // mappingForValue() 自定义转换
+                    ├── 1. 检查 ValueTransformer // mappingForValue() 自定义转换（读自身 snapshot）
                     ├── 2. 尝试标准解码
                     ├── 3. 类型转换 Patcher       // Int↔String, Bool↔Int 等
-                    └── 4. 默认值回退 Cache        // Mirror 反射获取的初始值
+                    └── 4. 默认值回退 snapshot    // Mirror 反射获取的初始值
   ↓
 didFinishMapping()                                // 用户回调，可做后处理
 ```
@@ -72,57 +74,72 @@ didFinishMapping()                                // 用户回调，可做后处
 与原生 Codable 最大的区别在于错误处理策略。当某个属性解码失败时：
 
 1. **先尝试类型转换**（Patcher）：比如 JSON 传了 `"123"` 但属性类型是 `Int`，自动转换
-2. **再回退到默认值**（DecodingCache）：使用属性声明时的初始值
+2. **再回退到默认值**（DecodingSnapshot）：使用属性声明时的初始值
 3. **最后记录日志**（SmartSentinel）：不抛异常，不中断解析，但记录问题
 
 这个策略是整个项目的核心设计意图。
 
 ---
 
-## 四、默认值机制（DecodingCache）
+## 四、默认值机制（解码上下文显式绑定）
 
 这是 SmartCodable 最核心的机制，也是最需要理解的部分。
 
 ### 工作原理
 
+默认值与映射元数据由 `DecodingSnapshot` 承载：**某一次模型解码的上下文**。
+每个新的、框架可观察的 Smart 模型初始化入口都会创建自己的实例，不按类型、
+路径或作用域去重；`objectType` 构造后不可变。
+
 ```
-解码开始
+unwrap(as: Model.self) / decodeInPlace / singleValue decode
   ↓
-withSnapshot(for: Model.self)           // 记录类型，但不立即反射
+decoderForEntry(type)                    // 为本次入口准备局部 decoder 视图
   ↓
-执行 Model.init(from:)
+modelSnapshot = DecodingSnapshot(objectType: Model.self)   // 记录类型，但不立即反射
+  ↓
+执行 Model.init(from: entry)
   ↓
 某属性解码失败
   ↓
-initialValueIfPresent(forKey: "name")   // 首次访问时触发 Mirror 反射
+snapshot.initialValueIfPresent(forKey:)  // 首次访问时触发 Mirror 反射（含父类递归）
   ↓
-populateInitialValues()                 // 创建 Model.init()，用 Mirror 提取所有属性初始值
-  ↓
-返回 snapshot.initialValues["name"]    // 即用户声明的 var name: String = "默认值" 中的 "默认值"
-  ↓
-作用域结束后自动清理快照                // 正常返回和抛错路径都会执行
+返回声明初始值                           // 即 var name: String = "默认值" 中的值
 ```
 
-### 快照栈机制
+解码完成后该上下文随 decoder 视图一起释放，框架不持有全局注册表。
 
-嵌套模型解码时，快照按栈（数组）管理。查找时通过 `codingPath` 匹配：
+### 容器固定绑定
 
-```swift
-struct A: SmartCodable {       // snapshot[0]: codingPath = []
-    var b: B = B()             // snapshot[1]: codingPath = ["b"]
-}
-struct B: SmartCodable {
-    var name: String = "hello" // 查找 snapshot where codingPath == ["b"]
-}
-```
+KeyedContainer 在创建时绑定 `impl.modelSnapshot`，此后不再变化：子模型正在
+解码、抛错、或宿主在回调中同步回读已持有的容器，父容器的归属都不变。
+因此异常路径无需任何“恢复 owner”的动作，也不会出现 SmartFlat 平铺期间
+子模型默认值污染父容器的问题。
+
+`codingPath` 仍只表示 JSON 解码位置（用于错误路径与既有结构分支），不参与
+模型归属判断。
+
+### 属性边（PropertyDecodingContext）
+
+模型容器的每个属性值视图携带一条明确的属性边：`(宿主模型上下文, 规范属性 key)`。
+它只服务“当前整属性”的合法消费者（恢复完整包装器声明、当前属性的整体
+Value Transformer），不提供向父级链式搜索的能力，也不能当作子对象的字段表：
+
+- 数组元素、字典数据键、手写 `nestedContainer` / `superDecoder` 进入的原始
+  子结构，属性边被清空，不得借用宿主字段表。
+- 未知的普通 `Codable` 子对象不继承上层模型上下文（否则同名字段会串值）；
+  其缺失字段按 Patcher 类型兜值处理。
 
 ### 属性包装器的特殊处理
 
-属性包装器在 Swift 中存储为 `_propertyName`（下划线前缀）。DecodingCache 会同时检查 `key` 和 `_key`，并通过 `extractWrappedValue()` 提取包装器内的实际值。
+属性包装器在 Swift 中存储为 `_propertyName`（下划线前缀）。snapshot 会同时
+检查 `key` 和 `_key`，并通过 `extractWrappedValue()` 提取包装器内的实际值；
+`declaredWrapper(forKey:as:)` 则返回完整的包装器声明，保留 `SmartIgnored.isEncodable`
+等自身配置。
 
-当 `PropertyWrapperable.wrappedSmartDecodableType` 指向内层模型时，`withSnapshot` 会在包装器的解码作用域内为该模型建立快照。若包装器自身也遵循 `SmartDecodable`，包装器与内层模型会成为同一作用域、同一 `codingPath` 下的两个合法 owner；默认值、完整属性包装器恢复、Key Mapping 与 Value Transformer 都只读取当前活动 owner，不根据 key 名、类型名或快照顺序猜测归属。每个 `(scope, codingPath, objectType)` 最多只有一个快照；嵌套双协议包装器进入时会提升已预声明的 owner，并且只补建下一层尚不存在的 owner。
-
-通过 `singleValueContainer().decode(Value.self)` 重入时，框架会自动切换到内层 owner。双协议包装器若要直接初始化内层值，应使用公开协作接口：
+双协议包装器（同时遵循 `PropertyWrapperable` 与 `SmartDecodable`）经
+`unwrap` 入口先绑定包装器自身的上下文；内层模型必须通过协作接口获得自己的
+新上下文：
 
 ```swift
 init(from decoder: Decoder) throws {
@@ -132,9 +149,20 @@ init(from decoder: Decoder) throws {
 }
 ```
 
-该接口对普通 Decoder 仍等价于 `Value(from: decoder)`；对 SmartCodable 则在调用期间显式切换到内层 owner，并在正常返回或抛错时恢复包装器 owner。旧包装器继续兼容；但若仍直接调用 `Value(from:)`，wrapper 与 inner 又共享同一外置 CodingKey 和同名字段，Decoder 没有可观察信息区分两次调用，框架采用确定性的 wrapper-first 语义。
+该接口对普通 Decoder 仍等价于 `Value(from: decoder)`；对 SmartCodable 则派生
+一个绑定到内层模型的新解码视图。旧包装器继续兼容；但若仍直接调用
+`Value(from:)`，wrapper 与 inner 共享同一个解码视图，框架没有可观察信息区分
+这次调用，表现为确定性的 wrapper-first 语义。需要严格内外隔离的自定义包装器
+必须使用 `decodeWrappedValue(from:)` 或容器 decode 入口。
 
-需要恢复包装器自身配置（例如 `SmartIgnored.isEncodable`）时，必须从精确宿主路径的 `_propertyName` 初始值恢复完整包装器，不能只提取 `wrappedValue`，也不能从其他嵌套模型的同名属性推断状态。
+普通第三方包装器（仅 `PropertyWrapperable`）直接执行 `Value(from: decoder)`
+时，入口会为内层模型建立局部兼容上下文，保证内层声明默认值可用；该绑定只
+服务这一次直接初始化，下一次显式 `decode(Value.self)` 仍会新建上下文，
+两次独立初始化不会共享可变默认对象。
+
+需要恢复包装器自身配置（例如 `SmartIgnored.isEncodable`）时，必须从属性边
+指向的宿主声明恢复完整包装器，不能只提取 `wrappedValue`，也不能从其他
+嵌套模型的同名属性推断状态。
 
 ---
 
@@ -192,7 +220,7 @@ struct Model: SmartCodable {
 1. ValueTransformer（mappingForValue）    ← 最高优先级
 2. 标准 Codable 解码
 3. Patcher 类型转换（Int↔String 等）
-4. DecodingCache 默认值回退              ← 最低优先级
+4. DecodingSnapshot 默认值回退            ← 最低优先级
 ```
 
 ### 内置 Transformer
@@ -299,14 +327,14 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 ### 必须遵守
 
 1. **不破坏公共 API**：`SmartDecodable`、`SmartEncodable`、所有属性包装器的公开接口不能改签名
-2. **向后兼容**：最低支持 Swift 5.0 / iOS 13+，不能使用高版本独占的 API
+2. **向后兼容**：包声明为 Swift tools 5.9，最低部署目标 iOS 13+ / macOS 10.15+，不能使用更高版本独占的 API
 3. **不新增 SwiftSyntax 依赖**：宏功能已隔离到独立 target，核心模块不能依赖 SwiftSyntax
 
 ### 代码约定
 
-4. **DecodingCache 的快照必须通过作用域接口管理**：解码入口统一调用 `withSnapshot(for:codingPath:_:)`，不要复制快照资格判断或在调用方手工出栈；正常返回和抛错路径都由该接口清理
+4. **解码上下文通过类型入口统一建立**：`unwrap(as:)` / `decodeInPlace(_:)` 内部经 `decoderForEntry` 为每次可观察初始化准备局部上下文；不要在调用方手工构造或复用 `DecodingSnapshot`，也不要按 `(类型, codingPath)` 缓存上下文
 5. **Patcher 中的类型转换要双向安全**：比如 String → Int，必须验证字符串确实是合法数字，不能静默返回 0
-6. **属性包装器的存储名有下划线前缀**：Swift 编译器将 `@SmartAny var name` 存储为 `_name`，DecodingCache 中需要处理这个映射
+6. **属性包装器的存储名有下划线前缀**：Swift 编译器将 `@SmartAny var name` 存储为 `_name`，DecodingSnapshot 中需要处理这个映射
 7. **KeyedContainer 中的 `_convertDictionary()` 只执行一次**：在容器初始化时调用，之后的属性解码都基于转换后的字典
 
 ### 测试相关
@@ -316,6 +344,6 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 
 ### 性能相关
 
-10. **Mirror 反射是懒加载的**：`DecodingCache` 只在首次需要默认值时才反射，不是每次解码都反射
+10. **Mirror 反射是懒加载的**：`DecodingSnapshot` 只在首次需要默认值时才反射，不是每次解码都反射；同一上下文内重复查询复用同一份引用，跨上下文互不共享
 11. **SafeDictionary 使用 NSLock**：Sentinel 的日志字典有锁保护，在 `debugMode == .none` 时不会触碰
 12. **SmartSentinel 的日志守卫**：所有日志方法入口都有 `guard debugMode != .none else { return }`，Release 环境零开销（前提是 debugMode 保持默认的 `.none`）

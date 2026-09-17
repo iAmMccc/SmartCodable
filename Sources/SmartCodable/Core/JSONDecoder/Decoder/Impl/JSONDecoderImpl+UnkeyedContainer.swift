@@ -213,7 +213,8 @@ extension JSONDecoderImpl.UnkeyedContainer {
         let key = _JSONKey(index: currentIndex)
 
         guard let value = try? self.getNextValue(ofType: T.self) else {
-            let decoded: T = try impl.cache.initialValue(forKey: key, codingPath: codingPath)
+            let decoded: T = try impl.modelSnapshot?.initialValue(forKey: key)
+                ?? Patcher<T>.defaultForType()
             SmartSentinel.monitorLog(impl: impl, forKey: key, value: nil, type: T.self)
             self.currentIndex += 1
             return decoded
@@ -226,7 +227,8 @@ extension JSONDecoderImpl.UnkeyedContainer {
             self.currentIndex += 1
             return decoded
         } else {
-            let decoded: T = try impl.cache.initialValue(forKey: key, codingPath: codingPath)
+            let decoded: T = try impl.modelSnapshot?.initialValue(forKey: key)
+                ?? Patcher<T>.defaultForType()
             self.currentIndex += 1
             return decoded
         }

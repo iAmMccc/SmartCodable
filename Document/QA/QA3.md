@@ -126,37 +126,28 @@ if let model = NameModel.deserialize(from: dict) {
 
 为了实现该功能，SmartCodable 重新实现了完整的 JSON 解码器（`SmartJSONDecoder`），而非仅重写 `JSONKeyedDecodingContainer` 的协议方法。
 
-核心实现在 `DecodingCache` 中，通过快照机制记录当前正在解析的 Model 的初始值：
+核心实现在 `DecodingSnapshot`（解码上下文显式绑定）中，为每一次模型解码记录初始值与映射元数据：
 
 ```swift
-// DecodingCache.swift 简化示意
-func withSnapshot<T, Result>(
-    for type: T.Type,
-    codingPath: [CodingKey],
-    _ body: () throws -> Result
-) rethrows -> Result {
-    guard let smartType = cachedSmartDecodableType(for: type) else {
-        return try body()
-    }
+// DecodingSnapshot.swift 简化示意
+final class DecodingSnapshot {
+    let objectType: any SmartDecodable.Type   // 构造后不可变
 
-    let snapshot = DecodingSnapshot()
-    snapshot.objectType = smartType
-    snapshot.codingPath = codingPath
-    snapshots.append(snapshot)
-    defer {
-        if snapshots.last === snapshot {
-            snapshots.removeLast()
-        }
+    private var cachedInitialValues: [String: Any]?  // nil=未反射；[:]=已反射无字段
+    private lazy var cachedTransformers: [SmartValueTransformer]? = {
+        objectType.mappingForValue()
+    }()
+
+    private func initialValues() -> [String: Any] {
+        // 懒加载：首次需要默认值时才通过 Mirror 反射获取（含父类递归）
+        // 提取所有属性的初始值后缓存，同一上下文内复用同一份引用
     }
-    return try body()
 }
 
-// 懒加载：首次需要默认值时才通过 Mirror 反射获取
-private func populateInitialValues(snapshot: DecodingSnapshot) {
-    guard let type = snapshot.objectType else { return }
-    let mirror = Mirror(reflecting: type.init())
-    // 提取所有属性的初始值存入 snapshot.initialValues
+// 每个新的、可观察的模型初始化入口都创建自己的上下文（JSONDecoderImpl+Unwrap.swift）
+func decoderForEntry<T>(_ type: T.Type) -> JSONDecoderImpl {
+    replacingContexts(model: makeSnapshotForEntry(type), property: propertyContext)
 }
 ```
 
-当某个属性解码失败时，从快照中找到该属性的初始值进行填充。这种懒加载设计避免了每次解码都进行反射，只有在真正需要回退默认值时才会触发。
+当某个属性解码失败时，从当前容器固定绑定的模型上下文中取回该属性的初始值进行填充。容器在创建时绑定所属模型，子模型解码期间父容器的归属不变；这种懒加载设计也避免了每次解码都进行反射，只有在真正需要回退默认值时才会触发。

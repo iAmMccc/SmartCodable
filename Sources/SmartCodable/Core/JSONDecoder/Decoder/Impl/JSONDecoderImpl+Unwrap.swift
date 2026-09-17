@@ -17,57 +17,82 @@ extension Dictionary: _JSONStringDictionaryDecodableMarker where Key == String, 
 
 extension JSONDecoderImpl {
     // MARK: Special case handling
-    
-    func unwrap<T: Decodable>(as type: T.Type) throws -> T {
-        if type == Date.self {
-            return try self.unwrapDate() as! T
+
+    /// 为一次即将开始的类型初始化入口准备局部模型上下文。
+    ///
+    /// 不做任何全局或作用域内去重：每次可观察的模型入口都取得新上下文。
+    /// 同时遵循 `PropertyWrapperable` 与 `SmartDecodable` 的包装器先绑定包装器自身；
+    /// 普通第三方包装器返回绑定内层模型的局部兼容上下文，
+    /// 它只服务包装器内的直接初始化，不代表下一次显式 decode 可以复用这一份。
+    private func makeSnapshotForEntry<T>(_ type: T.Type) -> DecodingSnapshot? {
+        if let model = type as? any SmartDecodable.Type {
+            return DecodingSnapshot(objectType: model)
         }
-        if type == Data.self {
-            return try self.unwrapData() as! T
+        if let wrapper = type as? any PropertyWrapperable.Type,
+           let wrappedModel = wrapper.wrappedSmartDecodableType {
+            return DecodingSnapshot(objectType: wrappedModel)
         }
-        if type == URL.self {
-            return try self.unwrapURL() as! T
-        }
-        if type == Decimal.self {
-            return try self.unwrapDecimal() as! T
-        }
-        if type == CGFloat.self {
-            return try unwrapCGFloat() as! T
-        }
-        if type is _JSONStringDictionaryDecodableMarker.Type {
-            return try self.unwrapDictionary(as: type)
-        }
-        
-        return try cache.withSnapshot(for: type, codingPath: codingPath) {
-            try type.init(from: self)
-        }
+        return nil
     }
 
-    /// 在当前解码上下文中初始化类型 T（codingPath 不前进）。
-    ///
-    /// 供 `@SmartFlat` 等平铺语义的属性包装器使用：包装器自身不建立快照，
-    /// 由本方法为内层值建立与 `unwrap(as:)` 同源的快照作用域——
-    /// 仅当 T 是 SmartDecodable 时入栈，且作用域精确覆盖 `T.init(from:)` 的执行窗口。
-    /// 不包含 `unwrap(as:)` 的特殊类型提前返回，保持包装器原有的直接初始化语义。
-    func decodeInPlace<T: Decodable>(_ type: T.Type) throws -> T {
-        return try cache.withSnapshot(for: type, codingPath: codingPath) {
-            try type.init(from: self)
-        }
+    /// 每次调用代表一次新的可观察类型入口；不要用它“在同一模型中再取一次容器”。
+    private func decoderForEntry<T>(_ type: T.Type) -> JSONDecoderImpl {
+        replacingContexts(
+            model: makeSnapshotForEntry(type),
+            property: propertyContext
+        )
     }
-    
+
+    func unwrap<T: Decodable>(as type: T.Type) throws -> T {
+        let entry = decoderForEntry(type)
+        if type == Date.self {
+            return try entry.unwrapDate() as! T
+        }
+        if type == Data.self {
+            return try entry.unwrapData() as! T
+        }
+        if type == URL.self {
+            return try entry.unwrapURL() as! T
+        }
+        if type == Decimal.self {
+            return try entry.unwrapDecimal() as! T
+        }
+        if type == CGFloat.self {
+            return try entry.unwrapCGFloat() as! T
+        }
+        if type is _JSONStringDictionaryDecodableMarker.Type {
+            return try entry.unwrapDictionary(as: type)
+        }
+
+        return try type.init(from: entry)
+    }
+
+    /// 在当前解码位置直接初始化类型 T（codingPath 不前进）。
+    ///
+    /// 供 `@SmartFlat` 等平铺语义的属性包装器使用：
+    /// codingPath 不前进不代表模型上下文不变——即使平铺在同一个 JSON 对象上，
+    /// 一个新的模型入口也取得自己的新上下文。不包含 `unwrap(as:)` 的
+    /// 特殊类型提前返回，保持包装器原有的直接初始化语义。
+    func decodeInPlace<T: Decodable>(_ type: T.Type) throws -> T {
+        let entry = decoderForEntry(type)
+        return try type.init(from: entry)
+    }
+
     func unwrapFloatingPoint<T: LosslessStringConvertible & BinaryFloatingPoint>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
-            
-            if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+
+            // 转换器只从本视图固定绑定的模型上下文读取，且只在有明确 key 时查询
+            if let additionalKey,
+               let transformer = modelSnapshot?.transformer(forKey: additionalKey) {
                 guard let decoded = transformer.transformFromJSON(value) as? T else { return nil }
                 return decoded
             }
-            
+
             if case .number(let number) = value {
                 guard let floatingPoint = T(number), floatingPoint.isFinite else { return nil }
                 return floatingPoint
             }
-            
+
             if case .string(let string) = value,
                case .convertFromString(let posInfString, let negInfString, let nanString) = self.options.nonConformingFloatDecodingStrategy {
                 if string == posInfString {
@@ -81,14 +106,15 @@ extension JSONDecoderImpl {
 
             return nil
         }
-    
+
     func unwrapFixedWidthInteger<T: FixedWidthInteger>(
         from value: JSONValue, for additionalKey: CodingKey? = nil, as type: T.Type) -> T? {
-            
-            if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+
+            if let additionalKey,
+               let transformer = modelSnapshot?.transformer(forKey: additionalKey) {
                 return transformer.transformFromJSON(value) as? T
             }
-            
+
             guard case .number(let number) = value else { return nil }
             
             // this is the fast pass. Number directly convertible to Integer
@@ -134,21 +160,23 @@ extension JSONDecoderImpl {
         }
     
     func unwrapBoolValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> Bool? {
-        
-        if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+
+        if let additionalKey,
+           let transformer = modelSnapshot?.transformer(forKey: additionalKey) {
             return transformer.transformFromJSON(value) as? Bool
         }
-        
+
         guard case .bool(let bool) = value else { return nil }
         return bool
     }
-    
+
     func unwrapStringValue(from value: JSONValue, for additionalKey: CodingKey? = nil) -> String? {
-        
-        if let transformer = cache.valueTransformer(for: additionalKey, in: codingPath) {
+
+        if let additionalKey,
+           let transformer = modelSnapshot?.transformer(forKey: additionalKey) {
             return transformer.transformFromJSON(value) as? String
         }
-        
+
         guard case .string(let string) = value else { return nil }
         return string
     }
@@ -311,7 +339,9 @@ extension JSONDecoderImpl {
 
 
 extension Decodable {
-    fileprivate static func createByDirectlyUnwrapping<T>(from decoder: JSONDecoderImpl, type: T.Type) throws -> Self {
+    /// 字典值直接解包入口：每个字典数据键进入的 decoder 都已清空集合属性边，
+    /// 这里只为当前实际类型建立一次明确入口。
+    fileprivate static func createByDirectlyUnwrapping(from decoder: JSONDecoderImpl) throws -> Self {
         if Self.self == URL.self
             || Self.self == Date.self
             || Self.self == Data.self
@@ -322,9 +352,7 @@ extension Decodable {
         {
             return try decoder.unwrap(as: Self.self)
         }
-        return try decoder.cache.withSnapshot(for: type, codingPath: decoder.codingPath) {
-            try Self.init(from: decoder)
-        }
+        return try decoder.decodeInPlace(Self.self)
     }
     
     /// createByDirectlyUnwrapping 的 Self 是静态绑定的（一个真正的类型），
@@ -352,7 +380,7 @@ extension Decodable {
     ///
     /// 本质上，这是一个「存在类型调用协议扩展 static 方法」的逃逸通道。
     static func _eraseCreateByDirectUnwrap(from decoder: JSONDecoderImpl) throws -> Any {
-        return try self.createByDirectlyUnwrapping(from: decoder, type: self)
+        return try self.createByDirectlyUnwrapping(from: decoder)
     }
 }
 

@@ -75,15 +75,10 @@ extension SmartIgnored: Codable {
             )
         }
         
-        // 第三方解码路径（无 parsingMark）下，从宿主快照中恢复完整的包装器声明，
+        // 第三方解码路径（无 parsingMark）下，经当前属性边从宿主上下文恢复完整的包装器声明，
         // 确保包装器自身的配置状态（如 isEncodable）及 wrappedValue 完整保留。
-        var hostPath = impl.codingPath
-        let key = hostPath.popLast()
-        if let declared = impl.cache.initialPropertyWrapperIfPresent(
-            forKey: key,
-            codingPath: hostPath,
-            as: Self.self
-        ) {
+        // 根级 wrapper 没有宿主声明可读时，沿用 Patcher 兜底。
+        if let declared: Self = impl.propertyContext?.declaredWrapper(as: Self.self) {
             self = declared
         } else {
             wrappedValue = try Patcher<T>.defaultForType()

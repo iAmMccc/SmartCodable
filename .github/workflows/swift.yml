@@ -1,18 +1,23 @@
 # This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
+# For more information: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
 
 name: Swift
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - "main"
+      - "fix/smartflat-snapshot-pollution"
+      - "refactor/decoder-context"
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
 
     runs-on: macos-latest
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v4
@@ -20,6 +25,10 @@ jobs:
       run: swift build -v
     - name: Run tests
       run: swift test -v
+    - name: Build Release
+      run: swift build -c release
+    - name: Test Release
+      run: swift test -c release
 
   thread-sanitizer:
 

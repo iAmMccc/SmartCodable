@@ -86,12 +86,11 @@ extension SmartHexColor: Codable {
         
         /**
          * 虽然初始化赋值时候`public init(wrappedValue: ColorObject?, encodeHexFormat: HexFormat? = nil)` 提供了 `encodeHexFormat`,但是在 `encode` 解析时重新初始化了对象导致赋值的 `encodeHexFormat` 没了。
-         * 通过缓存 `Cache` 获取使用者设置的该值。
-         * 再赋值到新对象的属性上。
+         * 通过当前属性边上的宿主声明恢复该配置，且只恢复配置，
+         * 不用声明中的默认颜色覆盖刚刚解码得到的颜色。
          */
-        if let arr = impl.codingPath.removeFromEnd(1),
-           let hexColor: SmartHexColor = try? impl.cache.initialValue(forKey: impl.codingPath.last, codingPath: arr) {
-            self.encodeHexFormat = hexColor.encodeHexFormat
+        if let declared: SmartHexColor = impl.propertyContext?.declaredWrapper(as: SmartHexColor.self) {
+            self.encodeHexFormat = declared.encodeHexFormat
         }
     }
     

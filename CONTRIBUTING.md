@@ -50,7 +50,7 @@ swift build
 - **不破坏公共 API**：`SmartDecodable`、`SmartEncodable`、属性包装器的公开接口不能改签名
 - **向后兼容**：保持 Swift 5.0+ / iOS 13+ 的最低版本要求
 - **不新增 SwiftSyntax 依赖**：核心模块（`SmartCodable` target）不能依赖 SwiftSyntax
-- **DecodingCache 快照使用作用域接口**：解码入口统一通过 `withSnapshot(for:codingPath:_:)` 管理快照，不要在调用方手工压栈或出栈；该接口负责正常返回和抛错路径的清理
+- **解码上下文通过类型入口统一建立**：`unwrap(as:)` / `decodeInPlace(_:)` 内部经 `decoderForEntry` 为每次可观察的模型初始化准备局部 `DecodingSnapshot`；容器在创建时固定绑定所属模型，不要在调用方手工构造、缓存或跨调用复用上下文
 - 修改核心解码逻辑后，至少手动验证：简单模型、嵌套模型、数组模型、类型不匹配、缺失字段
 
 ### Commit 规范

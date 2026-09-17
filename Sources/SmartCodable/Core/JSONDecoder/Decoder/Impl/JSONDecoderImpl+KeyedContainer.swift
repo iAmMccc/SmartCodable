@@ -10,16 +10,26 @@ extension JSONDecoderImpl {
     /// A container that provides a view into a JSON dictionary and decodes values from it
     struct KeyedContainer<K: CodingKey>: KeyedDecodingContainerProtocol {
         typealias Key = K
-        
+
         let impl: JSONDecoderImpl
         let codingPath: [CodingKey]
         let dictionary: [String: JSONValue]
-        
+
+        /// 容器创建时固定绑定的模型上下文；子模型的活动不会改变它
+        let snapshot: DecodingSnapshot?
+
         init(impl: JSONDecoderImpl, codingPath: [CodingKey], dictionary: [String: JSONValue]) {
-            
+
             self.codingPath = codingPath
-            
-            self.dictionary = _convertDictionary(dictionary, impl: impl)
+
+            // impl 中的上下文引用与容器成员必须来自同一视图
+            self.snapshot = impl.modelSnapshot
+
+            self.dictionary = _convertDictionary(
+                dictionary,
+                snapshot: impl.modelSnapshot,
+                options: impl.options
+            )
             // The transformation of the dictionary does not affect the structure,
             // but only adds a new field to the data corresponding to the current container.
             // No impl changes are required
@@ -75,22 +85,25 @@ extension JSONDecoderImpl {
         }
         
         
-        private func decoderForKeyCompatibleForJson<LocalKey: CodingKey, T>(_ key: LocalKey, type: T.Type) throws -> JSONDecoderImpl {
+        /// 属性值视图：模型上下文暂为 nil，由紧随其后的 typed entry 构造；
+        /// 这里只携带“宿主模型 + 当前属性”这一条边，不预先按 T 分配任何字段表。
+        private func decoderForKeyCompatibleForJson<LocalKey: CodingKey>(_ key: LocalKey) throws -> JSONDecoderImpl {
             guard let value = getValue(forKey: key) else {
                 throw DecodingError._keyNotFound(key: key, codingPath: self.codingPath)
             }
             var newPath = self.codingPath
             newPath.append(key)
-            
-            var newImpl = JSONDecoderImpl(userInfo: self.impl.userInfo, from: value, codingPath: newPath, options: self.impl.options)
-            
-            // If the new parser is not a parse Model,
-            // it inherits the cache from the previous one.
-            if !(type is SmartDecodable.Type) {
-                newImpl.cache = impl.cache
-            }
-            
-            return newImpl
+
+            let property = snapshot.map { PropertyDecodingContext(owner: $0, key: key) }
+
+            return JSONDecoderImpl(
+                userInfo: self.impl.userInfo,
+                from: value,
+                codingPath: newPath,
+                options: self.impl.options,
+                modelSnapshot: nil,
+                propertyContext: property
+            )
         }
         
         
@@ -246,22 +259,22 @@ extension JSONDecoderImpl.KeyedContainer {
 extension JSONDecoderImpl.KeyedContainer {
     
     fileprivate func _compatibleDecode<T>(forKey key: Key, logIfKeyMissing: Bool = true, needConvert: Bool = true) -> T? {
-        
+
         guard let value = getValue(forKey: key) else {
             if logIfKeyMissing {
                 SmartSentinel.monitorLog(impl: impl, forKey: key, value: nil, type: T.self)
             }
-            return impl.cache.initialValueIfPresent(forKey: key, codingPath: codingPath)
+            return snapshot?.initialValueIfPresent(forKey: key)
         }
-        
+
         SmartSentinel.monitorLog(impl: impl, forKey: key, value: value, type: T.self)
-        
+
         if needConvert {
             if let decoded = Patcher<T>.convertToType(from: value, impl: impl) {
                 return decoded
             }
         }
-        return impl.cache.initialValueIfPresent(forKey: key, codingPath: codingPath)
+        return snapshot?.initialValueIfPresent(forKey: key)
     }
     
     
@@ -280,24 +293,29 @@ extension JSONDecoderImpl.KeyedContainer {
         return decodeValue
     }
     
+    /// 尝试用转换器解码当前属性。
+    ///
+    /// 这是“尝试解码/转换”的内部函数，只返回候选值，不承担完成通知：
+    /// 完成通知（didFinishMapping）统一由该属性的最终返回层执行一次，
+    /// 避免与外层 `_decodeDecodable...` 的包装重复触发。
     private func decodeWithTransformer<T>(_ transformer: SmartValueTransformer,
                                           type: T.Type,
                                           key: K) -> T? where T: Decodable {
         // 处理属性包装类型
         if let propertyWrapperType = T.self as? any PropertyWrapperable.Type {
             let value: JSONValue? = (type is FlatType.Type) ? impl.json : getValue(forKey: key)
-            
+
             if let value = value,
                let decoded = transformer.transformFromJSON(value),
                let wrapperValue = propertyWrapperType.createInstance(with: decoded) as? T {
-                return didFinishMapping(wrapperValue)
+                return wrapperValue
             }
         }
-        
+
         // 处理普通类型转换
         if let value = getValue(forKey: key),
            let decoded = transformer.transformFromJSON(value) as? T {
-            return didFinishMapping(decoded)
+            return decoded
         }
         return nil
     }
@@ -439,7 +457,7 @@ extension JSONDecoderImpl.KeyedContainer {
         /// 总结：
         /// 除基本数据类型之外，都会进入该方法`_decodeDecodableIfPresentCore`.因此在此处进行统一的value解析的拦截实现即可。
         /// 不需要分散在各个类型中逐一处理。
-        if let transformer = impl.cache.valueTransformer(for: key, in: codingPath) {
+        if let transformer = snapshot?.transformer(forKey: key) {
             if let decoded = decodeWithTransformer(transformer, type: type, key: key) {
                 return decoded
             }
@@ -448,19 +466,34 @@ extension JSONDecoderImpl.KeyedContainer {
             }
             return nil
         }
-        
+
         /// @SmartFlat的处理
         /// 关于SmartFlat的解析，是往前一层解析，codingPath不应该增加。
         if let type = type as? FlatType.Type {
+            // Flat 属性的整属性边：宿主模型 + Flat key
+            let flatProperty = snapshot.map { PropertyDecodingContext(owner: $0, key: key) }
             if type.isArray {
-                return try? T(from: superDecoder(forKey: key))
+                // 数组 Flat：保留原 key 子结构与空值语义；元素入口随后清空该边
+                let value = getValue(forKey: key) ?? .null
+                var newPath = self.codingPath
+                newPath.append(key)
+                let decoder = JSONDecoderImpl(
+                    userInfo: self.impl.userInfo,
+                    from: value,
+                    codingPath: newPath,
+                    options: self.impl.options,
+                    modelSnapshot: nil,
+                    propertyContext: flatProperty
+                )
+                return try? T(from: decoder)
             } else {
-                // 这里需要走unwrap，需要cache。
-                return try? impl.unwrap(as: T.self)
+                // 非 数组Flat：同 JSON、同路径，但携带 Flat 属性边的视图进入 wrapper 入口
+                let flatDecoder = impl.replacingContexts(model: nil, property: flatProperty)
+                return try? flatDecoder.unwrap(as: T.self)
             }
         }
 
-        guard let newDecoder = try? decoderForKeyCompatibleForJson(key, type: type) else {
+        guard let newDecoder = try? decoderForKeyCompatibleForJson(key) else {
             return nil
         }
         
@@ -475,11 +508,15 @@ extension JSONDecoderImpl.KeyedContainer {
 
 
 /// Handles correspondence between field names that need to be parsed.
-fileprivate func _convertDictionary(_ dictionary: [String: JSONValue], impl: JSONDecoderImpl) -> [String: JSONValue] {
-    
+fileprivate func _convertDictionary(
+    _ dictionary: [String: JSONValue],
+    snapshot: DecodingSnapshot?,
+    options: SmartJSONDecoder._Options
+) -> [String: JSONValue] {
+
     var dictionary = dictionary
-    
-    switch impl.options.keyDecodingStrategy {
+
+    switch options.keyDecodingStrategy {
     case .useDefaultKeys:
         break
     case .fromSnakeCase:
@@ -498,9 +535,9 @@ fileprivate func _convertDictionary(_ dictionary: [String: JSONValue], impl: JSO
         }, uniquingKeysWith: { (first, _) in first })
     }
     
-    // 仅基于当前路径活跃的解码所有者进行键名映射转换
-    guard let type = impl.cache.activeOwner(at: impl.codingPath) else { return dictionary }
-    
+    // 键名映射只来自容器创建时固定绑定的模型上下文
+    guard let type = snapshot?.objectType else { return dictionary }
+
     if let tempValue = KeysMapper.convertFrom(JSONValue.object(dictionary), type: type), let dict = tempValue.object {
         return dict
     }

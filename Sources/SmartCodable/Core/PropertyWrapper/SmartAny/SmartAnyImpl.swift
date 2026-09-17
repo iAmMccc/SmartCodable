@@ -230,7 +230,7 @@ extension SmartAnyImpl {
 extension JSONDecoderImpl {
     fileprivate func unwrapSmartAny() throws -> SmartAnyImpl {
         
-        if let tranformer = cache.valueTransformer(for: codingPath.last, in: codingPath.dropLast()) {
+        if let tranformer = propertyContext?.transformer() {
             if let decoded = tranformer.transformFromJSON(json) as? SmartAnyImpl {
                 return decoded
             } else {
