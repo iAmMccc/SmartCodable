@@ -2,6 +2,12 @@ import XCTest
 #if canImport(Combine)
 import Combine
 #endif
+// ColorObject 在 UIKit 平台是 UIColor、macOS 是 NSColor；按平台声明测试所需的颜色框架
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 @testable import SmartCodable
 
 /// 解码上下文（DecodingSnapshot / PropertyDecodingContext）的契约测试。
@@ -110,11 +116,19 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 独立调用与稳定归属
 
-    /// 同一次模型 init 内多次请求 keyed / single 容器，模型上下文不被重建（T32）
+    /// 同一次模型 init 内多次请求 keyed / single 容器：从两个容器读取同一缺失字段，
+    /// 复用本次初始化的同一个引用类型默认对象，且默认值 provider 只执行一次（T32）
     func testRepeatedContainerRequestsKeepSameContextInOneInit() throws {
+        RepeatedContainerHost.resetDefaultProviderCallCount()
+
         let model = try XCTUnwrap(RepeatedContainerHost.deserialize(from: [:]))
-        XCTAssertTrue(model.sameContextAcrossRequests,
-                      "同一次 init 内重复取容器应复用同一份模型上下文")
+
+        XCTAssertTrue(model.firstBox === model.secondBox,
+                      "同一次 init 内两个容器读取同一缺失字段，应取得同一个默认对象")
+        XCTAssertEqual(model.firstBox?.value, 10,
+                       "默认对象内容应来自宿主声明的初始值")
+        XCTAssertEqual(RepeatedContainerHost.defaultProviderCallCount, 1,
+                       "默认值 provider（objectType.init() 反射构造）在同一次初始化内只执行一次")
     }
 
     /// 不同宿主的同名 _settings 声明只能恢复属性边精确指向的那一个（T33）
@@ -444,7 +458,8 @@ final class DecodingContextTests: XCTestCase {
     /// 多个独立 decoder 并发解码：空输入真实触发默认值回退，
     /// 不同模型的默认上下文互不串扰，跨调用不共享可变默认对象（T49）。
     /// 结果全部保留存活后再比较对象身份，避免对象释放后的地址复用干扰判断。
-    /// 数据竞争检测配合 TSan：swift test --sanitize=thread --filter DecodingContextTests
+    /// 数据竞争检测配合 TSan：
+    /// swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated
     func testConcurrentIndependentDecodersFallbackDefaultsStayIsolated() throws {
         final class ConcurrentRefBox: Codable {
             // var + 初值：合成的 Decodable 可以解码该属性（本用例中键缺失，保持初值 10），
@@ -690,9 +705,18 @@ final class DecodingContextTests: XCTestCase {
             "plain": "00FF00",
         ]))
 
-        XCTAssertEqual(host.hashed, NSColor(calibratedRed: 1, green: 0, blue: 0, alpha: 1),
+        // 预期颜色由平台颜色 API 独立构造，不依赖被测试的 SmartHexColor 解析函数
+#if os(macOS)
+        let expectedHashed = NSColor(calibratedRed: 1, green: 0, blue: 0, alpha: 1)
+        let expectedPlain = NSColor(calibratedRed: 0, green: 1, blue: 0, alpha: 1)
+#else
+        let expectedHashed = UIColor(red: 1, green: 0, blue: 0, alpha: 1)
+        let expectedPlain = UIColor(red: 0, green: 1, blue: 0, alpha: 1)
+#endif
+
+        XCTAssertEqual(host.hashed, expectedHashed,
                        "颜色值按 JSON 解码，不被声明默认覆盖")
-        XCTAssertEqual(host.plain, NSColor(calibratedRed: 0, green: 1, blue: 0, alpha: 1))
+        XCTAssertEqual(host.plain, expectedPlain)
 
         let encoded = try XCTUnwrap(host.toDictionary())
         let hashedHex = try XCTUnwrap(encoded["hashed"] as? String)
@@ -838,21 +862,42 @@ private enum ContextTestError: Error {
 
 // MARK: - 独立调用与归属 fixture
 
+/// 重复容器请求用例的引用类型默认值。
+/// 遵循 Codable 只为满足 decode(_:forKey:) 的约束；键缺失时不会触发其自身解码。
+private final class RepeatedContainerBox: Codable {
+    var value = 10
+}
+
 private struct RepeatedContainerHost: SmartCodableX {
-    var sameContextAcrossRequests = false
+    private(set) static var defaultProviderCallCount = 0
 
     private enum CodingKeys: String, CodingKey { case box }
 
-    init() {}
+    /// 声明的引用类型默认属性：只应由默认值反射构造一次
+    var box = RepeatedContainerBox()
+
+    /// 同一次 init(from:) 中两个容器分别读取同一缺失字段的结果，供测试断言身份
+    var firstBox: RepeatedContainerBox?
+    var secondBox: RepeatedContainerBox?
+
+    static func resetDefaultProviderCallCount() {
+        defaultProviderCallCount = 0
+    }
+
+    /// DecodingSnapshot 通过 objectType.init() 获取声明默认值时调用；
+    /// init(from:) 的属性初始化不会进入此计数。
+    init() {
+        Self.defaultProviderCallCount += 1
+    }
     init(from decoder: Decoder) throws {
-        guard let impl = decoder as? JSONDecoderImpl else { return }
-        _ = try impl.container(keyedBy: CodingKeys.self)
-        _ = try impl.singleValueContainer()
-        _ = try impl.container(keyedBy: CodingKeys.self)
-        _ = try impl.singleValueContainer()
-        let first = impl.modelSnapshot.map(ObjectIdentifier.init)
-        let second = impl.modelSnapshot.map(ObjectIdentifier.init)
-        sameContextAcrossRequests = first == second && first != nil
+        let first = try decoder.container(keyedBy: CodingKeys.self)
+        _ = try decoder.singleValueContainer()
+        let second = try decoder.container(keyedBy: CodingKeys.self)
+        _ = try decoder.singleValueContainer()
+
+        // 键缺失，真实走默认值回退：两个容器分别读取同一个字段
+        firstBox = try first.decode(RepeatedContainerBox.self, forKey: .box)
+        secondBox = try second.decode(RepeatedContainerBox.self, forKey: .box)
     }
 
     func encode(to encoder: Encoder) throws {}

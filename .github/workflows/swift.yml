@@ -37,5 +37,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    # 保留全局选项与日志哨兵共享状态的并发回归覆盖。
     - name: Run Thread Sanitizer concurrency tests
       run: swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests
+    # 覆盖独立 decoder 并发回退默认值的路径；使用精确过滤器，确保日志能证明目标用例实际执行。
+    - name: Run Thread Sanitizer decoding context concurrency test
+      run: swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated
