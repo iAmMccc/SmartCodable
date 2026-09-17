@@ -42,10 +42,15 @@ public struct SmartFlat<T: Codable>: PropertyWrapperable {
 
 
 extension SmartFlat: Codable {
-    
+
     public init(from decoder: Decoder) throws {
         do {
-            wrappedValue = try T(from: decoder)
+            if let impl = decoder as? JSONDecoderImpl {
+                // 平铺语义下 codingPath 不前进，内层模型的快照作用域由 decodeInPlace 建立
+                wrappedValue = try impl.decodeInPlace(T.self)
+            } else {
+                wrappedValue = try T(from: decoder)
+            }
         } catch  {
             wrappedValue = try Patcher<T>.defaultForType()
         }

@@ -96,6 +96,10 @@ extension SmartIgnored: Codable {
 
 extension JSONDecoderImpl {
     fileprivate func smartDecode<T>(type: T.Type) throws -> T {
-        try cache.initialValue(forKey: codingPath.last, codingPath: codingPath)
+        // 取“宿主为当前属性声明的初始值”：宿主快照位于父级容器路径上，
+        // 当前 impl 的 codingPath 末位即该属性的 key。
+        var hostPath = codingPath
+        let key = hostPath.popLast()
+        return try cache.initialValue(forKey: key, codingPath: hostPath)
     }
 }

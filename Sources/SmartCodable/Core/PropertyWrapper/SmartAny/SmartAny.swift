@@ -69,7 +69,8 @@ extension SmartAny: Codable {
             
             // 类型检查
             if let _type = T.self as? Decodable.Type {
-                if let decoded = try _type.init(from: decoder) as? T {
+                // 模型兜底解码同样需要快照作用域，由 decodeInPlace 统一建立
+                if let decoded = try decoder.decodeInPlace(_type) as? T {
                     self = .init(wrappedValue: decoded)
                     return
                 }
