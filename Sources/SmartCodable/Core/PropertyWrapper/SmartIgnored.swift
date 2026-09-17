@@ -31,7 +31,7 @@ public struct SmartIgnored<T>: PropertyWrapperable {
     public func wrappedValueDidFinishMapping() -> SmartIgnored<T>? {
         if var temp = wrappedValue as? SmartDecodable {
             temp.didFinishMapping()
-            return SmartIgnored(wrappedValue: temp as! T)
+            return SmartIgnored(wrappedValue: temp as! T, isEncodable: isEncodable)
         }
         return nil
     }
