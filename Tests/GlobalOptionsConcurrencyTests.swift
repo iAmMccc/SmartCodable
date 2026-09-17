@@ -1,7 +1,8 @@
 import XCTest
 @testable import SmartCodable
 
-/// 全局配置并发安全测试：验证 SmartCodableOptions 和 SmartSentinel 在多线程并发读写下的稳定性
+/// 全局配置并发测试。普通运行验证任务完成且无死锁；数据竞争必须配合 Thread Sanitizer 检测：
+/// `swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests`
 final class GlobalOptionsConcurrencyTests: XCTestCase {
     override func tearDown() {
         // 每次测试后恢复默认值，防止污染其他测试
