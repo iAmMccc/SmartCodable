@@ -120,6 +120,22 @@ struct B: SmartCodable {
 
 属性包装器在 Swift 中存储为 `_propertyName`（下划线前缀）。DecodingCache 会同时检查 `key` 和 `_key`，并通过 `extractWrappedValue()` 提取包装器内的实际值。
 
+当 `PropertyWrapperable.wrappedSmartDecodableType` 指向内层模型时，`withSnapshot` 会在包装器的解码作用域内为该模型建立快照。若包装器自身也遵循 `SmartDecodable`，包装器与内层模型会成为同一作用域、同一 `codingPath` 下的两个合法 owner；默认值、完整属性包装器恢复、Key Mapping 与 Value Transformer 都只读取当前活动 owner，不根据 key 名、类型名或快照顺序猜测归属。每个 `(scope, codingPath, objectType)` 最多只有一个快照；嵌套双协议包装器进入时会提升已预声明的 owner，并且只补建下一层尚不存在的 owner。
+
+通过 `singleValueContainer().decode(Value.self)` 重入时，框架会自动切换到内层 owner。双协议包装器若要直接初始化内层值，应使用公开协作接口：
+
+```swift
+init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    marker = try container.decode(Int.self, forKey: .marker)
+    wrappedValue = try Self.decodeWrappedValue(from: decoder)
+}
+```
+
+该接口对普通 Decoder 仍等价于 `Value(from: decoder)`；对 SmartCodable 则在调用期间显式切换到内层 owner，并在正常返回或抛错时恢复包装器 owner。旧包装器继续兼容；但若仍直接调用 `Value(from:)`，wrapper 与 inner 又共享同一外置 CodingKey 和同名字段，Decoder 没有可观察信息区分两次调用，框架采用确定性的 wrapper-first 语义。
+
+需要恢复包装器自身配置（例如 `SmartIgnored.isEncodable`）时，必须从精确宿主路径的 `_propertyName` 初始值恢复完整包装器，不能只提取 `wrappedValue`，也不能从其他嵌套模型的同名属性推断状态。
+
 ---
 
 ## 五、Key Mapping 系统
