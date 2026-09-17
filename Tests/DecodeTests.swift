@@ -40,6 +40,8 @@ final class DecodeTests: XCTestCase {
         XCTAssertEqual(model?.id, 563)
         XCTAssertEqual(model?.ownerId, 264)
         XCTAssertEqual(model?.title, "langwang004+82 ワークスペース")
+        XCTAssertEqual(model?.icon, "")
+        XCTAssertEqual(model?.type, 2)
         XCTAssertEqual(model?.usedSeat, 1)
         XCTAssertEqual(model?.createdAt, "2025-07-25T02:58:35Z")
         XCTAssertEqual(model?.subscription?.cancelAtPeriodEnd, true)

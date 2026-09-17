@@ -43,8 +43,8 @@ final class DecodeEdgeCaseTests: XCTestCase {
         XCTAssertEqual(model?.values, ["a", "b", "c"])
     }
 
-    /// 数组越界时回退默认值，不影响后续字段解码
-    func testDecodeStringOutOfBoundsFallsBackToDefaultAndKeepsFollowingValueAligned() {
+    /// 数组越界时回退 String 的默认值
+    func testDecodeStringOutOfBoundsFallsBackToDefault() {
         struct Probe: Decodable {
             let first: String
             let second: String

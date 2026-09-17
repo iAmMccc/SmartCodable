@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 @testable import SmartCodable
 
@@ -38,21 +39,32 @@ final class EncodeTests: XCTestCase {
         XCTAssertEqual(subscription?["current_period_end_at"] as? String, "2025-07-30T03:37:03Z")
         XCTAssertEqual(subscription?["price_id"] as? String, "personal_plan_annual_trial")
         XCTAssertEqual(subscription?["status"] as? String, "past_due")
+
+        XCTAssertTrue(TestSupport.deepEqualDict(original, encoded ?? [:]),
+                      "编码结果应与原始载荷完全一致，不能混入未映射的 camelCase 键")
     }
 
-    /// toJSONString(useMappedKeys:)：JSON字符串输出中包含映射后的原始字段名
-    func testToJSONStringIncludesMappedKeysWhenRequested() {
+    /// toJSONString(useMappedKeys:)：JSON 字符串应完整使用映射后的字段名
+    func testToJSONStringIncludesMappedKeysWhenRequested() throws {
         var model = WorkspaceSubscription()
         model.cancelAtPeriodEnd = true
         model.currentPeriodEndAt = "2025-07-30T03:37:03Z"
         model.priceId = "personal_plan_annual_trial"
         model.status = "past_due"
 
-        let json = model.toJSONString(useMappedKeys: true)
+        let json = try XCTUnwrap(model.toJSONString(useMappedKeys: true))
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let encoded = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        let expected: [String: Any] = [
+            "cancel_at_period_end": true,
+            "current_period_end_at": "2025-07-30T03:37:03Z",
+            "price_id": "personal_plan_annual_trial",
+            "status": "past_due",
+        ]
 
-        XCTAssertNotNil(json)
-        XCTAssertTrue(json?.contains("\"cancel_at_period_end\":true") == true)
-        XCTAssertTrue(json?.contains("\"current_period_end_at\":\"2025-07-30T03:37:03Z\"") == true)
-        XCTAssertTrue(json?.contains("\"price_id\":\"personal_plan_annual_trial\"") == true)
+        XCTAssertTrue(TestSupport.deepEqualDict(expected, encoded),
+                      "JSON 字符串应包含且仅包含预期映射字段")
     }
 }
