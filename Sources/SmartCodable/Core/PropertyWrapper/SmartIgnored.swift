@@ -75,8 +75,19 @@ extension SmartIgnored: Codable {
             )
         }
         
-        /// The resolution triggered by the other three parties may be resolved here.
-        wrappedValue = try impl.smartDecode(type: T.self)
+        // 第三方解码路径（无 parsingMark）下，从宿主快照中恢复完整的包装器声明，
+        // 确保包装器自身的配置状态（如 isEncodable）及 wrappedValue 完整保留。
+        var hostPath = impl.codingPath
+        let key = hostPath.popLast()
+        if let declared = impl.cache.initialPropertyWrapperIfPresent(
+            forKey: key,
+            codingPath: hostPath,
+            as: Self.self
+        ) {
+            self = declared
+        } else {
+            wrappedValue = try Patcher<T>.defaultForType()
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -90,16 +101,5 @@ extension SmartIgnored: Codable {
             var container = encoder.singleValueContainer()
             try container.encodeNil()
         }
-    }
-}
-
-
-extension JSONDecoderImpl {
-    fileprivate func smartDecode<T>(type: T.Type) throws -> T {
-        // 取“宿主为当前属性声明的初始值”：宿主快照位于父级容器路径上，
-        // 当前 impl 的 codingPath 末位即该属性的 key。
-        var hostPath = codingPath
-        let key = hostPath.popLast()
-        return try cache.initialValue(forKey: key, codingPath: hostPath)
     }
 }
