@@ -1,4 +1,7 @@
 import XCTest
+#if canImport(Combine)
+import Combine
+#endif
 @testable import SmartCodable
 
 /// 解码上下文（DecodingSnapshot / PropertyDecodingContext）的契约测试。
@@ -438,34 +441,268 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 并发解码
 
-    /// 多个独立 decoder 并发解码：结果各自独立，框架不引入跨调用的默认值共享（T49）。
+    /// 多个独立 decoder 并发解码：空输入真实触发默认值回退，
+    /// 不同模型的默认上下文互不串扰，跨调用不共享可变默认对象（T49）。
+    /// 结果全部保留存活后再比较对象身份，避免对象释放后的地址复用干扰判断。
     /// 数据竞争检测配合 TSan：swift test --sanitize=thread --filter DecodingContextTests
-    func testConcurrentIndependentDecodersProduceIndependentResults() throws {
-        final class ConcurrentLeaf: SmartCodableX {
-            var tag = "inner"
+    func testConcurrentIndependentDecodersFallbackDefaultsStayIsolated() throws {
+        final class ConcurrentRefBox: Codable {
+            // var + 初值：合成的 Decodable 可以解码该属性（本用例中键缺失，保持初值 10），
+            // 避免对 let+初值属性产生 "immutable property will not be decoded" 告警
+            var stamp = 10
+        }
+
+        final class ConcurrentDefaultAlpha: SmartCodableX {
+            var tag = "alpha"
+            var box = ConcurrentRefBox()
             required init() {}
         }
 
+        final class ConcurrentDefaultBeta: SmartCodableX {
+            var tag = "beta"
+            required init() {}
+        }
+
+        let iterations = 80
         let group = DispatchGroup()
         let queue = DispatchQueue(label: "smartcodable.tests.decode", attributes: .concurrent)
         let lock = NSLock()
-        var results: [String] = []
+        var alphaModels: [ConcurrentDefaultAlpha] = []
+        var betaModels: [ConcurrentDefaultBeta] = []
 
-        for index in 0..<40 {
+        for index in 0..<iterations {
             group.enter()
             queue.async {
                 defer { group.leave() }
-                let tag = "n\(index)"
-                let decoded = ConcurrentLeaf.deserialize(from: ["tag": tag] as [String: Any])
-                lock.lock()
-                results.append(decoded?.tag ?? "nil")
-                lock.unlock()
+                // 空字典：字段全部缺失，每次解码都真实走 snapshot 默认值回退路径
+                if index.isMultiple(of: 2) {
+                    let decoded = ConcurrentDefaultAlpha.deserialize(from: [:] as [String: Any])
+                    lock.lock()
+                    if let decoded { alphaModels.append(decoded) }
+                    lock.unlock()
+                } else {
+                    let decoded = ConcurrentDefaultBeta.deserialize(from: [:] as [String: Any])
+                    lock.lock()
+                    if let decoded { betaModels.append(decoded) }
+                    lock.unlock()
+                }
             }
         }
 
         XCTAssertEqual(group.wait(timeout: .now() + 10), .success)
-        XCTAssertEqual(results.count, 40)
-        XCTAssertEqual(Set(results).count, 40, "并发解码结果不得串值")
+
+        XCTAssertEqual(alphaModels.count, iterations / 2)
+        XCTAssertEqual(betaModels.count, iterations / 2)
+        XCTAssertTrue(alphaModels.allSatisfy { $0.tag == "alpha" },
+                      "并发下 alpha 默认值不得丢失或串成 beta")
+        XCTAssertTrue(betaModels.allSatisfy { $0.tag == "beta" },
+                      "并发下 beta 默认值不得串成 alpha")
+
+        let boxIds = Set(alphaModels.map { ObjectIdentifier($0.box) })
+        XCTAssertEqual(boxIds.count, alphaModels.count,
+                       "每次独立解码的引用类型默认对象必须独立，不得跨调用共享")
+        XCTAssertTrue(alphaModels.allSatisfy { $0.box.stamp == 10 },
+                      "默认对象内容保持声明初始值")
+    }
+
+    // MARK: - 第三方包装器 Optional 内层
+
+    /// 第三方包装器包装 Optional 内层模型：直接初始化路径仍保留内层声明默认值（T14）
+    func testOptionalThirdPartyWrapperKeepsWrappedModelDefaults() throws {
+        let present = try XCTUnwrap(OptionalWrapperHost.deserialize(from: ["payload": [:]]))
+        XCTAssertEqual(present.payload?.count, 99, "直接初始化路径内层默认值可用")
+
+        let missing = try XCTUnwrap(OptionalWrapperHost.deserialize(from: [:]))
+        XCTAssertEqual(missing.payload?.count, 99, "字段缺失时恢复宿主声明的完整包装器默认值")
+    }
+
+    // MARK: - SmartAny 组合回退
+
+    /// @SmartAny 包装 Optional 模型：缺字段与错误类型都回退声明默认值（T25）
+    func testSmartAnyOptionalModelFallsBackToDeclaredDefaults() throws {
+        struct OptionalHost: SmartCodableX {
+            @SmartAny var payload: SmartAnyTargetModel? = SmartAnyTargetModel()
+        }
+
+        let missing = try XCTUnwrap(OptionalHost.deserialize(from: ["other": 1]))
+        XCTAssertEqual(missing.payload?.score, 11, "缺字段回退宿主声明默认值")
+
+        let wrongType = try XCTUnwrap(OptionalHost.deserialize(from: ["payload": 123]))
+        XCTAssertEqual(wrongType.payload?.score, 11, "错误类型回退声明默认值，不产生半解码模型")
+    }
+
+    /// @SmartAny 非 Optional 模型遇到错误类型：回退声明默认值（T25）
+    func testSmartAnyNonOptionalModelWrongTypeFallsBackToDeclaredDefault() throws {
+        struct Host: SmartCodableX {
+            @SmartAny var payload: SmartAnyTargetModel = SmartAnyTargetModel()
+        }
+
+        let host = try XCTUnwrap(Host.deserialize(from: ["payload": "text"]))
+        XCTAssertEqual(host.payload.score, 11)
+    }
+
+    // MARK: - SmartPublished
+
+    /// @SmartPublished：内层默认值、数据与发布行为保持正常（T26）
+    #if canImport(Combine)
+    func testSmartPublishedKeepsDefaultsDataAndPublishing() throws {
+        struct Host: SmartCodableX {
+            @SmartPublished var score: Int = 7
+            @SmartPublished var child: PublishedChild = PublishedChild()
+        }
+
+        var decoded = try XCTUnwrap(Host.deserialize(from: [
+            "score": 42,
+            "child": ["level": 33]
+        ]))
+        XCTAssertEqual(decoded.score, 42)
+        XCTAssertEqual(decoded.child.level, 33)
+
+        let fallback = try XCTUnwrap(Host.deserialize(from: [:]))
+        XCTAssertEqual(fallback.score, 7, "缺字段保留声明默认值")
+        XCTAssertEqual(fallback.child.level, 11, "内层模型默认值生效")
+
+        var received: [Int] = []
+        let cancellable = decoded.$score.sink { received.append($0) }
+        XCTAssertEqual(received, [42], "CurrentValueSubject 订阅即收到当前值")
+        decoded.score = 50
+        XCTAssertEqual(received, [42, 50], "wrappedValue willSet 触发发布")
+        withExtendedLifetime(cancellable) {}
+    }
+    #endif
+
+    // MARK: - JSON 字符串数组输入
+
+    /// JSON 字符串形式的数组值：unkeyedContainer 的字符串解析分支同样取得正确上下文（T41）
+    func testJSONStringArrayInputBindsElementContexts() throws {
+        let host = try XCTUnwrap(StringArrayInputHost.deserialize(from: [
+            "models": "[{\"tag\":\"a\"},{\"tag\":\"b\"},{}]"
+        ]))
+
+        XCTAssertEqual(host.models.map(\.tag), ["a", "b", "inner"],
+                       "字符串数组元素各自解码并取得自己的默认值")
+    }
+
+    // MARK: - 特殊类型与数值边界
+
+    /// Date / Data / URL / Decimal / CGFloat 特殊分支与 Int64/UInt64 边界、Int8 溢出回退（T42）
+    func testSpecialTypeUnwrapAndNumericBoundaries() throws {
+        struct Host: SmartCodableX {
+            var date: Date = Date(timeIntervalSince1970: 0)
+            var data: Data? = nil
+            var url: URL? = nil
+            var decimal: Decimal? = nil
+            var cgfloat: CGFloat = 0
+            var bigInt64: Int64 = 0
+            var bigUInt64: UInt64 = 0
+            var smallInt8: Int8 = 7
+        }
+
+        let host = try XCTUnwrap(Host.deserialize(from: [
+            "date": 1_753_413_115,
+            "data": "SGVsbG8=",
+            "url": "https://example.com/x",
+            "decimal": 0.1,
+            "cgfloat": 2.5,
+            "bigInt64": Int64.max,
+            "bigUInt64": NSNumber(value: UInt64.max),
+            "smallInt8": 300,
+        ] as [String: Any]))
+
+        XCTAssertEqual(host.date.timeIntervalSince1970, 1_753_413_115, accuracy: 0.001,
+                       "秒级时间戳经 DateParser 兜底解析")
+        XCTAssertEqual(host.data, Data(base64Encoded: "SGVsbG8="))
+        XCTAssertEqual(host.url?.absoluteString, "https://example.com/x")
+        XCTAssertEqual(host.decimal, Decimal(string: "0.1"))
+        XCTAssertEqual(host.cgfloat, 2.5)
+        XCTAssertEqual(host.bigInt64, Int64.max, "Int64 上边界无损")
+        XCTAssertEqual(host.bigUInt64, UInt64.max, "UInt64 上边界无损")
+        XCTAssertEqual(host.smallInt8, 7, "溢出输入回退声明默认值，不截断成错误值")
+    }
+
+    // MARK: - 继承的映射与转换器
+
+    /// 手写父子类共享 decoder：组合声明的 Key Mapping 与 Value Transformer
+    /// 在同一次子类解码中同时生效（T44）
+    func testInheritanceKeepsDeclaredKeyMappingAndValueTransformer() throws {
+        let base = try XCTUnwrap(MappedBaseModel.deserialize(from: ["base_value": "5"]))
+        XCTAssertEqual(base.baseValue, 105, "父类单独入口应用父类声明的映射与 transformer")
+
+        let derived = try XCTUnwrap(MappedDerivedModel.deserialize(from: [
+            "base_value": "5",
+            "child_value": "3",
+        ]))
+        XCTAssertEqual(derived.baseValue, 105,
+                       "同一次子类解码中，父类声明的映射与 transformer 仍然生效")
+        XCTAssertEqual(derived.childValue, 203,
+                       "同一次子类解码中，子类声明的映射与 transformer 同时生效")
+
+        let encoded = try XCTUnwrap(derived.toDictionary())
+        XCTAssertEqual(encoded["baseValue"] as? Int, 105)
+        XCTAssertEqual(encoded["childValue"] as? Int, 203)
+    }
+
+    // MARK: - superDecoder 隔离
+
+    /// 手写 superDecoder 取得的视图不继承宿主字段表（T45）
+    func testHandWrittenSuperDecoderStaysIsolated() throws {
+        let host = try XCTUnwrap(SuperDecoderHost.deserialize(from: [
+            "plain": [:] as [String: Any]
+        ]))
+
+        XCTAssertEqual(host.count, 99, "宿主自己的字段仍取宿主声明默认值")
+        XCTAssertEqual(host.plainCount, 0, "superDecoder 视图不得借用宿主字段表")
+    }
+
+    // MARK: - 包装器回调次数
+
+    /// 包装器路径 wrappedValueDidFinishMapping 恰好执行一次：解码成功、缺字段回退、transformer（T46）
+    func testWrapperDidFinishMappingExecutesExactlyOnce() throws {
+        WrapperCountedModel.mappingCount = 0
+        _ = try XCTUnwrap(WrapperCountHost.deserialize(from: ["payload": [:]]))
+        XCTAssertEqual(WrapperCountedModel.mappingCount, 1, "包装器解码成功路径")
+
+        WrapperCountedModel.mappingCount = 0
+        _ = try XCTUnwrap(WrapperCountHost.deserialize(from: [:]))
+        XCTAssertEqual(WrapperCountedModel.mappingCount, 1, "包装器缺字段回退路径")
+
+        WrapperCountedModel.mappingCount = 0
+        let transformed = try XCTUnwrap(WrapperTransformerHost.deserialize(from: ["payload": "5"]))
+        XCTAssertEqual(transformed.payload.level, 5, "必须真的走了 transformer 转换路径")
+        XCTAssertEqual(WrapperCountedModel.mappingCount, 1, "包装器 transformer 路径不得双重通知")
+    }
+
+    // MARK: - SmartHexColor 配置与编码
+
+    /// SmartHexColor：声明非默认 encodeHexFormat，解码按 JSON，编码仍用声明格式（T24/T48）。
+    /// 分量断言不经过 deviceRGB 色域转换，避免设备色域影响数值稳定性。
+    func testSmartHexColorKeepsDeclaredEncodeFormatAcrossRoundTrip() throws {
+        struct Host: SmartCodableX {
+            @SmartHexColor(wrappedValue: nil, encodeHexFormat: .rrggbb(.hash))
+            var hashed: ColorObject?
+
+            @SmartHexColor(wrappedValue: nil)
+            var plain: ColorObject?
+        }
+
+        let host = try XCTUnwrap(Host.deserialize(from: [
+            "hashed": "#FF0000",
+            "plain": "00FF00",
+        ]))
+
+        XCTAssertEqual(host.hashed, NSColor(calibratedRed: 1, green: 0, blue: 0, alpha: 1),
+                       "颜色值按 JSON 解码，不被声明默认覆盖")
+        XCTAssertEqual(host.plain, NSColor(calibratedRed: 0, green: 1, blue: 0, alpha: 1))
+
+        let encoded = try XCTUnwrap(host.toDictionary())
+        let hashedHex = try XCTUnwrap(encoded["hashed"] as? String)
+        XCTAssertEqual(hashedHex.first, "#", "编码使用属性边恢复的声明 hash 前缀格式")
+        XCTAssertEqual(hashedHex.count, 7, "声明 rrggbb(.hash) 应输出带前缀的 6 位色值")
+        XCTAssertEqual(hashedHex.dropFirst().count, 6)
+
+        let plainHex = try XCTUnwrap(encoded["plain"] as? String)
+        XCTAssertNotEqual(plainHex.first, "#", "未声明格式时使用默认 rrggbb(.none)")
+        XCTAssertEqual(plainHex.count, 6)
     }
 
     // MARK: - 上下文释放
@@ -485,7 +722,7 @@ final class DecodingContextTests: XCTestCase {
 
         var result: ReleaseProbe?
         autoreleasepool {
-            result = try? ReleaseProbe.deserialize(from: [:] as [String: Any])
+            result = ReleaseProbe.deserialize(from: [:] as [String: Any])
         }
 
         XCTAssertNotNil(result)
@@ -1276,6 +1513,190 @@ private struct MappingTransformerHost: SmartCodableX {
             CodingKeys.child <--- FastTransformer<MappingCountedModel, String>(fromJSON: { value in
                 guard let level = value.flatMap({ Int($0) }) else { return nil }
                 return MappingCountedModel.makeResolved(level: level)
+            })
+        ]
+    }
+}
+
+// MARK: - 审查补充 fixture
+
+/// 第三方包装器包装 Optional 内层模型（T14）
+@propertyWrapper
+private struct OptionalDirectWrapper<Value: SmartDecodable & SmartEncodable>: PropertyWrapperable, Codable {
+    var wrappedValue: Value?
+
+    init(wrappedValue: Value?) {
+        self.wrappedValue = wrappedValue
+    }
+
+    init(from decoder: Decoder) throws {
+        wrappedValue = try Value(from: decoder)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        guard let wrappedValue else {
+            var container = encoder.singleValueContainer()
+            try container.encodeNil()
+            return
+        }
+        try wrappedValue.encode(to: encoder)
+    }
+
+    static func createInstance(with value: Any) -> Self? {
+        guard let value = value as? Value else { return nil }
+        return Self(wrappedValue: value)
+    }
+
+    func wrappedValueDidFinishMapping() -> Self? {
+        guard var value = wrappedValue else { return nil }
+        value.didFinishMapping()
+        return Self(wrappedValue: value)
+    }
+}
+
+private struct OptionalWrapperHost: SmartCodableX {
+    @OptionalDirectWrapper var payload = WrapperProbeModel()
+}
+
+/// SmartPublished 的内层模型（T26）
+private struct PublishedChild: SmartCodableX {
+    var level = 11
+}
+
+/// JSON 字符串数组输入宿主（T41）
+private struct StringArrayInputHost: SmartCodableX {
+    var models: [ArrayElementChild] = []
+}
+
+/// 继承映射用例的父类（T44）
+private enum MappedBaseKeys: String, CodingKey {
+    case baseValue
+}
+
+private class MappedBaseModel: SmartCodableX {
+    var baseValue = 11
+
+    required init() {}
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: MappedBaseKeys.self)
+        baseValue = try container.decode(Int.self, forKey: .baseValue)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: MappedBaseKeys.self)
+        try container.encode(baseValue, forKey: .baseValue)
+    }
+
+    // class func 同样满足协议的 static 要求，并允许子类按声明覆写
+    class func mappingForKey() -> [SmartKeyTransformer]? {
+        [MappedBaseKeys.baseValue <--- "base_value"]
+    }
+
+    class func mappingForValue() -> [SmartValueTransformer]? {
+        [
+            MappedBaseKeys.baseValue <--- FastTransformer<Int, String>(fromJSON: { value in
+                value.flatMap(Int.init).map { $0 + 100 }
+            })
+        ]
+    }
+}
+
+/// 继承映射用例的子类：声明自己的映射与转换器，共享同一个传入 decoder（T44）
+private enum MappedDerivedKeys: String, CodingKey {
+    case childValue
+}
+
+private final class MappedDerivedModel: MappedBaseModel {
+    var childValue = 22
+
+    required init() { super.init() }
+
+    required init(from decoder: Decoder) throws {
+        try super.init(from: decoder)
+        let container = try decoder.container(keyedBy: MappedDerivedKeys.self)
+        childValue = try container.decode(Int.self, forKey: .childValue)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        try super.encode(to: encoder)
+        var container = encoder.container(keyedBy: MappedDerivedKeys.self)
+        try container.encode(childValue, forKey: .childValue)
+    }
+
+    // 覆写时显式组合 super 的声明：框架不自动发现父类类型，
+    // 由模型自己保证同一次子类解码中父/子映射同时生效
+    override class func mappingForKey() -> [SmartKeyTransformer]? {
+        (super.mappingForKey() ?? []) + [
+            MappedDerivedKeys.childValue <--- "child_value"
+        ]
+    }
+
+    override class func mappingForValue() -> [SmartValueTransformer]? {
+        (super.mappingForValue() ?? []) + [
+            MappedDerivedKeys.childValue <--- FastTransformer<Int, String>(fromJSON: { value in
+                value.flatMap(Int.init).map { $0 + 200 }
+            })
+        ]
+    }
+}
+
+/// 手写 superDecoder 用例（T45）
+private struct SuperDecoderHost: SmartCodableX {
+    var count = 99
+    var plainCount = 0
+
+    private enum Keys: String, CodingKey {
+        case count
+        case plain
+    }
+
+    init() {}
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+        count = try container.decode(Int.self, forKey: .count)
+        let superView = try container.superDecoder(forKey: .plain)
+        let nested = try superView.container(keyedBy: Keys.self)
+        plainCount = try nested.decode(Int.self, forKey: .count)
+    }
+
+    func encode(to encoder: Encoder) throws {}
+}
+
+/// 包装器回调计数模型（T46）
+private final class WrapperCountedModel: SmartCodableX {
+    static var mappingCount = 0
+
+    var level = 1
+
+    required init() {}
+
+    func didFinishMapping() {
+        WrapperCountedModel.mappingCount += 1
+    }
+
+    static func make(level: Int) -> WrapperCountedModel {
+        let model = WrapperCountedModel()
+        model.level = level
+        return model
+    }
+}
+
+private struct WrapperCountHost: SmartCodableX {
+    @DirectInitWrapper var payload = WrapperCountedModel()
+}
+
+private struct WrapperTransformerHost: SmartCodableX {
+    @DirectInitWrapper var payload = WrapperCountedModel()
+
+    private enum CodingKeys: String, CodingKey {
+        case payload
+    }
+
+    static func mappingForValue() -> [SmartValueTransformer]? {
+        [
+            CodingKeys.payload <--- FastTransformer<WrapperCountedModel, String>(fromJSON: { value in
+                value.flatMap(Int.init).map(WrapperCountedModel.make)
             })
         ]
     }
