@@ -15,31 +15,23 @@ class DecodingCache: Cachable {
     typealias SomeSnapshot = DecodingSnapshot
 
     /// Stack of decoding snapshots
-    var snapshots: [DecodingSnapshot] = []
+    private(set) var snapshots: [DecodingSnapshot] = []
 
-    /// Creates and stores a snapshot of initial values for a Decodable type
-    /// - Parameter type: The Decodable type to cache
-    func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
-        
-        
-        
-        let smartType: SmartDecodable.Type?
+    /// 在指定类型的快照作用域内执行解码。
+    ///
+    /// 快照的资格判断、创建与清理全部收口在这里：
+    /// 调用方只表达“在该类型的快照作用域内解码”，
+    /// 不再手工配对压栈与出栈，抛错路径也会清理本作用域的快照。
+    func withSnapshot<T, Result>(
+        for type: T.Type,
+        codingPath: [CodingKey],
+        _ body: () throws -> Result
+    ) rethrows -> Result {
 
-        /** 缓存条件
-         * 1. 直接是 SmartDecodable
-         * 2. 是属性包装器，且 WrappedValue 是 SmartDecodable
-         * 3. 其它情况，不关心
-        */
-        if let objectType = type as? SmartDecodable.Type {
-            smartType = objectType
-        } else if let wrapperType = type as? any PropertyWrapperable.Type {
-            smartType = wrapperType.wrappedSmartDecodableType
-        } else {
-            return
+        guard let object = cachedSmartDecodableType(for: type) else {
+            return try body()
         }
 
-        guard let object = smartType else { return }
-        
         let snapshot = DecodingSnapshot()
         snapshot.codingPath = codingPath
         // [initialValues] Lazy initialization:
@@ -47,15 +39,29 @@ class DecodingCache: Cachable {
         // using the recorded objectType to optimize parsing performance.
         snapshot.objectType = object
         snapshots.append(snapshot)
-    }
-    
-    /// Removes the most recent snapshot for the given type
-    /// - Parameter type: The type to remove from cache
-    func removeSnapshot<T>(for type: T.Type) {
-        guard T.self is SmartDecodable.Type else { return }
-        if !snapshots.isEmpty {
-            snapshots.removeLast()
+
+        defer {
+            // 栈顶必须是本作用域创建的快照；身份不匹配时不盲目弹出其他作用域的快照
+            assert(snapshots.last === snapshot,
+                   "Decoding snapshot stack top is not the one created by this scope")
+            if let last = snapshots.last, last === snapshot {
+                snapshots.removeLast()
+            }
         }
+
+        return try body()
+    }
+
+    /// 解析需要缓存的 `SmartDecodable` 类型
+    ///
+    /// 快照的意义是“某个 SmartDecodable 的 `init(from:)` 正在当前作用域内执行”，
+    /// 因此资格只有一个判据：即将执行 `init(from:)` 的类型本身是 SmartDecodable。
+    ///
+    /// 属性包装器类型不在此列：包装器的 `init(from:)` 运行时内层模型尚未初始化，
+    /// 快照由内层模型自己的解码作用域（`unwrap(as:)` / `decodeInPlace(_:)`）建立，
+    /// 避免同一模型在嵌套解码时被重复压栈。
+    private func cachedSmartDecodableType<T>(for type: T.Type) -> SmartDecodable.Type? {
+        return type as? SmartDecodable.Type
     }
 }
 

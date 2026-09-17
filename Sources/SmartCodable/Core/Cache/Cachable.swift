@@ -15,22 +15,7 @@ protocol Cachable {
 
     /// Array of snapshots representing the current parsing stack
     /// - Note: Using an array prevents confusion with multi-level nested models
-    var snapshots: [SomeSnapshot] { set get }
-
-    
-    /// Caches a new snapshot for the given type at the specified decoding path.
-    ///
-    /// This method records a snapshot of the decoding context for a specific model type.
-    ///
-    /// - Parameters:
-    ///   - type: The model type being decoded. The snapshot will be associated with this type.
-    ///   - codingPath: The current decoding path, used to identify where in the JSON hierarchy this snapshot applies.
-    ///                 This allows later lookup of initial values or metadata by matching decoding paths.
-    func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey])
-    
-    /// Removes the snapshot for the given type
-    /// - Parameter type: The model type to remove from cache
-    mutating func removeSnapshot<T>(for type: T.Type)
+    var snapshots: [SomeSnapshot] { get }
 }
 
 

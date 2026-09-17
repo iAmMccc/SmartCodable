@@ -38,10 +38,21 @@ extension JSONDecoderImpl {
             return try self.unwrapDictionary(as: type)
         }
         
-        cache.cacheSnapshot(for: type, codingPath: codingPath)
-        let decoded = try type.init(from: self)
-        cache.removeSnapshot(for: type)
-        return decoded
+        return try cache.withSnapshot(for: type, codingPath: codingPath) {
+            try type.init(from: self)
+        }
+    }
+
+    /// 在当前解码上下文中初始化类型 T（codingPath 不前进）。
+    ///
+    /// 供 `@SmartFlat` 等平铺语义的属性包装器使用：包装器自身不建立快照，
+    /// 由本方法为内层值建立与 `unwrap(as:)` 同源的快照作用域——
+    /// 仅当 T 是 SmartDecodable 时入栈，且作用域精确覆盖 `T.init(from:)` 的执行窗口。
+    /// 不包含 `unwrap(as:)` 的特殊类型提前返回，保持包装器原有的直接初始化语义。
+    func decodeInPlace<T: Decodable>(_ type: T.Type) throws -> T {
+        return try cache.withSnapshot(for: type, codingPath: codingPath) {
+            try type.init(from: self)
+        }
     }
     
     func unwrapFloatingPoint<T: LosslessStringConvertible & BinaryFloatingPoint>(
@@ -311,12 +322,9 @@ extension Decodable {
         {
             return try decoder.unwrap(as: Self.self)
         }
-        decoder.cache.cacheSnapshot(for: type, codingPath: decoder.codingPath)
-        let decoded = try Self.init(from: decoder)
-        decoder.cache.removeSnapshot(for: type)
-        
-        
-        return decoded
+        return try decoder.cache.withSnapshot(for: type, codingPath: decoder.codingPath) {
+            try Self.init(from: decoder)
+        }
     }
     
     /// createByDirectlyUnwrapping 的 Self 是静态绑定的（一个真正的类型），
