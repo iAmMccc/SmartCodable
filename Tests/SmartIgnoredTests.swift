@@ -35,6 +35,37 @@ final class SmartIgnoredTests: XCTestCase {
         let plainWrapper = SmartIgnored(wrappedValue: IgnoredModel(), isEncodable: false)
         XCTAssertEqual(plainWrapper.wrappedValueDidFinishMapping()?.isEncodable, false)
     }
+
+    /// 无 parsingMark 的第三方解码路径应恢复宿主声明的完整包装器状态：
+    /// 既保留 wrappedValue，也保留 isEncodable: true。
+    func testWithoutParsingMarkRestoresEncodableWrapperDeclaration() throws {
+        let host = try decodeWithoutParsingMark(MarklessEncodableHost.self)
+
+        XCTAssertEqual(host.settings.level, 7)
+        let encoded = try XCTUnwrap(host.toDictionary())
+        let settings = try XCTUnwrap(encoded["settings"] as? [String: Any])
+        XCTAssertEqual(settings["level"] as? Int, 7)
+    }
+
+    /// 同一恢复路径必须保留 isEncodable: false，不能把所有 SmartIgnored 一律设为可编码。
+    func testWithoutParsingMarkKeepsNonEncodableWrapperExcluded() throws {
+        let host = try decodeWithoutParsingMark(MarklessNonEncodableHost.self)
+
+        XCTAssertEqual(host.settings.level, 7)
+        let encoded = try XCTUnwrap(host.toDictionary())
+        XCTAssertNil(encoded["settings"])
+    }
+
+    private func decodeWithoutParsingMark<T: SmartDecodable>(_ type: T.Type) throws -> T {
+        let smartDecoder = SmartJSONDecoder()
+        let impl = JSONDecoderImpl(
+            userInfo: [:],
+            from: .object(["settings": .object(["level": .number("999")])]),
+            codingPath: [],
+            options: smartDecoder.options
+        )
+        return try impl.unwrap(as: type)
+    }
 }
 
 /// 声明 isEncodable: true 的宿主模型
@@ -55,5 +86,29 @@ private struct IgnoredModel: SmartCodableX {
 
     mutating func didFinishMapping() {
         didMappingRun = true
+    }
+}
+
+private final class MarklessEncodableHost: SmartCodableX {
+    @SmartIgnored(wrappedValue: MarklessIgnoredSettings(level: 7), isEncodable: true)
+    var settings: MarklessIgnoredSettings
+
+    required init() {}
+}
+
+private final class MarklessNonEncodableHost: SmartCodableX {
+    @SmartIgnored(wrappedValue: MarklessIgnoredSettings(level: 7), isEncodable: false)
+    var settings: MarklessIgnoredSettings
+
+    required init() {}
+}
+
+private struct MarklessIgnoredSettings: SmartCodableX {
+    var level: Int = 0
+
+    init() {}
+
+    init(level: Int) {
+        self.level = level
     }
 }
