@@ -118,7 +118,7 @@ struct NameModel: SmartCodable {
 }
 
 let dict: [String: String] = [ : ]
-if let model = NameModel.deserialize(dict: dict) {
+if let model = NameModel.deserialize(from: dict) {
     print(model.name)
     // 我是初始值
 }
@@ -130,10 +130,25 @@ if let model = NameModel.deserialize(dict: dict) {
 
 ```swift
 // DecodingCache.swift 简化示意
-func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
-    guard let smartType = type as? SmartDecodable.Type else { return }
-    let snapshot = DecodingSnapshot(objectType: smartType, codingPath: codingPath)
+func withSnapshot<T, Result>(
+    for type: T.Type,
+    codingPath: [CodingKey],
+    _ body: () throws -> Result
+) rethrows -> Result {
+    guard let smartType = cachedSmartDecodableType(for: type) else {
+        return try body()
+    }
+
+    let snapshot = DecodingSnapshot()
+    snapshot.objectType = smartType
+    snapshot.codingPath = codingPath
     snapshots.append(snapshot)
+    defer {
+        if snapshots.last === snapshot {
+            snapshots.removeLast()
+        }
+    }
+    return try body()
 }
 
 // 懒加载：首次需要默认值时才通过 Mirror 反射获取

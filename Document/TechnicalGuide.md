@@ -51,19 +51,18 @@ SmartJSONDecoder.smartDecode(type, from: data)    // SmartJSONDecoder.swift
 JSONDecoderImpl.unwrap(as: type)                  // JSONDecoderImpl+Unwrap.swift
   ├── 特殊类型直接处理：Date, Data, URL, Decimal, CGFloat, Dictionary
   └── 普通类型：
-      ├── cache.cacheSnapshot()                   // 创建快照，记录类型信息
-      ├── type.init(from: self)                   // 触发 Codable 标准流程
-      │   ↓
-      │   KeyedContainer 初始化                    // JSONDecoderImpl+KeyedContainer.swift
-      │     ├── _convertDictionary()              // 应用 Key Mapping
-      │     │   ├── SmartKeyDecodingStrategy      // snake_case → camelCase 等
-      │     │   └── KeysMapper.convertFrom()      // 自定义 mappingForKey()
-      │     └── 逐属性解码：
-      │         ├── 1. 检查 ValueTransformer      // mappingForValue() 自定义转换
-      │         ├── 2. 尝试标准解码
-      │         ├── 3. 类型转换 Patcher            // Int↔String, Bool↔Int 等
-      │         └── 4. 默认值回退 Cache             // Mirror 反射获取的初始值
-      └── cache.removeSnapshot()                  // 清理快照
+      └── cache.withSnapshot(for:codingPath:)     // 建立异常安全的快照作用域
+          └── type.init(from: self)               // 触发 Codable 标准流程
+              ↓
+              KeyedContainer 初始化               // JSONDecoderImpl+KeyedContainer.swift
+                ├── _convertDictionary()          // 应用 Key Mapping
+                │   ├── SmartKeyDecodingStrategy  // snake_case → camelCase 等
+                │   └── KeysMapper.convertFrom()  // 自定义 mappingForKey()
+                └── 逐属性解码：
+                    ├── 1. 检查 ValueTransformer // mappingForValue() 自定义转换
+                    ├── 2. 尝试标准解码
+                    ├── 3. 类型转换 Patcher       // Int↔String, Bool↔Int 等
+                    └── 4. 默认值回退 Cache        // Mirror 反射获取的初始值
   ↓
 didFinishMapping()                                // 用户回调，可做后处理
 ```
@@ -89,19 +88,19 @@ didFinishMapping()                                // 用户回调，可做后处
 ```
 解码开始
   ↓
-cacheSnapshot(for: Model.self)          // 记录类型，但不立即反射
+withSnapshot(for: Model.self)           // 记录类型，但不立即反射
+  ↓
+执行 Model.init(from:)
   ↓
 某属性解码失败
   ↓
 initialValueIfPresent(forKey: "name")   // 首次访问时触发 Mirror 反射
   ↓
-populateInitialValues()                  // 创建 Model.init()，用 Mirror 提取所有属性初始值
+populateInitialValues()                 // 创建 Model.init()，用 Mirror 提取所有属性初始值
   ↓
-返回 snapshot.initialValues["name"]     // 即用户声明的 var name: String = "默认值" 中的 "默认值"
+返回 snapshot.initialValues["name"]    // 即用户声明的 var name: String = "默认值" 中的 "默认值"
   ↓
-解码结束
-  ↓
-removeSnapshot(for: Model.self)          // 清理
+作用域结束后自动清理快照                // 正常返回和抛错路径都会执行
 ```
 
 ### 快照栈机制
@@ -289,7 +288,7 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 
 ### 代码约定
 
-4. **DecodingCache 的快照必须成对调用**：`cacheSnapshot()` 和 `removeSnapshot()` 必须配对，否则快照栈会泄漏。当前在 `unwrap()` 方法中管理，修改时注意异常路径
+4. **DecodingCache 的快照必须通过作用域接口管理**：解码入口统一调用 `withSnapshot(for:codingPath:_:)`，不要复制快照资格判断或在调用方手工出栈；正常返回和抛错路径都由该接口清理
 5. **Patcher 中的类型转换要双向安全**：比如 String → Int，必须验证字符串确实是合法数字，不能静默返回 0
 6. **属性包装器的存储名有下划线前缀**：Swift 编译器将 `@SmartAny var name` 存储为 `_name`，DecodingCache 中需要处理这个映射
 7. **KeyedContainer 中的 `_convertDictionary()` 只执行一次**：在容器初始化时调用，之后的属性解码都基于转换后的字典
