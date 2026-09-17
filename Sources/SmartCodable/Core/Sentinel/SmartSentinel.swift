@@ -74,7 +74,8 @@ extension SmartSentinel {
         let typeString = String(describing: T.self)
         guard !typeString.starts(with: "SmartIgnored<") else { return }
         
-        let className = impl.cache.findSnapShot(with: impl.codingPath)?.objectTypeName ?? ""
+        // 获取当前路径活跃所有者的类型名称，用于哨兵日志定位
+        let className = impl.cache.activeOwner(at: impl.codingPath).map { String(describing: $0) } ?? ""
         var path = impl.codingPath
         path.append(key)
         

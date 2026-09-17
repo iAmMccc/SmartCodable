@@ -498,7 +498,8 @@ fileprivate func _convertDictionary(_ dictionary: [String: JSONValue], impl: JSO
         }, uniquingKeysWith: { (first, _) in first })
     }
     
-    guard let type = impl.cache.findSnapShot(with: impl.codingPath)?.objectType else { return dictionary }
+    // 仅基于当前路径活跃的解码所有者进行键名映射转换
+    guard let type = impl.cache.activeOwner(at: impl.codingPath) else { return dictionary }
     
     if let tempValue = KeysMapper.convertFrom(JSONValue.object(dictionary), type: type), let dict = tempValue.object {
         return dict
