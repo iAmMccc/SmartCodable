@@ -20,6 +20,28 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(model.value, 3.5)
     }
 
+    func testR2CompactModels() throws {
+        struct Child: SmartCodableX { var id: Int = -1 }
+        struct Host: SmartCodableX { @SmartCompact.Array var children: [Child] = [] }
+        let input: [String: Any] = ["children": [["id": 1], NSNull(), ["id": 2]] as [Any]]
+        let model = try XCTUnwrap(Host.deserialize(from: input))
+        XCTAssertEqual(model.children.map(\.id), [1, 2])
+    }
+
+    func testR3UpdaterPreservesOtherField() {
+        struct Model: SmartCodableX {
+            var firstName = "old-first"
+            var name = "old-full"
+            static func mappingForKey() -> [SmartKeyTransformer]? {
+                [CodingKeys.firstName <--- ["first_name", "name"]]
+            }
+        }
+        var model = Model()
+        SmartUpdater.update(&model, from: ["first_name": "Ada", "name": "Ada Lovelace"])
+        XCTAssertEqual(model.firstName, "Ada")
+        XCTAssertEqual(model.name, "Ada Lovelace")
+    }
+
     func testR1FloatingContainers() throws {
         struct Model: SmartCodableX {
             var float: Float = -1
@@ -58,14 +80,6 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertTrue(nan.value.isNaN)
     }
 
-    func testR2CompactModels() throws {
-        struct Child: SmartCodableX { var id: Int = -1 }
-        struct Host: SmartCodableX { @SmartCompact.Array var children: [Child] = [] }
-        let input: [String: Any] = ["children": [["id": 1], NSNull(), ["id": 2]] as [Any]]
-        let model = try XCTUnwrap(Host.deserialize(from: input))
-        XCTAssertEqual(model.children.map(\.id), [1, 2])
-    }
-
     func testR2CallbacksAndOrdinaryArray() throws {
         struct Child: SmartCodableX {
             var id = -1
@@ -95,20 +109,6 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         // A null in a non-optional model array causes the entire property to use its default.
         let withNull = try XCTUnwrap(Host.deserialize(from: ["ordinary": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
         XCTAssertEqual(withNull.ordinary.map(\.id), [])
-    }
-
-    func testR3UpdaterPreservesOtherField() {
-        struct Model: SmartCodableX {
-            var firstName = "old-first"
-            var name = "old-full"
-            static func mappingForKey() -> [SmartKeyTransformer]? {
-                [CodingKeys.firstName <--- ["first_name", "name"]]
-            }
-        }
-        var model = Model()
-        SmartUpdater.update(&model, from: ["first_name": "Ada", "name": "Ada Lovelace"])
-        XCTAssertEqual(model.firstName, "Ada")
-        XCTAssertEqual(model.name, "Ada Lovelace")
     }
 
     func testR3AllUpdateInputs() {

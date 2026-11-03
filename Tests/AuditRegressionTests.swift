@@ -308,15 +308,17 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertFalse(dictionary["data"] is NSNull)
     }
 
-    func testSmartAnyKeepsScientificAndLargeUnsignedNumbers() {
+    func testSmartAnyKeepsScientificAndLargeUnsignedNumbers() throws {
         struct Model: SmartCodableX {
             @SmartAny var scientific: Any?
             @SmartAny var big: Any?
         }
 
-        let model = Model.deserialize(from: "{\"scientific\":1e-5,\"big\":18446744073709551615}")
-        XCTAssertFalse(model?.scientific is String)
-        XCTAssertFalse(model?.big is String)
+        let model = try XCTUnwrap(Model.deserialize(from: "{\"scientific\":1e-5,\"big\":18446744073709551615}"))
+        let scientific = try XCTUnwrap(model.scientific as? NSNumber)
+        let big = try XCTUnwrap(model.big as? NSNumber)
+        XCTAssertEqual(scientific.decimalValue, Decimal(string: "0.00001"))
+        XCTAssertEqual(big.stringValue, "18446744073709551615")
     }
 
     func testSmartDateRestoresDeclaredEncodeFormat() throws {
@@ -324,9 +326,18 @@ final class AuditRegressionTests: XCTestCase {
             @SmartDate(wrappedValue: nil, encodeFormat: .timestampMilliseconds) var date: Date?
         }
 
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let expected = try XCTUnwrap(formatter.date(from: "2024-01-02 03:04:05"))
         let model = try XCTUnwrap(Model.deserialize(from: ["date": "2024-01-02 03:04:05"]))
         let dictionary = try XCTUnwrap(model.toDictionary())
-        XCTAssertTrue(dictionary["date"] is NSNumber, "\(String(describing: dictionary["date"]))")
+        XCTAssertEqual(try XCTUnwrap((dictionary["date"] as? NSNumber)?.int64Value), Int64(expected.timeIntervalSince1970 * 1000))
+
+        let timestampModel = try XCTUnwrap(Model.deserialize(from: ["date": 1_700_000_000]))
+        let timestampDictionary = try XCTUnwrap(timestampModel.toDictionary())
+        XCTAssertEqual((timestampDictionary["date"] as? NSNumber)?.int64Value, 1_700_000_000_000)
     }
 
     func testSmartDateTreatsExactMillisecondThresholdAsMilliseconds() {
