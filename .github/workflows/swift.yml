@@ -45,13 +45,13 @@ jobs:
       run: |
         swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests > "$RUNNER_TEMP/tsan-global.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-global.log"; exit 1; }
         cat "$RUNNER_TEMP/tsan-global.log"
-        grep -Eq 'Executed [1-9][0-9]* tests' "$RUNNER_TEMP/tsan-global.log"
+        grep -Eq 'Executed [1-9][0-9]* tests?, with 0 failures' "$RUNNER_TEMP/tsan-global.log"
     # 覆盖独立 decoder 并发回退默认值的路径；零匹配也视为失败。
     - name: Run Thread Sanitizer decoding context concurrency test
       run: |
         swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated > "$RUNNER_TEMP/tsan-context.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-context.log"; exit 1; }
         cat "$RUNNER_TEMP/tsan-context.log"
-        grep -Eq 'Executed [1-9][0-9]* tests' "$RUNNER_TEMP/tsan-context.log"
+        grep -Eq 'Executed [1-9][0-9]* tests?, with 0 failures' "$RUNNER_TEMP/tsan-context.log"
 
   property-tests:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/7.0.2'
