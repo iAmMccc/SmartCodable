@@ -1,6 +1,6 @@
 # SmartCodable 自动化测试增量实施报告
 
-日期：2026-11-02。仓库 `SmartCodable`，分支 `7.0.2`，HEAD `bc1522f6b635128ea992331867fe65f231492dc0`，与研究报告的提交基线相同。**测试对象是包含本地未提交修复的工作区，不是仅 HEAD 的源码**：此前修复已将整数浮点中转改为 `T(exactly:)`、扩充 Sentinel 和编码/解码回归。本轮保留这些用户修改，没有重置、stash、提交或推送。配套仓库 `SmartCodableMacro` 为 `main`/`ce1bdd683a4b472efed9681ace0d727fe1586188`，原有未跟踪 `.github/` 未触碰。
+日期：2026-11-02。仓库 `SmartCodable`，分支 `7.0.2`，HEAD `bc1522f6b635128ea992331867fe65f231492dc0`，与研究报告的提交基线相同。**测试对象是包含本地未提交修复的工作区，不是仅 HEAD 的源码**：此前修复已将整数浮点中转改为 `T(exactly:)`、扩充 Sentinel 和编码/解码回归。本轮保留这些用户修改，没有重置、stash、提交或推送。配套仓库 `SmartCodableMacro` 为 `main`/`ce1bdd683a4b472efed9681ace0d727fe1586188`。
 
 ## 环境与边界
 
@@ -47,10 +47,18 @@
 
 ### 2026-11-03 环境处理补记
 
-前面的基线与结果仍对应 2026-11-02。本机之后安装 LLVM 23.1.4：C libFuzzer/ASan 小探针完成 16 次运行；Apple Swift 6.4 的 `-sanitize=fuzzer` 仍不可用，直接混用 LLVM 23 与 Apple Swift ASan/libc++ 会失败。当前通过 Apple Swift 的 `-sanitize=undefined -sanitize-coverage=edge,inline-8bit-counters,pc-table` 插桩核心库及 Swift 目标，再用 Homebrew `clang++ -fsanitize=fuzzer` 链接：独立 `Fuzzing/run.sh raw 32` 和 `structured 32` 均退出 0，加载逾万计数器，种子触及模型代码。人为错误产生并重放同一份 3 字节崩溃语料；此集成**无 ASan/TSan**，仅完成本地短跑验证。Muter 16 已装入用户本地 PATH，隔离小包 1 个 mutant 被杀死，未对本仓库完整运行。Xcode 27 的 iOS 27.0 runtime 与 iPhone 18 Pro 模拟设备已安装并启动成功，验证后设备关闭；iOS 27.0 Simulator arm64 目标构建退出 0，未在模拟器执行 XCTest。安装导出镜像已清理，环境步骤未修改生产代码或触发远端 CI；细节见 `findings.md`、`Fuzzing/README.md`。
+前面的基线与结果仍对应 2026-11-02。本机之后安装 LLVM 23.1.4：C libFuzzer/ASan 小探针完成 16 次运行；Apple Swift 6.4 的 `-sanitize=fuzzer` 仍不可用，直接混用 LLVM 23 与 Apple Swift ASan/libc++ 会失败。当前通过 Apple Swift 的 `-sanitize=undefined -sanitize-coverage=edge,inline-8bit-counters,pc-table` 插桩核心库及 Swift 目标，再用 Homebrew `clang++ -fsanitize=fuzzer` 链接：独立 `Fuzzing/run.sh raw 32` 和 `structured 32` 均退出 0，加载逾万计数器，种子触及模型代码。人为错误产生并重放同一份 3 字节崩溃语料；此集成**无 ASan/TSan**，仅完成本地短跑验证。Muter 16 已装入用户本地 PATH，隔离小包 1 个 mutant 被杀死，未对本仓库完整运行。Xcode 27 的 iOS 27.0 runtime 与 iPhone 18 Pro 模拟设备已安装并启动成功，验证后设备关闭；iOS 27.0 Simulator arm64 目标构建退出 0；当时尚未在模拟器执行 XCTest。安装导出镜像已清理，环境步骤未修改生产代码或触发远端 CI；细节见 `findings.md`、`Fuzzing/README.md`。
 
 ### 2026-11-03 整数下溢修复补记
 
 根据后续明确授权，本阶段修改 `Sources/SmartCodable/Core/JSONDecoder/Patcher/Patcher+Transformer.swift`：保留目标整数的直接解析快路径，改用原始十进制数字及指数按 strict/truncate/rounded 计算候选整数，再由 `T(String)` 做最终范围判断；删除不再使用的 Double 中转函数。新增 `Tests/NumericContractTests.swift` 与 `Tests/NumericSubprocessTests.swift` 对小整数边界、Int64/UInt64 极值、相邻小数、科学计数法及极长指数的断言，未调整已有失败期望。
 
 实际执行：Debug 与 Release 构建均退出 0；两种全量测试各执行 **142 条、1 条子进程入口跳过、0 失败、退出 0**；两项定向 TSan 分别执行 2 条和 1 条，无数据竞争报告；独立 PropertyBased 执行 7 项通过；`swift test --enable-code-coverage` 执行 142 条、1 跳过、0 失败并生成 `default.profdata`；iOS 27 Simulator arm64 目标构建通过。两项 Fuzzing 各完成 32 次短跑，公开消费者 6 项检查通过。当时未执行远端 CI，也未修改 SmartCodableMacro。本补记与前面 2026-11-02 的失败证据属于不同时间点，提交记录另行报告。
+
+### 2026-11-03 发布前联调补记
+
+SmartCodableMacro 临时以 `swift package edit smartcodable --path <本地 SmartCodable>` 解析到本地 `7.0.2`（SHA `064028beed52c39bb83478533ede6c4ffb9dfe9e`），Build exit 0、Macro XCTest 12 条通过；测试时 SwiftSyntax 解析到 603.0.2。完成后 `swift package unedit` 并恢复 Macro 原 `Package.resolved`（SmartCodable 7.0.0、SwiftSyntax 602.0.0）；Macro 的已跟踪文件已恢复到联调前状态。该联调证实使用本地核心库，不等于远程依赖 7.0.2 已发布。
+
+使用仓库外临时 XcodeGen iOS 27 场景宿主，对同一核心库在 `SmartCodable-Test` iPhone 18 Pro 模拟器执行 **140 条适用 XCTest，140 通过、0 失败**。`NumericSubprocessTests.swift` 由 `#if os(macOS)` 隔离，因此 iOS 比 macOS 的 142 条少 2 条。首次私有宿主未采用 iOS 27 必需的 UIScene 生命周期，宿主启动失败；修正宿主后定向 2 条和全量 140 条通过。这是测试宿主错误，公开仓库生产代码无变化。本轮不验证最低 iOS 13。
+
+本地 Swift workflow 已增加 `7.0.2` push 触发和该分支的 PropertyBased job；Core Debug/Release 各 142 条（1 条跳过、0 失败）、两项定向 TSan（2 条与 1 条）、独立属性测试 7 项及公开消费者 6 项均在推送前再次通过。是否已通过远端 CI 以 GitHub Actions 实际 run 结果为准；不会为此创建 PR。

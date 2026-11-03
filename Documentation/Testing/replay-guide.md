@@ -92,4 +92,4 @@ swift build --triple arm64-apple-ios27.0-simulator \
   --package-path .
 ```
 
-此命令仅编译目标，不等于在模拟器执行 XCTest 或验证最低 iOS 13 部署版本。
+此命令仅编译目标。2026-11-03 另在仓库外通过 XcodeGen 生成采用 UIScene 生命周期的临时 iOS 测试宿主，以 Xcodebuild 在 iOS 27 的 `SmartCodable-Test` 设备上实际执行 **140 条 XCTest，0 失败**；`NumericSubprocessTests` 的 macOS 专属 2 条不参与 iOS 测试。测试宿主和结果 bundle 保存在仓库外临时目录，未加入公共 CI；不宣称已验证最低 iOS 13。
