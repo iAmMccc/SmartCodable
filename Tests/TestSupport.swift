@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 @testable import SmartCodable
 
@@ -6,18 +7,25 @@ enum TestSupport {
     /// 任意值深度比较（处理 NSNumber/NSNull 等桥接类型）
     static func deepEqual(_ lhs: Any, _ rhs: Any) -> Bool {
         switch (lhs, rhs) {
-        case let (a as Int, b as Int): return a == b
-        case let (a as Double, b as Double): return a == b
-        case let (a as String, b as String): return a == b
-        case let (a as Bool, b as Bool): return a == b
+        case (is NSNull, is NSNull):
+            return true
+        case let (a as NSNumber, b as NSNumber):
+            let lhsIsBool = CFGetTypeID(a) == CFBooleanGetTypeID()
+            let rhsIsBool = CFGetTypeID(b) == CFBooleanGetTypeID()
+            guard lhsIsBool == rhsIsBool else { return false }
+            if lhsIsBool { return a.boolValue == b.boolValue }
+            guard a.doubleValue.isFinite, b.doubleValue.isFinite else { return false }
+            if let lhsDecimal = Decimal(string: a.stringValue),
+               let rhsDecimal = Decimal(string: b.stringValue) {
+                return lhsDecimal == rhsDecimal
+            }
+            return a.stringValue == b.stringValue
+        case let (a as String, b as String):
+            return a == b
         case let (a as [String: Any], b as [String: Any]):
             return deepEqualDict(a, b)
         case let (a as [Any], b as [Any]):
             return deepEqualArray(a, b)
-        case let (a as NSNumber, b as NSNumber):
-            return a == b
-        case (is NSNull, is NSNull):
-            return true
         default:
             return false
         }

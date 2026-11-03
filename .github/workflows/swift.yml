@@ -25,6 +25,8 @@ jobs:
       run: swift build -v
     - name: Run tests
       run: swift test -v
+    - name: Compile public API consumer
+      run: swift run --package-path Tools/PublicAPISmoke PublicAPISmoke
     - name: Build Release
       run: swift build -c release
     - name: Test Release
@@ -39,7 +41,22 @@ jobs:
     - uses: actions/checkout@v4
     # 保留全局选项与日志哨兵共享状态的并发回归覆盖。
     - name: Run Thread Sanitizer concurrency tests
-      run: swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests
-    # 覆盖独立 decoder 并发回退默认值的路径；使用精确过滤器，确保日志能证明目标用例实际执行。
+      run: |
+        swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests > "$RUNNER_TEMP/tsan-global.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-global.log"; exit 1; }
+        cat "$RUNNER_TEMP/tsan-global.log"
+        grep -Eq 'Executed [1-9][0-9]* tests' "$RUNNER_TEMP/tsan-global.log"
+    # 覆盖独立 decoder 并发回退默认值的路径；零匹配也视为失败。
     - name: Run Thread Sanitizer decoding context concurrency test
-      run: swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated
+      run: |
+        swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated > "$RUNNER_TEMP/tsan-context.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-context.log"; exit 1; }
+        cat "$RUNNER_TEMP/tsan-context.log"
+        grep -Eq 'Executed [1-9][0-9]* tests' "$RUNNER_TEMP/tsan-context.log"
+
+  property-tests:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run isolated PropertyBased tests
+      run: swift test --package-path Tools/PropertyTests
