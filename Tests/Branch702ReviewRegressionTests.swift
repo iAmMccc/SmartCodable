@@ -97,4 +97,37 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(withNull.ordinary.map(\.id), [])
     }
 
+    func testR3UpdaterPreservesOtherField() {
+        struct Model: SmartCodableX {
+            var firstName = "old-first"
+            var name = "old-full"
+            static func mappingForKey() -> [SmartKeyTransformer]? {
+                [CodingKeys.firstName <--- ["first_name", "name"]]
+            }
+        }
+        var model = Model()
+        SmartUpdater.update(&model, from: ["first_name": "Ada", "name": "Ada Lovelace"])
+        XCTAssertEqual(model.firstName, "Ada")
+        XCTAssertEqual(model.name, "Ada Lovelace")
+    }
+
+    func testR3AllUpdateInputs() {
+        struct Model: SmartCodableX {
+            var firstName = "old-first"
+            var name = "old-full"
+            static func mappingForKey() -> [SmartKeyTransformer]? {
+                [CodingKeys.firstName <--- ["first_name", "name"]]
+            }
+        }
+        let json = "{\"first_name\":\"Ada\",\"name\":\"Ada Lovelace\"}"
+        var stringModel = Model()
+        var dataModel = Model()
+        SmartUpdater.update(&stringModel, from: json)
+        SmartUpdater.update(&dataModel, from: Data(json.utf8))
+        XCTAssertEqual(stringModel.firstName, "Ada")
+        XCTAssertEqual(stringModel.name, "Ada Lovelace")
+        XCTAssertEqual(dataModel.firstName, "Ada")
+        XCTAssertEqual(dataModel.name, "Ada Lovelace")
+    }
+
 }

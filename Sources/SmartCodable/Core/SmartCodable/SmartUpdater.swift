@@ -65,9 +65,6 @@ public struct SmartUpdater<T: SmartCodableX> {
             guard let canonical = mapping.from.first,
                   let selected = resolved[mapping.to.stringValue] else { continue }
             normalized[canonical] = selected.toFoundation()
-            for alias in mapping.from where alias != canonical {
-                normalized.removeValue(forKey: alias)
-            }
         }
         return normalized
     }
