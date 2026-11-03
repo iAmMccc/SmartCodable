@@ -72,8 +72,7 @@ extension DecodingSnapshot {
     /// 仅访问当前对象的字段表，不从其他模型上下文兜底。
     func initialValueIfPresent<T>(forKey key: any CodingKey) -> T? {
         let values = initialValues()
-        let propertyName = (objectType as? SmartDefaultValueKeyMapping.Type)?
-            .defaultValueKeyMapping[key.stringValue] ?? key.stringValue
+        let propertyName = declaredPropertyName(forKey: key)
         if let cached = values[propertyName] {
             if let value = cached as? T {
                 return value
@@ -101,11 +100,16 @@ extension DecodingSnapshot {
     ///
     /// 必须返回包装器自身的实例（保留如 `SmartIgnored.isEncodable` 的配置），
     /// 不能只取 `wrappedValue` 再重新构造包装器。
+    private func declaredPropertyName(forKey key: any CodingKey) -> String {
+        (objectType as? SmartDefaultValueKeyMapping.Type)?
+            .defaultValueKeyMapping[key.stringValue] ?? key.stringValue
+    }
+
     func declaredWrapper<W: PropertyWrapperable>(
         forKey key: any CodingKey,
         as type: W.Type
     ) -> W? {
-        initialValues()["_" + key.stringValue] as? W
+        initialValues()["_" + declaredPropertyName(forKey: key)] as? W
     }
 
     private func extractWrappedValue<T>(from value: Any) -> T? {

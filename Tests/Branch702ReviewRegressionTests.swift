@@ -130,4 +130,27 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(dataModel.name, "Ada Lovelace")
     }
 
+    func testR4RenamedColorDeclaration() throws {
+        struct Model: SmartCodableX, SmartDefaultValueKeyMapping {
+            @SmartHexColor(wrappedValue: nil, encodeHexFormat: .rrggbb(.hash)) var colorValue: ColorObject?
+            enum CodingKeys: String, CodingKey { case colorValue = "color_value" }
+            static let defaultValueKeyMapping = ["color_value": "colorValue"]
+        }
+        let model = try XCTUnwrap(Model.deserialize(from: ["color_value": "FF0000"]))
+        let result = try XCTUnwrap(model.toDictionary())
+        let encoded = try XCTUnwrap(result["color_value"] as? String)
+        XCTAssertEqual(encoded.first, "#")
+        XCTAssertEqual(encoded.count, 7)
+    }
+
+    func testR4RenamedDateDeclaration() throws {
+        struct Model: SmartCodableX, SmartDefaultValueKeyMapping {
+            @SmartDate(wrappedValue: nil, encodeFormat: .timestampMilliseconds) var createdAt: Date?
+            enum CodingKeys: String, CodingKey { case createdAt = "created_at" }
+            static let defaultValueKeyMapping = ["created_at": "createdAt"]
+        }
+        let model = try XCTUnwrap(Model.deserialize(from: ["created_at": 1_700_000_000]))
+        let result = try XCTUnwrap(model.toDictionary())
+        XCTAssertEqual((result["created_at"] as? NSNumber)?.int64Value, 1_700_000_000_000)
+    }
 }
