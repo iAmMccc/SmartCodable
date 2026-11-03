@@ -16,30 +16,42 @@ import Foundation
  - Thread-safe logging operations
  - Customizable output handlers
  */
-struct LogCache {
-    
+/// Thread-safe cache for decoding diagnostics.
+///
+/// `LogCache` is shared by every decoder invocation. All mutable state is
+/// therefore guarded by one lock; `SafeDictionary`'s internal locks only
+/// protect its own storage and cannot make a whole `LogCache` mutation atomic.
+final class LogCache {
+
+    private let lock = NSLock()
     private var snapshotDict = SafeDictionary<String, LogContainer>()
-    
+
     /// Saves a decoding error to the log cache
-    mutating func save(error: DecodingError, className: String, parsingMark: String) {
+    func save(error: DecodingError, className: String, parsingMark: String) {
+        lock.lock()
+        defer { lock.unlock() }
         let log = LogItem.make(with: error)
         cacheLog(log, className: className, parsingMark: parsingMark)
     }
-    
+
     /// Clears cached logs for a specific parsing session
-    mutating func clearCache(parsingMark: String) {
+    func clearCache(parsingMark: String) {
+        lock.lock()
+        defer { lock.unlock() }
         snapshotDict.removeValue { $0.hasPrefix(parsingMark) }
     }
-    
+
     /// Formats all logs for a parsing session into a readable string
-    mutating func formatLogs(parsingMark: String) -> String? {
-        
-        filterLogItem()
-        
+    func formatLogs(parsingMark: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        filterLogItem(parsingMark: parsingMark)
+
         alignTypeNamesInAllSnapshots(parsingMark: parsingMark)
-        
+
         let keyOrder = sortKeys(snapshotDict.getAllKeys(), parsingMark: parsingMark)
-        
+
         var lastPath: String = ""
         let arr = keyOrder.compactMap {
             let container = snapshotDict.getValue(forKey: $0)
@@ -47,7 +59,7 @@ struct LogCache {
             lastPath = container?.path ?? ""
             return message
         }
-        
+
         if arr.isEmpty { return nil }
         return arr.joined()
     }
@@ -68,10 +80,11 @@ extension LogCache {
     }
     
     /// Filters duplicate log items across containers
-    mutating func filterLogItem() {
+    func filterLogItem(parsingMark: String) {
         let pattern = "Index \\d+"
         let regex = try! NSRegularExpression(pattern: pattern, options: [])
         var matchedKeys = snapshotDict.getAllKeys().filter { key in
+            guard key.hasPrefix(parsingMark) else { return false }
             let range = NSRange(key.startIndex..<key.endIndex, in: key)
             return regex.firstMatch(in: key, options: [], range: range) != nil
         }
@@ -104,7 +117,7 @@ extension LogCache {
     }
     
     /// Caches an individual log item
-    private mutating func cacheLog(_ log: LogItem?, className: String, parsingMark: String) {
+    private func cacheLog(_ log: LogItem?, className: String, parsingMark: String) {
         
         guard let log = log else { return }
         
@@ -124,15 +137,24 @@ extension LogCache {
         }
     }
     
-    /// Creates a unique key for a log entry
+    /// Creates a unique key for a log entry.
+    ///
+    /// Each path component is length-prefixed instead of joined with a plain
+    /// separator: `"user-name"` must not collide with the nested path
+    /// `["user", "name"]`.
     private func createKey(path: [CodingKey], parsingMark: String) -> String {
-        let arr = path.map { $0.stringValue }
-        return parsingMark + "\(arr.joined(separator: "-"))"
+        var key = parsingMark
+        for component in path {
+            let value = component.stringValue
+            key += "\(value.count):\(value)"
+        }
+        return key
     }
-    
+
     /// Aligns field names for consistent visual output
-    private mutating func alignTypeNamesInAllSnapshots(parsingMark: String) {
+    private func alignTypeNamesInAllSnapshots(parsingMark: String) {
         snapshotDict.updateEach { key, snapshot in
+            guard key.hasPrefix(parsingMark) else { return }
             let maxLength = snapshot.logs.max(by: { $0.fieldName.count < $1.fieldName.count })?.fieldName.count ?? 0
             snapshot.logs = snapshot.logs.map { log in
                 var modifiedLog = log

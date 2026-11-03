@@ -40,11 +40,12 @@ enum JSONValue: Equatable {
             }
             
         case let array as [Any]:
-            let jsonArray = array.compactMap { make($0) }
-            return .array(jsonArray)
+            // 不支持的值用 null 占位，不能 compactMap 删除：删除会让后续元素下标前移。
+            return .array(array.map { make($0) ?? .null })
         case let dictionary as [String: Any]:
-            let jsonObject = dictionary.compactMapValues { make($0) }
-            return .object(jsonObject)
+            // Objects have no index alignment to preserve. Omit values that
+            // cannot be represented instead of fabricating an explicit null.
+            return .object(dictionary.compactMapValues { make($0) })
         default:
             return nil
         }

@@ -14,7 +14,7 @@ struct JSONExtractor {
     static func extract(from input: Any?, by designatedPath: String?, on modelType: Any.Type) -> Any? {
         
         guard let input = input else {
-            logNilValue(for: "\(type(of: input))", on: modelType)
+            logNilValue(for: "input", on: modelType)
             return nil
         }
         
@@ -23,7 +23,7 @@ struct JSONExtractor {
             if let inner = getInnerObject(inside: obj, by: path) {
                 return inner
             } else {
-                logDataExtractionFailure(forPath: designatedPath, type: Self.self)
+                logDataExtractionFailure(forPath: designatedPath, type: modelType)
                 return nil
             }
         } else {
@@ -55,6 +55,7 @@ struct JSONExtractor {
             var next = object as? [String: Any]
             paths.forEach({ (seg) in
                 if seg.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) == "" || abort {
+                    abort = true
                     return
                 }
                 if let _next = next?[seg] {

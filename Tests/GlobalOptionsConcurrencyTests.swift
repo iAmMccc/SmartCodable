@@ -41,4 +41,15 @@ final class GlobalOptionsConcurrencyTests: XCTestCase {
 
         XCTAssertEqual(group.wait(timeout: .now() + 5), .success)
     }
+
+    /// 多线程同时解码并产生日志：LogCache 必须整体线程安全。
+    /// 数据竞争由 Thread Sanitizer 检测：
+    /// `swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests`
+    func testConcurrentDecodingWithLogs() {
+        SmartSentinel.debugMode = .alert
+
+        DispatchQueue.concurrentPerform(iterations: 200) { _ in
+            _ = NumberStrategyModel.deserialize(from: ["value": "oops"])
+        }
+    }
 }

@@ -7,6 +7,12 @@
 
 import Foundation
 
+/// Maps JSON keys to Swift property names for declared-default lookup.
+/// Models whose CodingKeys match their property names need no mapping.
+public protocol SmartDefaultValueKeyMapping {
+    static var defaultValueKeyMapping: [String: String] { get }
+}
+
 /// 某一次模型解码的默认值及映射上下文。
 ///
 /// 每个新的、框架可观察的 Smart 模型初始化入口都会创建自己的实例：
@@ -66,7 +72,9 @@ extension DecodingSnapshot {
     /// 仅访问当前对象的字段表，不从其他模型上下文兜底。
     func initialValueIfPresent<T>(forKey key: any CodingKey) -> T? {
         let values = initialValues()
-        if let cached = values[key.stringValue] {
+        let propertyName = (objectType as? SmartDefaultValueKeyMapping.Type)?
+            .defaultValueKeyMapping[key.stringValue] ?? key.stringValue
+        if let cached = values[propertyName] {
             if let value = cached as? T {
                 return value
             }
@@ -75,7 +83,7 @@ extension DecodingSnapshot {
             }
             return nil
         }
-        guard let cached = values["_" + key.stringValue] else {
+        guard let cached = values["_" + propertyName] else {
             return nil
         }
         return extractWrappedValue(from: cached)

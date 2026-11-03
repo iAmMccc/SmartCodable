@@ -46,14 +46,14 @@ public struct SmartSentinel {
     public static let attributeSign: String = "┆┄ "
 
 
-    /// 是否满足日志记录的条件
-    fileprivate static var isValid: Bool {
+    /// 是否启用了日志收集。`Level` 的逐级过滤统一交给 `Level.allows(_:)`。
+    fileprivate static var isLoggingEnabled: Bool {
         return debugMode != .none
     }
 
     private static var _mode = Level.none
 
-    private static var cache = LogCache()
+    private static let cache = LogCache()
 
     /// 回调闭包，用于在解析完成时传递日志
     private static var logsHandler: ((String) -> Void)?
@@ -67,12 +67,15 @@ public struct SmartSentinel {
 extension SmartSentinel {
     static func monitorLog<T>(impl: JSONDecoderImpl, isOptionalLog: Bool = false,
                               forKey key: CodingKey?, value: JSONValue?, type: T.Type) {
-        
-        guard SmartSentinel.debugMode != .none else { return }
+
+        guard SmartSentinel.isLoggingEnabled else { return }
         guard let key = key else { return }
         // 如果被忽略了，就不要输出log了。
         let typeString = String(describing: T.self)
         guard !typeString.starts(with: "SmartIgnored<") else { return }
+
+        // 可选字段的 nil/null 是合法状态，不应记为解析错误。
+        let optional = isOptionalLog || T.self is _SmartOptionalType.Type
         
         // 字段日志使用该容器固定所属的模型类型，不查询任何活动状态
         let className = impl.modelSnapshot.map { String(describing: $0.objectType) } ?? ""
@@ -86,7 +89,7 @@ extension SmartSentinel {
         
         if let entry = value {
             if entry.isNull { // 值为null
-                if isOptionalLog { return }
+                if optional { return }
                 let error = DecodingError._valueNotFound(key: key, expectation: T.self, codingPath: path)
                 SmartSentinel.verboseLog(error, className: className, parsingMark: address)
             } else { // value类型不匹配
@@ -94,7 +97,7 @@ extension SmartSentinel {
                 SmartSentinel.alertLog(error: error, className: className, parsingMark: address)
             }
         } else { // key不存在或value为nil
-            if isOptionalLog { return }
+            if optional { return }
             let error = DecodingError._keyNotFound(key: key, codingPath: path)
             SmartSentinel.verboseLog(error, className: className, parsingMark: address)
         }
@@ -114,7 +117,7 @@ extension SmartSentinel {
     
     static func monitorLogs(in name: String, parsingMark: String, impl: JSONDecoderImpl) {
         
-        guard SmartSentinel.isValid else { return }
+        guard SmartSentinel.isLoggingEnabled else { return }
         
         var header: String?
         if let key = CodingUserInfoKey.logContextHeader {
@@ -186,16 +189,36 @@ extension SmartSentinel {
     }
 }
 
+/// 内部协议：仅用于运行时判断泛型是否是 Optional。
+private protocol _SmartOptionalType {}
+
+extension Optional: _SmartOptionalType {}
+
 
 extension SmartSentinel {
     
     public enum Level: Int, Sendable {
         /// 不记录日志
         case none
-        /// 详细的日志
+        /// 详细的日志：包含详细日志与警告日志
         case verbose
         /// 警告日志：仅仅包含类型不匹配的情况
         case alert
+
+        /// 当前模式是否允许输出指定级别的日志。
+        ///
+        /// 级别之间不是简单的数值大小关系：`verbose` 包含 `alert`，
+        /// 而 `none` 不允许任何日志。不要用 `rawValue` 比较。
+        func allows(_ level: Level) -> Bool {
+            switch self {
+            case .none:
+                return false
+            case .verbose:
+                return true
+            case .alert:
+                return level == .alert
+            }
+        }
     }
     
     
@@ -221,8 +244,7 @@ extension SmartSentinel {
     }
     
     private static func logIfNeeded(level: SmartSentinel.Level, callback: () -> ()) {
-        if SmartSentinel.debugMode.rawValue <= level.rawValue {
-            callback()
-        }
+        guard SmartSentinel.debugMode.allows(level) else { return }
+        callback()
     }
 }

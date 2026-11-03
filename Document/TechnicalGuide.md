@@ -109,6 +109,21 @@ snapshot.initialValueIfPresent(forKey:)  // 首次访问时触发 Mirror 反射�
 
 解码完成后该上下文随 decoder 视图一起释放，框架不持有全局注册表。
 
+若 `CodingKeys` 的 JSON 名称与 Swift 属性名不同（例如 `case age = "user_age"`），
+`Mirror` 无法从 `"user_age"` 反推出属性 `age`。需要声明默认值回退的模型可额外遵循
+`SmartDefaultValueKeyMapping`，提供 JSON key 到 Swift 属性名的显式关系：
+
+```swift
+struct User: SmartCodableX, SmartDefaultValueKeyMapping {
+    var age: Int = 18
+    enum CodingKeys: String, CodingKey { case age = "user_age" }
+    static let defaultValueKeyMapping = ["user_age": "age"]
+}
+```
+
+未提供此映射时，重命名字段的缺失值可能回退到类型默认值（例如 `Int` 的 `0`）。
+映射只影响声明默认值查找，不改变 JSON 键映射或正常字段解码。
+
 ### 容器固定绑定
 
 KeyedContainer 在创建时绑定 `impl.modelSnapshot`，此后不再变化：子模型正在
@@ -346,4 +361,4 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 
 10. **Mirror 反射是懒加载的**：`DecodingSnapshot` 只在首次需要默认值时才反射，不是每次解码都反射；同一上下文内重复查询复用同一份引用，跨上下文互不共享
 11. **SafeDictionary 使用 NSLock**：Sentinel 的日志字典有锁保护，在 `debugMode == .none` 时不会触碰
-12. **SmartSentinel 的日志守卫**：所有日志方法入口都有 `guard debugMode != .none else { return }`，Release 环境零开销（前提是 debugMode 保持默认的 `.none`）
+12. **SmartSentinel 的日志守卫**：日志出口统一经 `Level.allows(_:)` 判断；`debugMode == .none` 时不缓存、不打印、不回调（每次解码仍会生成 `parsingMark`）。级别之间是包含关系而非数值大小，禁止用 `rawValue` 比较

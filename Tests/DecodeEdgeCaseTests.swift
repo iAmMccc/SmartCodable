@@ -97,4 +97,29 @@ final class DecodeEdgeCaseTests: XCTestCase {
         SmartSentinel.debugMode = .alert
         XCTAssertEqual(SmartSentinel.debugMode, .alert)
     }
+
+    /// 级别策略：none 不允许任何日志，verbose 包含 alert，alert 只允许 alert
+    func testSmartSentinelLevelAllowsPolicy() {
+        XCTAssertFalse(SmartSentinel.Level.none.allows(.verbose))
+        XCTAssertFalse(SmartSentinel.Level.none.allows(.alert))
+
+        XCTAssertTrue(SmartSentinel.Level.verbose.allows(.verbose))
+        XCTAssertTrue(SmartSentinel.Level.verbose.allows(.alert))
+
+        XCTAssertFalse(SmartSentinel.Level.alert.allows(.verbose))
+        XCTAssertTrue(SmartSentinel.Level.alert.allows(.alert))
+    }
+
+    /// debugMode 为 .none 时，monitorAndPrint 路径也不能打印或回调
+    func testSmartSentinelNoneModeSuppressesPrintAndHandler() {
+        SmartSentinel.debugMode = .none
+        let noLog = expectation(description: "no log emitted in .none")
+        noLog.isInverted = true
+        SmartSentinel.onLogGenerated { _ in noLog.fulfill() }
+
+        // 顶层输入不是合法 JSON 容器，必然走到 monitorAndPrint
+        _ = try? SmartJSONDecoder().smartDecode(NumberStrategyModel.self, from: 42)
+
+        wait(for: [noLog], timeout: 0.3)
+    }
 }

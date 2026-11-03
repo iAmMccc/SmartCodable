@@ -301,16 +301,38 @@ extension JSONDecoderImpl {
         guard let dictType = T.self as? (_JSONStringDictionaryDecodableMarker & Decodable).Type else {
             preconditionFailure("Must only be called of T implements _JSONStringDictionaryDecodableMarker")
         }
-        
-        guard case .object(let object) = self.json else {
+
+        let resolvedJSON: JSONValue
+        switch self.json {
+        case .object:
+            resolvedJSON = self.json
+        case .string(let string):
+            // 与 container(keyedBy:) 保持一致：字典值可以是 JSON 字符串。
+            guard let object = string.toJSONObject() as? [String: Any],
+                  let json = JSONValue.make(object),
+                  case .object = json else {
+                throw DecodingError.typeMismatch([String: JSONValue].self, DecodingError.Context(
+                    codingPath: self.codingPath,
+                    debugDescription: "Expected to decode \([String: JSONValue].self) but found \(self.json.debugDataTypeDescription) instead."
+                ))
+            }
+            resolvedJSON = json
+        default:
             throw DecodingError.typeMismatch([String: JSONValue].self, DecodingError.Context(
                 codingPath: self.codingPath,
                 debugDescription: "Expected to decode \([String: JSONValue].self) but found \(self.json.debugDataTypeDescription) instead."
             ))
         }
-        
+
+        guard case .object(let object) = resolvedJSON else {
+            throw DecodingError.typeMismatch([String: JSONValue].self, DecodingError.Context(
+                codingPath: self.codingPath,
+                debugDescription: "Expected to decode \([String: JSONValue].self) but found \(self.json.debugDataTypeDescription) instead."
+            ))
+        }
+
         var result = [String: Any]()
-        
+
         for (key, value) in object {
             var newPath = self.codingPath
             newPath.append(_JSONKey(stringValue: key)!)
@@ -319,9 +341,24 @@ extension JSONDecoderImpl {
                 from: value,
                 codingPath: newPath,
                 options: self.options)
-            result[key] = try dictType.elementType._eraseCreateByDirectUnwrap(from: newDecoder)
+            let decoded = try dictType.elementType._eraseCreateByDirectUnwrap(from: newDecoder)
+            result[key] = finishMapping(decoded)
         }
         return result as! T
+    }
+
+    /// 字典元素同样是模型入口，必须与 keyed/unkeyed 路径一样执行
+    /// didFinishMapping / 包装器完成回调。
+    private func finishMapping(_ value: Any) -> Any {
+        if var model = value as? any SmartDecodable {
+            model.didFinishMapping()
+            return model
+        }
+        if let wrapper = value as? any PropertyWrapperable,
+           let updated = wrapper.wrappedValueDidFinishMapping() {
+            return updated
+        }
+        return value
     }
     
     func createTypeMismatchError(type: Any.Type, for additionalKey: CodingKey? = nil, value: JSONValue) -> DecodingError {

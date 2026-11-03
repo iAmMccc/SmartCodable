@@ -258,16 +258,21 @@ extension JSONDecoderImpl.KeyedContainer {
 
 extension JSONDecoderImpl.KeyedContainer {
     
-    fileprivate func _compatibleDecode<T>(forKey key: Key, logIfKeyMissing: Bool = true, needConvert: Bool = true) -> T? {
+    fileprivate func _compatibleDecode<T>(
+        forKey key: Key,
+        logIfKeyMissing: Bool = true,
+        needConvert: Bool = true,
+        isOptionalLog: Bool = false
+    ) -> T? {
 
         guard let value = getValue(forKey: key) else {
             if logIfKeyMissing {
-                SmartSentinel.monitorLog(impl: impl, forKey: key, value: nil, type: T.self)
+                SmartSentinel.monitorLog(impl: impl, isOptionalLog: isOptionalLog, forKey: key, value: nil, type: T.self)
             }
             return snapshot?.initialValueIfPresent(forKey: key)
         }
 
-        SmartSentinel.monitorLog(impl: impl, forKey: key, value: value, type: T.self)
+        SmartSentinel.monitorLog(impl: impl, isOptionalLog: isOptionalLog, forKey: key, value: value, type: T.self)
 
         if needConvert {
             if let decoded = Patcher<T>.convertToType(from: value, impl: impl) {
@@ -326,7 +331,7 @@ extension JSONDecoderImpl.KeyedContainer {
     @inline(__always) private func _decodeFixedWidthIntegerIfPresent<T: FixedWidthInteger>(key: Self.Key) -> T? {
         
         guard let decoded: T = _decodeFixedWidthIntegerIfPresentCore(key: key) else {
-            return _compatibleDecode(forKey: key, logIfKeyMissing: false)
+            return _compatibleDecode(forKey: key, logIfKeyMissing: false, isOptionalLog: true)
         }
         return decoded
     }
@@ -350,7 +355,7 @@ extension JSONDecoderImpl.KeyedContainer {
 
     @inline(__always) private func _decodeFloatingPointIfPresent<T: LosslessStringConvertible & BinaryFloatingPoint>(key: K) -> T? {
         guard let decoded: T = _decodeFloatingPointIfPresentCore(key: key) else {
-            return _compatibleDecode(forKey: key, logIfKeyMissing: false)
+            return _compatibleDecode(forKey: key, logIfKeyMissing: false, isOptionalLog: true)
         }
         return decoded
     }
@@ -373,7 +378,7 @@ extension JSONDecoderImpl.KeyedContainer {
 extension JSONDecoderImpl.KeyedContainer {
     @inline(__always) private func _decodeBoolValueIfPresent(key: K) -> Bool? {
         guard let decoded = _decodeBoolValueIfPresentCore(key: key) else {
-            return _compatibleDecode(forKey: key, logIfKeyMissing: false)
+            return _compatibleDecode(forKey: key, logIfKeyMissing: false, isOptionalLog: true)
         }
         return decoded
     }
@@ -396,7 +401,7 @@ extension JSONDecoderImpl.KeyedContainer {
 extension JSONDecoderImpl.KeyedContainer {
     @inline(__always) private func _decodeStringValueIfPresent(key: K) -> String? {
         guard let decoded = _decodeStringValueIfPresentCore(key: key) else {
-            return _compatibleDecode(forKey: key, logIfKeyMissing: false)
+            return _compatibleDecode(forKey: key, logIfKeyMissing: false, isOptionalLog: true)
         }
         return decoded
     }
@@ -418,7 +423,7 @@ extension JSONDecoderImpl.KeyedContainer {
 extension JSONDecoderImpl.KeyedContainer {
     @inline(__always)private func _decodeDecodableIfPresent<T: Decodable>(_ type: T.Type, forKey key: K) -> T? {
         guard let decoded = _decodeDecodableIfPresentCore(type, forKey: key) else {
-            if let value: T = _compatibleDecode(forKey: key, logIfKeyMissing: false) {
+            if let value: T = _compatibleDecode(forKey: key, logIfKeyMissing: false, isOptionalLog: true) {
                 return didFinishMapping(value)
             }
             return nil

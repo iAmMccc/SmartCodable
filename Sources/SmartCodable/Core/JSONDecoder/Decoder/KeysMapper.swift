@@ -77,13 +77,19 @@ struct KeysMapper {
                 }
                 
                 // Mapping requires cross-level path handling
-                if let pathValue = dict.getValue(forKeyPath: oldKey) {
+                if let pathValue = dict.getValue(forKeyPath: oldKey), !isNullJSONValue(pathValue) {
                     newDict.updateValue(pathValue, forKey: newKey)
                     break
                 }
             }
         }
         return newDict
+    }
+
+    private static func isNullJSONValue(_ value: Any) -> Bool {
+        if value is NSNull { return true }
+        if let jsonValue = value as? JSONValue, jsonValue == .null { return true }
+        return false
     }
 }
 
@@ -127,6 +133,9 @@ extension Dictionary {
 
 extension String {
     func toJSONObject() -> Any? {
-        return data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) }
+        // 与 Data 输入保持一致：顶层标量（42、"x"、true、null）也是合法 JSON。
+        return data(using: .utf8).flatMap {
+            try? JSONSerialization.jsonObject(with: $0, options: .allowFragments)
+        }
     }
 }
