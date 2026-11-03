@@ -38,14 +38,18 @@ extension SmartCompact.Array: Codable {
                 return (T.self as? Decodable.Type).flatMap { try? $0.init(from: element) }
             }
             if let type = T.self as? Decodable.Type {
-                if T.self is SmartCodableX.Type {
-                    return try? container.decode(type)
-                }
                 guard let element = try? container.superDecoder() else { return nil }
+                let decoded: Any?
                 if let impl = element as? JSONDecoderImpl {
-                    return try? impl.unwrap(as: type)
+                    decoded = try? impl.unwrap(as: type)
+                } else {
+                    decoded = try? type.init(from: element)
                 }
-                return try? type.init(from: element)
+                if var model = decoded as? any SmartDecodable {
+                    model.didFinishMapping()
+                    return model
+                }
+                return decoded
             }
             return try? container.decode(SmartAnyImpl.self).peel
         }

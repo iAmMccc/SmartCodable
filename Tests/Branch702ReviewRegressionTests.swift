@@ -58,4 +58,43 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertTrue(nan.value.isNaN)
     }
 
+    func testR2CompactModels() throws {
+        struct Child: SmartCodableX { var id: Int = -1 }
+        struct Host: SmartCodableX { @SmartCompact.Array var children: [Child] = [] }
+        let input: [String: Any] = ["children": [["id": 1], NSNull(), ["id": 2]] as [Any]]
+        let model = try XCTUnwrap(Host.deserialize(from: input))
+        XCTAssertEqual(model.children.map(\.id), [1, 2])
+    }
+
+    func testR2CallbacksAndOrdinaryArray() throws {
+        struct Child: SmartCodableX {
+            var id = -1
+            var calls = 0
+            mutating func didFinishMapping() { calls += 1; id += 10 }
+        }
+        struct DecodeOnly: SmartDecodable {
+            var id = -1
+            var calls = 0
+            mutating func didFinishMapping() { calls += 1; id += 10 }
+        }
+        struct Host: SmartCodableX {
+            @SmartCompact.Array var compact: [Child] = []
+            @SmartCompact.Array var only: [DecodeOnly] = []
+            var ordinary: [Child] = []
+        }
+        let elements: [Any] = [["id": 1], NSNull(), "bad", ["id": 2]]
+        let ordinary: [Any] = [["id": 1], [String: Int](), ["id": 2]]
+        let host = try XCTUnwrap(Host.deserialize(from: ["compact": elements, "only": elements, "ordinary": ordinary]))
+        XCTAssertEqual(host.compact.map(\.id), [11, 12])
+        XCTAssertEqual(host.compact.map(\.calls), [1, 1])
+        XCTAssertEqual(host.only.map(\.id), [11, 12])
+        XCTAssertEqual(host.only.map(\.calls), [1, 1])
+        XCTAssertEqual(host.ordinary.map(\.id), [11, 9, 12])
+        XCTAssertEqual(host.ordinary.map(\.calls), [1, 1, 1])
+
+        // A null in a non-optional model array causes the entire property to use its default.
+        let withNull = try XCTUnwrap(Host.deserialize(from: ["ordinary": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
+        XCTAssertEqual(withNull.ordinary.map(\.id), [])
+    }
+
 }
