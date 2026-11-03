@@ -348,6 +348,7 @@ struct SexTransformer: ValueTransformable {
 ```swift
 struct Model: SmartCodableX {
     var name: String = ""
+    @SmartIgnored var localState: String = ""
     mutating func didFinishMapping() {
         name = "I am \(name)"
     }
@@ -360,6 +361,20 @@ struct Model: SmartCodableX {
 var model = Model.deserialize(from: initialData)!
 SmartUpdater.update(&model, from: newData)
 ```
+
+更新会把旧模型编码为 JSON、合并新数据，再解码为新模型。`CodingKeys` 排除的
+字段、默认不编码的 `@SmartIgnored` 字段不会出现在 JSON 中。需要保留这些字段的
+运行时值时，使用 `preserving` 闭包显式恢复；嵌套模型或数组元素的匹配规则也由调用方指定：
+
+```swift
+SmartUpdater.update(&model, from: newData) { updated, old in
+    updated.localState = old.localState
+}
+```
+
+自定义 `CodingKeys` 的 rawValue 与 Swift 属性名不同时，缺字段要回退到声明默认值，
+请额外遵循 `SmartDefaultValueKeyMapping` 并提供 `defaultValueKeyMapping`，例如
+`["user_age": "age"]`。未声明的重命名字段可能回退到类型默认值。
 
 ### 8. 容错兼容
 

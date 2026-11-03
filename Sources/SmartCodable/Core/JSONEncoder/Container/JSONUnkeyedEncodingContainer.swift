@@ -103,14 +103,18 @@ struct JSONUnkeyedEncodingContainer: UnkeyedEncodingContainer, _SpecialTreatment
     {
         let newPath = self.codingPath + [_JSONKey(index: self.count)]
         let object = self.array.appendObject()
-        let nestedContainer = JSONKeyedEncodingContainer<NestedKey>(impl: impl, object: object, codingPath: newPath)
+        let nestedImpl = JSONEncoderImpl(options: impl.options, codingPath: newPath, cache: impl.cache)
+        nestedImpl.object = object
+        let nestedContainer = JSONKeyedEncodingContainer<NestedKey>(impl: nestedImpl, object: object, codingPath: newPath)
         return KeyedEncodingContainer(nestedContainer)
     }
 
     mutating func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
         let newPath = self.codingPath + [_JSONKey(index: self.count)]
         let array = self.array.appendArray()
-        let nestedContainer = JSONUnkeyedEncodingContainer(impl: impl, array: array, codingPath: newPath)
+        let nestedImpl = JSONEncoderImpl(options: impl.options, codingPath: newPath, cache: impl.cache)
+        nestedImpl.array = array
+        let nestedContainer = JSONUnkeyedEncodingContainer(impl: nestedImpl, array: array, codingPath: newPath)
         return nestedContainer
     }
 

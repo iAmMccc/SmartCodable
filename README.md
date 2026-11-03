@@ -349,6 +349,7 @@ struct SexTransformer: ValueTransformable {
 ```swift
 struct Model: SmartCodableX {
     var name: String = ""
+    @SmartIgnored var localState: String = ""
     mutating func didFinishMapping() {
         name = "I am \(name)"
     }
@@ -361,6 +362,20 @@ struct Model: SmartCodableX {
 var model = Model.deserialize(from: initialData)!
 SmartUpdater.update(&model, from: newData)
 ```
+
+Updates encode the existing model, merge the new JSON, then decode a new model.
+Properties excluded by `CodingKeys` or `@SmartIgnored` are absent from that JSON.
+Use `preserving` to restore runtime state explicitly (including nested state):
+
+```swift
+SmartUpdater.update(&model, from: newData) { updated, old in
+    updated.localState = old.localState
+}
+```
+
+When a `CodingKeys` raw value differs from its Swift property name, opt in to
+`SmartDefaultValueKeyMapping` and provide `defaultValueKeyMapping`, for example
+`["user_age": "age"]`, to restore the declared default for missing fields.
 
 ### 8. Compatibility
 

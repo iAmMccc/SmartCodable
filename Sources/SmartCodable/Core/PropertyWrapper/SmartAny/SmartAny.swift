@@ -95,6 +95,10 @@ extension SmartAny: Codable {
             try container.encode(value)
         } else if let model = wrappedValue as? SmartCodableX {
             try container.encode(model)
+        } else if wrappedValue is Encodable {
+            // Date/Data/URL/普通 Codable 模型：走它们自己的 Encodable 实现，
+            // 不能交给 SmartAnyImpl 后统一变成 null。
+            try container.encode(AnyEncodableBox(value: wrappedValue))
         } else {
             let value = SmartAnyImpl(from: wrappedValue)
             try container.encode(value)

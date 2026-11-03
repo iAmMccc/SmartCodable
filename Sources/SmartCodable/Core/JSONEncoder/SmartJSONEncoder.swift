@@ -45,7 +45,11 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
         let jsonObject = jsonValue.toFoundation()
         
         do {
-            return try JSONSerialization.data(withJSONObject: jsonObject, options: self.outputFormatting.jsonSerializationOptions)
+            var options = self.outputFormatting.jsonSerializationOptions
+            // 与 Foundation JSONEncoder 对齐：顶层标量（数字、字符串、布尔、null）
+            // 也是合法 JSON 文档，不能因为缺少该选项抛 NSInvalidArgumentException。
+            options.insert(.fragmentsAllowed)
+            return try JSONSerialization.data(withJSONObject: jsonObject, options: options)
         } catch {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Unable to encode the given top-level value to JSON.", underlyingError: error))
         }

@@ -46,12 +46,73 @@ public struct SmartUpdater<T: SmartCodableX> {
     ///   - dest: A reference to the target object (the inout keyword indicates that this object will be modified within the method).
     ///   - src: A Dictionary object containing the JSON data.
     public static func update(_ dest: inout T, from src: [String: Any]?) {
-        guard let src = src else { return }
-        var destDict = dest.toDictionary(useMappedKeys: true) ?? [:]
-        updateDict(&destDict, from: src)
-        if let model = T.deserialize(from: destDict) {
-            dest = model
+        guard let model = mergedModel(from: dest, with: src) else { return }
+        dest = model
+    }
+
+    /// `toDictionary(useMappedKeys: true)` 输出的是 mapping 的第一个别名。
+    /// src 可能使用其它别名，直接把 src 合并进去会让旧别名值先被解码器命中，
+    /// 新值静默丢失。这里先按 mapping 把 src 归一化到同一个输出 key。
+    private static func normalizeSourceKeys(_ src: [String: Any]) -> [String: Any] {
+        guard let mappings = T.mappingForKey(), !mappings.isEmpty,
+              let json = JSONValue.make(src),
+              case .object(let resolved) = KeysMapper.convertFrom(json, type: T.self) else {
+            return src
         }
+
+        var normalized = src
+        for mapping in mappings {
+            guard let canonical = mapping.from.first,
+                  let selected = resolved[mapping.to.stringValue] else { continue }
+            normalized[canonical] = selected.toFoundation()
+            for alias in mapping.from where alias != canonical {
+                normalized.removeValue(forKey: alias)
+            }
+        }
+        return normalized
+    }
+
+    /// Update a model and explicitly restore runtime state excluded from Codable.
+    ///
+    /// `preserving` runs only after decoding succeeds, before replacing `dest`.
+    /// Callers decide how to match and restore nested models or array elements.
+    public static func update(
+        _ dest: inout T,
+        from src: [String: Any]?,
+        preserving: (inout T, T) -> Void
+    ) {
+        guard var model = mergedModel(from: dest, with: src) else { return }
+        preserving(&model, dest)
+        dest = model
+    }
+
+    public static func update(
+        _ dest: inout T,
+        from src: Data?,
+        preserving: (inout T, T) -> Void
+    ) {
+        guard let src,
+              let dict = try? JSONSerialization.jsonObject(with: src, options: .mutableContainers) as? [String: Any] else {
+            return
+        }
+        update(&dest, from: dict, preserving: preserving)
+    }
+
+    public static func update(
+        _ dest: inout T,
+        from src: String?,
+        preserving: (inout T, T) -> Void
+    ) {
+        guard let src, let data = src.data(using: .utf8) else { return }
+        update(&dest, from: data, preserving: preserving)
+    }
+
+    private static func mergedModel(from dest: T, with src: [String: Any]?) -> T? {
+        guard let src, var dictionary = dest.toDictionary(useMappedKeys: true) else {
+            return nil
+        }
+        updateDict(&dictionary, from: normalizeSourceKeys(src))
+        return T.deserialize(from: dictionary)
     }
 }
 

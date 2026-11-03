@@ -14,10 +14,13 @@ class EncodingCache: Cachable {
 
     var snapshots: [EncodingSnapshot] = []
     
-    /// Caches a snapshot for an Encodable type
-    func cacheSnapshot<T>(for type: T.Type, codingPath: [CodingKey]) {
+    /// Caches a snapshot for an Encodable type.
+    ///
+    /// Takes `Any.Type` so callers can pass the *dynamic* type of an
+    /// `Encodable` existential (e.g. a model stored in `[String: Encodable]`).
+    func cacheSnapshot(for type: Any.Type, codingPath: [CodingKey]) {
         if let object = type as? SmartEncodable.Type {
-            
+
             var snapshot = EncodingSnapshot()
             snapshot.objectType = object
             snapshot.codingPath = codingPath
@@ -25,10 +28,10 @@ class EncodingCache: Cachable {
             snapshots.append(snapshot)
         }
     }
-    
+
     /// Removes the most recent snapshot for the given type
-    func removeSnapshot<T>(for type: T.Type) {
-        if let _ = T.self as? SmartEncodable.Type {
+    func removeSnapshot(for type: Any.Type) {
+        if type is SmartEncodable.Type {
             if snapshots.count > 0 {
                 snapshots.removeLast()
             }
@@ -45,20 +48,26 @@ extension EncodingCache {
         guard let snapshot = findSnapShot(with: containerPath) else { return nil }
         
         guard let transformers = snapshot.transformers, !transformers.isEmpty else { return nil }
-        
-        
-        // 提前解析 key 映射（避免每次遍历 transformer 都重新计算）
-        let keyMappings: Set<String> = {
-            guard let mappings = snapshot.objectType?.mappingForKey() else { return [] }
-            return Set(mappings.flatMap { $0.from })
-        }()
-        
-        let transformer = transformers.first(where: { transformer in
-            transformer.location.stringValue == lastKey.stringValue
-            || keyMappings.contains(lastKey.stringValue)
-        })
 
-        return transformer
+        return transformers.first { transformer in
+            transformerMatches(transformer, key: lastKey.stringValue, objectType: snapshot.objectType)
+        }
+    }
+
+    /// 一个 transformer 只属于它自己的 location。
+    /// key 映射的别名必须映射到该 transformer 的 location 才算命中，
+    /// 不能因为“当前 key 是某个映射的别名”就返回第一个 transformer。
+    private func transformerMatches(
+        _ transformer: SmartValueTransformer,
+        key: String,
+        objectType: (any SmartEncodable.Type)?
+    ) -> Bool {
+        if transformer.location.stringValue == key { return true }
+        guard let mappings = objectType?.mappingForKey() else { return false }
+        return mappings.contains { mapping in
+            mapping.to.stringValue == transformer.location.stringValue
+            && mapping.from.contains(key)
+        }
     }
 }
 
@@ -71,31 +80,11 @@ extension EncodingCache {
     ///   - key: The associated coding key
     /// - Returns: The transformed JSON value or nil if no transformer applies
     func tranform(from value: Any, with key: CodingKey?, codingPath: [CodingKey]) -> JSONValue? {
-        
-        guard let top = findSnapShot(with: codingPath), let key = key else { return nil }
-                
-        // 查找对应的值转换器
-        let wantKey = key.stringValue
-        let targetTran = top.transformers?.first(where: { transformer in
-            if wantKey == transformer.location.stringValue {
-                return true
-            } else {
-                if let keyTransformers = top.objectType?.mappingForKey() {
-                    for keyTransformer in keyTransformers {
-                        if keyTransformer.from.contains(wantKey) {
-                            return true
-                        }
-                    }
-                }
-                return false
-            }
-        })
-        
-        if let tran = targetTran, let decoded = transform(decodedValue: value, performer: tran.performer) {
-            return JSONValue.make(decoded)
-        }
-        
-        return nil
+
+        guard let key = key else { return nil }
+        guard let tranformer = valueTransformer(for: key, in: codingPath) else { return nil }
+        guard let decoded = transform(decodedValue: value, performer: tranformer.performer) else { return nil }
+        return JSONValue.make(decoded)
     }
     
     /// Performs the actual value transformation

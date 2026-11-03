@@ -39,7 +39,11 @@ struct JSONKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol,
         let convertedKey = self._converted(key)
         let newPath = self.codingPath + [convertedKey]
         let object = self.object.setObject(for: convertedKey.stringValue)
-        let nestedContainer = JSONKeyedEncodingContainer<NestedKey>(impl: impl, object: object, codingPath: newPath)
+        // nested container 必须拥有自己的 impl/路径；沿用父 impl 会让
+        // @SmartFlat 展开值写进父对象，也会让 _converted 查到父模型映射。
+        let nestedImpl = JSONEncoderImpl(options: impl.options, codingPath: newPath, cache: impl.cache)
+        nestedImpl.object = object
+        let nestedContainer = JSONKeyedEncodingContainer<NestedKey>(impl: nestedImpl, object: object, codingPath: newPath)
         return KeyedEncodingContainer(nestedContainer)
     }
 
@@ -47,7 +51,9 @@ struct JSONKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol,
         let convertedKey = self._converted(key)
         let newPath = self.codingPath + [convertedKey]
         let array = self.object.setArray(for: convertedKey.stringValue)
-        let nestedContainer = JSONUnkeyedEncodingContainer(impl: impl, array: array, codingPath: newPath)
+        let nestedImpl = JSONEncoderImpl(options: impl.options, codingPath: newPath, cache: impl.cache)
+        nestedImpl.array = array
+        let nestedContainer = JSONUnkeyedEncodingContainer(impl: nestedImpl, array: array, codingPath: newPath)
         return nestedContainer
     }
 
@@ -71,119 +77,129 @@ extension JSONKeyedEncodingContainer {
     }
 
     mutating func encode(_ value: Bool, forKey key: Self.Key) throws {
-       try encodeBoolPoint(value, key: _converted(key))
+        try encodeBoolPoint(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: String, forKey key: Self.Key) throws {
-        try encodeStringPoint(value, key: _converted(key))
+        try encodeStringPoint(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Double, forKey key: Self.Key) throws {
-        try encodeFloatingPoint(value, key: _converted(key))
+        try encodeFloatingPoint(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Float, forKey key: Self.Key) throws {
-        try encodeFloatingPoint(value, key: _converted(key))
+        try encodeFloatingPoint(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Int, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Int8, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Int16, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Int32, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: Int64, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: UInt, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: UInt8, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: UInt16, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: UInt32, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode(_ value: UInt64, forKey key: Self.Key) throws {
-        try encodeFixedWidthInteger(value, key: _converted(key))
+        try encodeFixedWidthInteger(value, lookupKey: key, outputKey: _converted(key))
     }
 
     mutating func encode<T>(_ value: T, forKey key: Self.Key) throws where T: Encodable {
-        try encodeEncodableCore(value, key: _converted(key))
+        try encodeEncodableCore(value, lookupKey: key, outputKey: _converted(key))
     }
 
 }
 
 
 extension JSONKeyedEncodingContainer {
-    
-    @inline(__always) private mutating func encodeBoolPoint(_ value: Bool, key: CodingKey) throws {
-        if let jsonValue = tranform(from: value, with: key, containerPath: codingPath) {
-            self.object.set(jsonValue, for: key.stringValue)
+
+    @inline(__always) private mutating func encodeBoolPoint(
+        _ value: Bool, lookupKey: CodingKey, outputKey: CodingKey
+    ) throws {
+        if let jsonValue = tranform(from: value, with: lookupKey, containerPath: codingPath) {
+            self.object.set(jsonValue, for: outputKey.stringValue)
         } else {
-            self.object.set(.bool(value), for: key.stringValue)
-        }
-    }
-    
-    @inline(__always) private mutating func encodeStringPoint(_ value: String, key: CodingKey) throws {
-        if let jsonValue = tranform(from: value, with: key, containerPath: codingPath) {
-            self.object.set(jsonValue, for: key.stringValue)
-        } else {
-            self.object.set(.string(value), for: key.stringValue)
-        }
-    }
-    
-    
-    @inline(__always) private mutating func encodeFloatingPoint<F: FloatingPoint & CustomStringConvertible>(_ value: F, key: CodingKey) throws {
-        
-        if let jsonValue = tranform(from: value, with: key, containerPath: codingPath) {
-            self.object.set(jsonValue, for: key.stringValue)
-        } else {
-            let value = try self.wrapFloat(value, for: key)
-            self.object.set(value, for: key.stringValue)
+            self.object.set(.bool(value), for: outputKey.stringValue)
         }
     }
 
-    @inline(__always) private mutating func encodeFixedWidthInteger<N: FixedWidthInteger>(_ value: N, key: CodingKey) throws {
-        
-        if let jsonValue = tranform(from: value, with: key, containerPath: codingPath) {
-            self.object.set(jsonValue, for: key.stringValue)
+    @inline(__always) private mutating func encodeStringPoint(
+        _ value: String, lookupKey: CodingKey, outputKey: CodingKey
+    ) throws {
+        if let jsonValue = tranform(from: value, with: lookupKey, containerPath: codingPath) {
+            self.object.set(jsonValue, for: outputKey.stringValue)
         } else {
-            self.object.set(.number(value.description), for: key.stringValue)
+            self.object.set(.string(value), for: outputKey.stringValue)
         }
     }
-    
-    
-    @inline(__always) private mutating func encodeEncodableCore<T: Encodable>(_ value: T, key: CodingKey) throws {
-        if let jsonValue = tranform(from: value, with: key, containerPath: codingPath) {
-            self.object.set(jsonValue, for: key.stringValue)
+
+
+    @inline(__always) private mutating func encodeFloatingPoint<F: FloatingPoint & CustomStringConvertible>(
+        _ value: F, lookupKey: CodingKey, outputKey: CodingKey
+    ) throws {
+
+        if let jsonValue = tranform(from: value, with: lookupKey, containerPath: codingPath) {
+            self.object.set(jsonValue, for: outputKey.stringValue)
         } else {
-            if let encoded = try self.wrapEncodable(value, for: key) {
-                self.object.set(encoded, for: key.stringValue)
+            let value = try self.wrapFloat(value, for: outputKey)
+            self.object.set(value, for: outputKey.stringValue)
+        }
+    }
+
+    @inline(__always) private mutating func encodeFixedWidthInteger<N: FixedWidthInteger>(
+        _ value: N, lookupKey: CodingKey, outputKey: CodingKey
+    ) throws {
+
+        if let jsonValue = tranform(from: value, with: lookupKey, containerPath: codingPath) {
+            self.object.set(jsonValue, for: outputKey.stringValue)
+        } else {
+            self.object.set(.number(value.description), for: outputKey.stringValue)
+        }
+    }
+
+
+    @inline(__always) private mutating func encodeEncodableCore<T: Encodable>(
+        _ value: T, lookupKey: CodingKey, outputKey: CodingKey
+    ) throws {
+        if let jsonValue = tranform(from: value, with: lookupKey, containerPath: codingPath) {
+            self.object.set(jsonValue, for: outputKey.stringValue)
+        } else {
+            if let encoded = try self.wrapEncodable(value, for: outputKey) {
+                self.object.set(encoded, for: outputKey.stringValue)
             }
         }
     }
-    
-    
-    
+
+
+
     private func tranform(from value: Any, with key: CodingKey, containerPath path: [CodingKey]) -> JSONValue? {
         guard let tranformer = impl.cache.valueTransformer(for: key, in: path) else { return nil }
         let decoded = encodeWithTransformer(tranformer.performer, decodedValue: value)

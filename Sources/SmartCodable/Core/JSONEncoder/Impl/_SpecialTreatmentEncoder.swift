@@ -66,11 +66,13 @@ extension _SpecialTreatmentEncoder {
         case let object as _JSONStringDictionaryEncodableMarker:
             return try self.wrapObject(object as! [String: Encodable], for: additionalKey)
         default:
-            
+
             let encoder = self.getEncoder(for: additionalKey)
-            encoder.cache.cacheSnapshot(for: E.self, codingPath: encoder.codingPath)
+            // Optional 本身不是 SmartEncodable；包装里的模型才是需要快照的类型。
+            let snapshotType = encodingSubjectType(of: encodable, fallback: E.self)
+            encoder.cache.cacheSnapshot(for: snapshotType, codingPath: encoder.codingPath)
             try encodable.encode(to: encoder)
-            encoder.cache.removeSnapshot(for: E.self)
+            encoder.cache.removeSnapshot(for: snapshotType)
 
             // If it is modified by SmartFlat, you need to encode to the upper layer to restore the data.
             if encodable is FlatType {
@@ -145,7 +147,7 @@ extension _SpecialTreatmentEncoder {
         try object.forEach { (key, value) in
             var elemCodingPath = baseCodingPath
             elemCodingPath.append(_JSONKey(stringValue: key, intValue: nil))
-            let encoder = JSONEncoderImpl(options: self.options, codingPath: elemCodingPath)
+            let encoder = JSONEncoderImpl(options: self.options, codingPath: elemCodingPath, cache: impl.cache)
 
             result[key] = try encoder.wrapUntyped(value)
         }

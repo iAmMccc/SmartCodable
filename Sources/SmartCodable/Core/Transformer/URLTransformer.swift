@@ -34,7 +34,14 @@ public struct SmartURLTransformer: ValueTransformable {
             return URL(string: URLString)
         }
 
-        guard let escapedURLString = URLString.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed) else {
+        // URL(string:) 已经会处理 Unicode、空格等必要转义。
+        // 先直接构造；只有确实无法构造时才做一次百分号编码兜底，
+        // 避免把已经编码过的 "%E4..." 二次编码成 "%25E4..."。
+        if let url = URL(string: URLString) {
+            return url
+        }
+
+        guard let escapedURLString = URLString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             return nil
         }
         return URL(string: escapedURLString)

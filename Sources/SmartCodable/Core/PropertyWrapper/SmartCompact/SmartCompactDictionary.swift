@@ -64,10 +64,11 @@ extension SmartCompact.Dictionary: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: _JSONKey.self)
         for (k, v) in wrappedValue {
-            if let key = _JSONKey(stringValue: k.description),
-               let _v = v as? Encodable {
-                try container.encode(_v, forKey: key)
-            }
+            guard v is Encodable || JSONValue.make(v) != nil else { continue }
+            let key = _JSONKey(stringValue: k.description, intValue: nil)
+            // Preserve Foundation JSON values such as NSNumber and [String: Any]
+            // without turning unrepresentable values into explicit nulls.
+            try container.encode(AnyEncodableBox(value: v), forKey: key)
         }
     }
 }

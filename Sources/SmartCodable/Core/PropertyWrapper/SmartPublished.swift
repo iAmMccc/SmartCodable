@@ -107,8 +107,10 @@ public struct SmartPublished<Value: Codable>: PropertyWrapperable {
             // Notify observers before changing value
             if let subject = observed.objectWillChange as? ObservableObjectPublisher {
                 subject.send()
-                observed[keyPath: storageKeyPath].wrappedValue = newValue
             }
+            // 赋值不能放进 publisher 的判断里：宿主可以使用自定义
+            // ObjectWillChangePublisher，此时赋值仍然必须生效。
+            observed[keyPath: storageKeyPath].wrappedValue = newValue
         }
     }
 }

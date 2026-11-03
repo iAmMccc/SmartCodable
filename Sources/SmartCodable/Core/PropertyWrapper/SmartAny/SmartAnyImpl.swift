@@ -259,8 +259,10 @@ extension JSONDecoderImpl {
                 return .array(temp)
             }
         case .number(let number):
-            if number.contains(".") { // 浮点数
-                // JSON 规范（RFC 8259）允许 e / E 两种写法，这里需要大小写都兼容
+            let isFloatingPoint = number.contains(".")
+                || number.contains("e")
+                || number.contains("E")
+            if isFloatingPoint { // 浮点数（含科学计数法）
                 if number.contains("e") || number.contains("E") { // 科学计数法
                     if let temp = container.decodeIfPresent(Decimal.self) as? NSNumber {
                         return .number(temp)
@@ -295,6 +297,10 @@ extension JSONDecoderImpl {
                     } else if let temp = container.decodeIfPresent(Int.self) as? NSNumber {
                         return .number(temp)
                     } else if let temp = container.decodeIfPresent(UInt.self) as? NSNumber {
+                        return .number(temp)
+                    }
+                } else if let _ = UInt64(number) { // Int64 放不下但 UInt64 可以
+                    if let temp = container.decodeIfPresent(UInt64.self) as? NSNumber {
                         return .number(temp)
                     }
                 } else {

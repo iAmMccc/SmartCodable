@@ -27,14 +27,27 @@ extension SmartCompact.Array: Codable {
         var result: [T] = []
         
         
-        // 1. 生成 decode 闭包
+        // Scalar decoding in SmartJSONDecoder may return a default for a malformed
+        // element. Compact arrays must skip that element, not append the default.
         let decodeValue: () -> Any? = {
-            if T.self is SmartCodableX.Type,
-               let type = T.self as? Decodable.Type {
-                return try? container.decode(type)
-            } else {
-                return try? container.decode(SmartAnyImpl.self).peel
+            if T.self is any TypeTransformable.Type {
+                guard let element = try? container.superDecoder() else { return nil }
+                if let impl = element as? JSONDecoderImpl {
+                    return Patcher<T>.convertToType(from: impl.json, impl: impl)
+                }
+                return (T.self as? Decodable.Type).flatMap { try? $0.init(from: element) }
             }
+            if let type = T.self as? Decodable.Type {
+                if T.self is SmartCodableX.Type {
+                    return try? container.decode(type)
+                }
+                guard let element = try? container.superDecoder() else { return nil }
+                if let impl = element as? JSONDecoderImpl {
+                    return try? impl.unwrap(as: type)
+                }
+                return try? type.init(from: element)
+            }
+            return try? container.decode(SmartAnyImpl.self).peel
         }
 
         // 2. 统一循环
@@ -59,7 +72,7 @@ extension SmartCompact.Array: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
         for value in wrappedValue {
-            try container.encode(SmartAnyImpl(from: value))
+            try container.encode(AnyEncodableBox(value: value))
         }
     }
 }

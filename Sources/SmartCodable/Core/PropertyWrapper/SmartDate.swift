@@ -62,7 +62,12 @@ extension SmartDate: Codable {
         }
         
         self.wrappedValue = date
-        if self.encodeFormat == nil {
+
+        // 与 SmartHexColor 一致：新建 wrapper 的 encodeFormat 永远是 nil，
+        // 必须从宿主声明中恢复，否则 @SmartDate(encodeFormat:) 在解码后失效。
+        if let declared = (decoder as? JSONDecoderImpl)?.propertyContext?.declaredWrapper(as: SmartDate.self) {
+            self.encodeFormat = declared.encodeFormat ?? format
+        } else if self.encodeFormat == nil {
             self.encodeFormat = format
         }
     }
@@ -143,7 +148,7 @@ struct DateParser {
     
     private static func parseTimestamp(from raw: Any) -> (Date, SmartDate.DateStrategy)? {
         if let double = raw as? Double ?? Double(raw as? String ?? "") {
-            if double > 1_000_000_000_000 {
+            if double >= 1_000_000_000_000 {
                 return (Date(timeIntervalSince1970: double / 1000), .timestampMilliseconds)
             } else {
                 return (Date(timeIntervalSince1970: double), .timestamp)
