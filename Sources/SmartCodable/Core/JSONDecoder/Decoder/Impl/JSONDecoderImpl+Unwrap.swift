@@ -104,6 +104,11 @@ extension JSONDecoderImpl {
                 }
             }
 
+            if case .string(let string) = value,
+               let floatingPoint = T(string), floatingPoint.isFinite {
+                return floatingPoint
+            }
+
             return nil
         }
 
