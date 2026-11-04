@@ -372,9 +372,23 @@ SmartUpdater.update(&model, from: newData) { updated, old in
 }
 ```
 
+`preserving` 同样适用于 `Data` 与 `String` 输入。
+输入为 nil 或无法解析时，模型保持不变，`preserving` 不会被调用。
+
+`CodingKeys` 与属性名一致的模型不需要 `SmartDefaultValueKeyMapping`。
+只想把 JSON 键映射到属性、又要保留声明默认值时，不必修改 `CodingKeys`，
+改用 `mappingForKey()`：
+
+```swift
+static func mappingForKey() -> [SmartKeyTransformer]? {
+    [ CodingKeys.age <--- "user_age" ]
+}
+```
+
+`SmartDefaultValueKeyMapping` 用于必须自定义 `CodingKeys` 的场景。
 自定义 `CodingKeys` 的 rawValue 与 Swift 属性名不同时，缺字段要回退到声明默认值，
 请额外遵循 `SmartDefaultValueKeyMapping` 并提供 `defaultValueKeyMapping`，例如
-`["user_age": "age"]`。未声明的重命名字段可能回退到类型默认值。
+`["user_age": "age"]`。未声明映射的重命名字段在缺失时回退到类型默认值（如 `Int` 的 `0`）。
 
 ### 8. 容错兼容
 

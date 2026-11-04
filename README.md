@@ -373,9 +373,26 @@ SmartUpdater.update(&model, from: newData) { updated, old in
 }
 ```
 
+`preserving` also applies to `Data` and `String` input.
+If the input is `nil` or cannot be parsed, the model stays unchanged and
+`preserving` is not called.
+
+Models whose `CodingKeys` match their property names do not need
+`SmartDefaultValueKeyMapping`. To map a JSON key onto a property and keep the
+declared default, leave `CodingKeys` unchanged and use `mappingForKey()`:
+
+```swift
+static func mappingForKey() -> [SmartKeyTransformer]? {
+    [ CodingKeys.age <--- "user_age" ]
+}
+```
+
+`SmartDefaultValueKeyMapping` is for models that must customize `CodingKeys`.
 When a `CodingKeys` raw value differs from its Swift property name, opt in to
 `SmartDefaultValueKeyMapping` and provide `defaultValueKeyMapping`, for example
 `["user_age": "age"]`, to restore the declared default for missing fields.
+A renamed field without that mapping falls back to the type default
+when it is missing (for example, `0` for `Int`).
 
 ### 8. Compatibility
 
