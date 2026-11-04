@@ -46,10 +46,43 @@ final class GlobalOptionsConcurrencyTests: XCTestCase {
     /// 数据竞争由 Thread Sanitizer 检测：
     /// `swift test --sanitize=thread --filter GlobalOptionsConcurrencyTests`
     func testConcurrentDecodingWithLogs() {
+        defer {
+            SmartSentinel.debugMode = .none
+            SmartSentinel.onLogGenerated { _ in }
+        }
+
         SmartSentinel.debugMode = .alert
 
+        let lock = NSLock()
+        var values: [Int?] = []
+        var messages: [String] = []
+        let logs = expectation(description: "one log per decode")
+        logs.expectedFulfillmentCount = 200
+
+        SmartSentinel.onLogGenerated { message in
+            lock.lock()
+            messages.append(message)
+            lock.unlock()
+            logs.fulfill()
+        }
+
         DispatchQueue.concurrentPerform(iterations: 200) { _ in
-            _ = NumberStrategyModel.deserialize(from: ["value": "oops"])
+            let model = NumberStrategyModel.deserialize(from: ["value": "oops"])
+            lock.lock()
+            values.append(model?.value)
+            lock.unlock()
+        }
+
+        wait(for: [logs], timeout: 5)
+
+        XCTAssertEqual(values.count, 200)
+        for value in values {
+            XCTAssertEqual(value, 99)
+        }
+        XCTAssertEqual(messages.count, 200)
+        for message in messages {
+            XCTAssertEqual(message.components(separatedBy: "[Smart Sentinel]").count - 1, 1, message)
+            XCTAssertTrue(message.contains("NumberStrategyModel"), message)
         }
     }
 }

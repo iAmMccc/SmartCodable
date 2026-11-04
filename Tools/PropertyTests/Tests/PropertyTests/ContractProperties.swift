@@ -43,14 +43,10 @@ struct ContractProperties {
     @Test
     func objectKeyInsertionOrderDoesNotChangeResult() async {
         await propertyCheck(count: 200, input: Gen.int(in: -32_768...32_767)) { value in
-            var before: [String: Any] = [:]
-            before["unrelated"] = true
-            before["value"] = value
-            var after: [String: Any] = [:]
-            after["value"] = value
-            after["unrelated"] = true
-            #expect(ExactInteger.deserialize(from: before)?.value == Int64(value))
-            #expect(ExactInteger.deserialize(from: after)?.value == Int64(value))
+            let unrelatedFirst = "{\"unrelated\":true,\"value\":\(value)}"
+            let valueFirst = "{\"value\":\(value),\"unrelated\":true}"
+            #expect(ExactInteger.deserialize(from: unrelatedFirst)?.value == Int64(value))
+            #expect(ExactInteger.deserialize(from: valueFirst)?.value == Int64(value))
         }
     }
 

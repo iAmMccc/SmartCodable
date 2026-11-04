@@ -30,6 +30,7 @@ private struct DidFinishChild: SmartCodableX {
 
     mutating func didFinishMapping() {
         DidFinishCounter.value += 1
+        n += 100
     }
 }
 
@@ -176,8 +177,7 @@ final class AuditRegressionTests: XCTestCase {
         guard case .array(let values) = value else {
             return XCTFail("expected array")
         }
-        XCTAssertEqual(values.count, 3)
-        XCTAssertEqual(values[1], .null)
+        XCTAssertEqual(values, [.number("1"), .null, .number("2")])
     }
 
     func testUnsupportedDictionaryValueDoesNotBecomeExplicitNull() {
@@ -205,8 +205,10 @@ final class AuditRegressionTests: XCTestCase {
             var map: [String: DidFinishChild] = [:]
         }
 
-        _ = Model.deserialize(from: ["map": ["a": ["n": 1], "b": ["n": 2]]])
+        let model = Model.deserialize(from: ["map": ["a": ["n": 1], "b": ["n": 2]]])
         XCTAssertEqual(DidFinishCounter.value, 2)
+        XCTAssertEqual(model?.map["a"]?.n, 101)
+        XCTAssertEqual(model?.map["b"]?.n, 102)
     }
 
     func testCrossLevelMappingSkipsNullAlias() {
@@ -222,18 +224,46 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual(model?.value, 5)
     }
 
-    func testBlankDesignatedPathFailsInsteadOfReturningRoot() {
+    func testBlankDesignatedPathFailsInsteadOfReturningRoot() throws {
         struct Model: SmartCodableX {
             var name: String = ""
         }
 
         XCTAssertNil(Model.deserialize(from: ["name": "root"], designatedPath: " "))
         XCTAssertNil(Model.deserialize(from: ["name": "root"], designatedPath: "."))
+
+        struct Named: SmartCodableX {
+            var name: String = "dft"
+        }
+        let payload: [String: Any] = [
+            "a": ["b": ["name": "x"]],
+            "name": "root"
+        ]
+        let rejectedPaths = ["a.", ".a", "a. .b", "a..b"]
+        var rejectedCases = 0
+        for path in rejectedPaths {
+            XCTAssertNil(Named.deserialize(from: payload, designatedPath: path), path)
+            rejectedCases += 1
+        }
+        XCTAssertEqual(rejectedCases, 4)
+
+        let nested = try XCTUnwrap(Named.deserialize(from: payload, designatedPath: "a.b"))
+        XCTAssertEqual(nested.name, "x")
+        let root = try XCTUnwrap(Named.deserialize(from: payload, designatedPath: ""))
+        XCTAssertEqual(root.name, "root")
     }
 
     func testOptionalNullProducesNoLog() {
         struct Model: SmartCodableX {
             var age: Int? = nil
+        }
+        struct Req: SmartCodableX {
+            var age: Int = 0
+        }
+
+        defer {
+            SmartSentinel.debugMode = .none
+            SmartSentinel.onLogGenerated { _ in }
         }
 
         SmartSentinel.debugMode = .verbose
@@ -243,6 +273,11 @@ final class AuditRegressionTests: XCTestCase {
 
         _ = Model.deserialize(from: ["age": NSNull()])
         wait(for: [noLog], timeout: 0.3)
+
+        let logged = expectation(description: "non-optional null logs")
+        SmartSentinel.onLogGenerated { _ in logged.fulfill() }
+        _ = Req.deserialize(from: ["age": NSNull()])
+        wait(for: [logged], timeout: 1)
     }
 
     // MARK: - Property wrappers
@@ -299,13 +334,13 @@ final class AuditRegressionTests: XCTestCase {
 
     func testSmartAnyEncodesCodableRuntimeValues() throws {
         struct Model: SmartCodableX {
-            @SmartAny var ts: Any? = Date(timeIntervalSince1970: 0)
+            @SmartAny var ts: Any? = Date(timeIntervalSince1970: 2)
             @SmartAny var data: Any? = Data([1, 2, 3])
         }
 
         let dictionary = try XCTUnwrap(Model().toDictionary())
-        XCTAssertFalse(dictionary["ts"] is NSNull)
-        XCTAssertFalse(dictionary["data"] is NSNull)
+        XCTAssertEqual((dictionary["ts"] as? NSNumber)?.doubleValue, -978307198)
+        XCTAssertEqual(dictionary["data"] as? String, "AQID")
     }
 
     func testSmartAnyKeepsScientificAndLargeUnsignedNumbers() throws {
@@ -340,13 +375,19 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual((timestampDictionary["date"] as? NSNumber)?.int64Value, 1_700_000_000_000)
     }
 
-    func testSmartDateTreatsExactMillisecondThresholdAsMilliseconds() {
+    func testSmartDateTreatsExactMillisecondThresholdAsMilliseconds() throws {
         struct Model: SmartCodableX {
             var date: Date = Date(timeIntervalSince1970: 0)
         }
 
         let model = Model.deserialize(from: ["date": 1_000_000_000_000])
         XCTAssertEqual(model?.date.timeIntervalSince1970, 1_000_000_000)
+
+        let belowThreshold = try XCTUnwrap(Model.deserialize(from: ["date": 999_999_999_999]))
+        XCTAssertEqual(belowThreshold.date.timeIntervalSince1970, 999_999_999_999)
+
+        let aboveThreshold = try XCTUnwrap(Model.deserialize(from: ["date": 1_000_000_000_001]))
+        XCTAssertEqual(aboveThreshold.date.timeIntervalSince1970, 1_000_000_000.001, accuracy: 1e-6)
     }
 
     func testURLTransformerDoesNotDoubleEncode() {
@@ -459,6 +500,7 @@ final class AuditRegressionTests: XCTestCase {
         var model = Model(value: .nan, token: "runtime")
         SmartUpdater.update(&model, from: ["value": 2])
         XCTAssertEqual(model.token, "runtime")
+        XCTAssertTrue(model.value.isNaN)
     }
 
     func testUpdaterPreservingHookKeepsExcludedRuntimeState() {
@@ -525,7 +567,9 @@ final class AuditRegressionTests: XCTestCase {
         )
 
         let output = try XCTUnwrap(cache.formatLogs(parsingMark: mark))
-        XCTAssertTrue(output.contains("DashContainer"), output)
+        let missingKey = "field: No value associated with key."
+        XCTAssertEqual(output.components(separatedBy: missingKey).count - 1, 2, output)
+        XCTAssertEqual(output.components(separatedBy: "DashContainer").count - 1, 1, output)
         XCTAssertTrue(output.contains("NestedContainer"), output)
     }
 }

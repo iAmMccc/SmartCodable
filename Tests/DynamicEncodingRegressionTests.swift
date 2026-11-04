@@ -25,7 +25,7 @@ private struct DynamicPlain: Codable {
 final class DynamicEncodingRegressionTests: XCTestCase {
     func testSmartAnyUsesDateStrategyAndKeepsOtherCodableValues() throws {
         struct Model: SmartCodableX {
-            @SmartAny var date: Any? = Date(timeIntervalSince1970: 0)
+            @SmartAny var date: Any? = Date(timeIntervalSince1970: 2)
             @SmartAny var data: Any? = Data([1, 2, 3])
             @SmartAny var url: Any? = URL(string: "https://example.com/a")!
             @SmartAny var plain: Any? = DynamicPlain()
@@ -35,7 +35,7 @@ final class DynamicEncodingRegressionTests: XCTestCase {
         let encoder = SmartJSONEncoder()
         encoder.dateEncodingStrategy = .millisecondsSince1970
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(Model())) as? [String: Any])
-        XCTAssertEqual((json["date"] as? NSNumber)?.doubleValue, 0)
+        XCTAssertEqual((json["date"] as? NSNumber)?.doubleValue, 2000)
         XCTAssertEqual(json["data"] as? String, "AQID")
         XCTAssertEqual(json["url"] as? String, "https://example.com/a")
         XCTAssertEqual((json["plain"] as? [String: String])?["label"], "plain")
@@ -45,7 +45,7 @@ final class DynamicEncodingRegressionTests: XCTestCase {
     func testCompactDictionaryEncodesRuntimeValuesAndChildSnapshot() throws {
         struct Model: SmartCodableX {
             @SmartCompact.Dictionary var info: [String: Any] = [
-                "date": Date(timeIntervalSince1970: 0),
+                "date": Date(timeIntervalSince1970: 2),
                 "data": Data([1, 2, 3]),
                 "url": URL(string: "https://example.com/a")!,
                 "plain": DynamicPlain(),
@@ -59,7 +59,7 @@ final class DynamicEncodingRegressionTests: XCTestCase {
         encoder.dateEncodingStrategy = .millisecondsSince1970
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(Model())) as? [String: Any])
         let info = try XCTUnwrap(json["info"] as? [String: Any])
-        XCTAssertEqual((info["date"] as? NSNumber)?.doubleValue, 0)
+        XCTAssertEqual((info["date"] as? NSNumber)?.doubleValue, 2000)
         XCTAssertEqual(info["data"] as? String, "AQID")
         XCTAssertEqual(info["url"] as? String, "https://example.com/a")
         XCTAssertEqual((info["plain"] as? [String: String])?["label"], "plain")
