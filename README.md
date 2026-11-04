@@ -115,6 +115,8 @@ The 6.x line will receive critical fixes only. All new features will land in 7.x
 
 
 
+For opt-in single-consumption unkeyed decoding, recursive runtime encoding, and update compatibility, see [Compatibility options](Document/CompatibilityOptions.md).
+
 ## Features
 
 ### 1. Deserialization

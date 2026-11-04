@@ -37,3 +37,11 @@
 | URL-01 | `SmartURLTransformer.transformFromJSON` 在输入整体已编码或整体未编码时不二次编码。输入 `https://example.com/%E4%B8%AD%E6%96%87/a%20b#frag` 的 `absoluteString` 与输入相同。`https://a.com/a b` → `https://a.com/a%20b`，`https://a.com/中文` → `https://a.com/%E4%B8%AD%E6%96%87`，`https://a.com/%E4%B8%AD` 保持不变 | 输入同时含已编码序列与非法字符（如 `https://a.com/%E4%B8%AD 文`）时，结果由 `URL(string:)` 决定，该场景下已有 `%` 被编码为 `%25`。macOS 26.6.2 实测 `URL(string:)` 与 transformer 均为 `https://a.com/%25E4%25B8%25AD%20%E6%96%87`。`URL(string:)` 在 iOS 17 之前的行为 Apple 文档未核到。不外推到其它百分号序列 | `testURLTransformerDoesNotDoubleEncode`；`testR20URLTransformerEncodesRawInput` 3 次（"https://a.com/a b" → "https://a.com/a%20b"；"https://a.com/中文" → "https://a.com/%E4%B8%AD%E6%96%87"；"https://a.com/%E4%B8%AD" 不变）。`Tests/AuditRegressionTests.swift`、`Tests/Branch702ReviewRegressionTests.swift` | `Core/Transformer/URLTransformer.swift` |
 
 生成式测试的明确排除项：随机输入不代表所有 Swift 模型形状；类型转换、Ignored 字段及非幂等 callback 不要求与 Foundation 解码器或原始 JSON 逐字节相等。`Tools/PropertyTests` 使用 PropertyBased 2.0.1 随机探索；失败日志给出 seed 和缩减输入。正常通过运行不记录可重放 seed；确定性回放靠 `Tests/StructuredSemanticTests.swift` 的 `lcg-v1`、固定 seed 和具体失败输入。
+
+
+根因修复补充契约见 `Document/CompatibilityOptions.md` 与
+`Tests/RootCauseFixTests.swift`：默认 legacy 保留历史泛型 optional 游标结果，
+`.unkeyed(.consumeOnce)` 显式修复跳项；`.dynamicValues(.recursive)` 显式保留深层
+动态 Encodable 和宿主策略。异常编码快照成对释放，Updater 根字段身份不因别名
+碰撞而合并，共享 decoder 的 session metadata 不写回配置。数值测试根据原值域
+检查修正旧预言机，超宽小数边界由精确十进制而非 Double 决定。

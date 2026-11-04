@@ -114,6 +114,8 @@ pod 'SmartCodable', '~> 6.1'
 
 
 
+单次游标消费、递归动态编码与更新兼容行为，见 [兼容性选项说明](Document/CompatibilityOptions.md)。
+
 ## 功能特性
 
 ### 1. 反序列化

@@ -362,3 +362,21 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 10. **Mirror 反射是懒加载的**：`DecodingSnapshot` 只在首次需要默认值时才反射，不是每次解码都反射；同一上下文内重复查询复用同一份引用，跨上下文互不共享
 11. **SafeDictionary 使用 NSLock**：Sentinel 的日志字典有锁保护，在 `debugMode == .none` 时不会触碰
 12. **SmartSentinel 的日志守卫**：日志出口统一经 `Level.allows(_:)` 判断；`debugMode == .none` 时不缓存、不打印、不回调（每次解码仍会生成 `parsingMark`）。级别之间是包含关系而非数值大小，禁止用 `rawValue` 比较
+
+
+## 兼容恢复与更新边界
+
+`SmartUpdater` 的根对象合并使用 CodingKey 身份，而不是编码后的别名：编码时仅
+根模型关闭别名输出，嵌套模型仍按原 wire 映射输出；源 JSON 通过 KeysMapper 解析
+一次后合并。最终解码仅为同类型根模型跳过重复 key mapping，子模型仍从自身快照
+建立字段归属。这样不需要额外反射、不恢复任意运行时属性，也不会把 firstName 的
+首别名 name 写回独立字段 name。preserving 仍在成功构造替代模型后执行。
+
+编码侧 typed/untyped 入口共用 `EncodingCache.withSnapshot`，通过 defer 成对退出，
+错误不会把旧 snapshot 留给同路径 fallback。解码侧的 options/userInfo 以调用局部
+副本保存解析标识，不修改共享 decoder 配置。
+
+泛型 unkeyed optional 回退只计算候选值，游标消费统一由外层操作持有；legacy 模式
+显式保留历史额外消费，consumeOnce 模式只消费一次。动态编码的 recursive 模式
+共用一条运行时集合遍历，叶子重入现有 typed 编码机制以保留策略及模型快照。
+默认值、选择方式和异常边界见 [兼容性选项](CompatibilityOptions.md)。
