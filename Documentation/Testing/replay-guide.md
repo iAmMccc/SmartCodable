@@ -10,6 +10,12 @@ swift test --filter NumericContractTests
 swift test --filter JSONOracleTests
 swift test --filter StructuredSemanticTests
 swift test --filter RawInputSmokeTests
+swift test --filter Branch702ReviewRegressionTests
+swift test --filter AuditRegressionTests
+swift test --filter DynamicEncodingRegressionTests
+swift test --filter DecodeEdgeCaseTests
+swift test -c release
+swift package diagnose-api-breaking-changes 7.0.1
 swift run --package-path Tools/PublicAPISmoke PublicAPISmoke
 ```
 
@@ -73,7 +79,7 @@ ASan 数值过滤器在本机执行 6 条且通过。2026-11-02 的覆盖率运�
 ./Fuzzing/run.sh structured 32
 ```
 
-两条命令分别退出 0；源码插桩加载逾万计数器，有效 seed 进入模型。具体工具链要求、语料与重放规则见 `Fuzzing/README.md`。此链接采用 Homebrew clang 驱动，**没有开启 ASan 或 TSan**；不要以 32 次短跑证明深度资源或内存安全。
+运行这两条命令需要先 `brew install llvm`。2026-11-04 安装 Homebrew LLVM 23.1.4（含 `libclang_rt.fuzzer_osx.a`）后，`raw 32` 与 `structured 32` 退出 0（`Done 32 runs`，cov 339 与 378）；默认种子 `-runs=1` 重放退出 0。`Fuzzing/run.sh` 用 `swift build --show-bin-path` 定位产物后链接。具体工具链要求、语料与重放规则见 `Fuzzing/README.md`。此链接采用 Homebrew clang 驱动，**没有开启 ASan 或 TSan**；不要以 32 次短跑证明深度资源或内存安全。
 
 本机检查安装状态：
 
@@ -92,4 +98,18 @@ swift build --triple arm64-apple-ios27.0-simulator \
   --package-path .
 ```
 
-此命令仅编译目标。2026-11-03 另在仓库外通过 XcodeGen 生成采用 UIScene 生命周期的临时 iOS 测试宿主，以 Xcodebuild 在 iOS 27 的 `SmartCodable-Test` 设备上实际执行 **140 条 XCTest，0 失败**；`NumericSubprocessTests` 的 macOS 专属 2 条不参与 iOS 测试。测试宿主和结果 bundle 保存在仓库外临时目录，未加入公共 CI；不宣称已验证最低 iOS 13。
+按本机 SDK 编译时，triple 里的版本取 `xcrun --sdk iphonesimulator --show-sdk-version`。当前为 iOS 26.5：
+
+```sh
+swift build --triple arm64-apple-ios26.5-simulator \
+  --sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+  --package-path .
+```
+
+此命令仅编译目标。ExampleApp 用下面的命令在 iPhone 17 模拟器上编译；Example 页面输出「输入 / API / 期望 / 实际 / 判定 / 合计」行。
+
+```sh
+xcodebuild -project Example/ExampleApp/ExampleApp.xcodeproj -scheme ExampleApp -destination 'platform=iOS Simulator,name=iPhone 17' build
+```
+
+2026-11-03 另在仓库外通过 XcodeGen 生成采用 UIScene 生命周期的临时 iOS 测试宿主，以 Xcodebuild 在 iOS 27 的 `SmartCodable-Test` 设备上实际执行 **140 条 XCTest，0 失败**；`NumericSubprocessTests` 的 macOS 专属 2 条不参与 iOS 测试。测试宿主和结果 bundle 保存在仓库外临时目录，未加入公共 CI；不宣称已验证最低 iOS 13。
