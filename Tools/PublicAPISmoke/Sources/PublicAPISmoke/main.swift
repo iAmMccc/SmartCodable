@@ -43,4 +43,12 @@ verify(Combined.deserialize(from: [:])?.value == 73, "mapped default")
 verify(Combined.deserialize(from: ["json_value": 9])?.value == 9, "combined decode")
 verify(ReferenceBase.deserialize(from: ["value": 12])?.value == 12, "class decode")
 verify(ReferenceChild.deserialize(from: ["value": 12]) != nil, "subclass compile and decode")
-print("Public API smoke passed: 6 checks")
+verify(DecodeOnly.deserialize(from: [:], options: [.unkeyed(.consumeOnce)])?.value == 73, "single-consumption option")
+verify(EncodeOnly().toDictionary(options: [.dynamicValues(.recursive)])?["value"] as? Int == 42, "recursive option")
+let decoder = SmartJSONDecoder()
+decoder.smartUnkeyedDecodingStrategy = .consumeOnce
+verify((try? decoder.smartDecode(Int.self, from: "5")) == 5, "decoder strategy API")
+let encoder = SmartJSONEncoder()
+encoder.smartDynamicValueEncodingStrategy = .recursive
+verify((try? encoder.encode(EncodeOnly())) != nil, "encoder strategy API")
+print("Public API smoke passed: 10 checks")

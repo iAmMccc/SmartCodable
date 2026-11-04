@@ -12,6 +12,15 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
     open var smartKeyEncodingStrategy: SmartKeyEncodingStrategy = .useDefaultKeys
     open var smartDataEncodingStrategy: SmartDataEncodingStrategy = .base64
 
+    public enum DynamicValueEncodingStrategy: Sendable {
+        case legacy
+        /// Traverse runtime containers using this encoder's strategies.
+        /// Unsupported leaf values throw instead of silently losing data.
+        case recursive
+    }
+
+    open var smartDynamicValueEncodingStrategy: DynamicValueEncodingStrategy = .legacy
+
     /// Internal Updater boundary: root field identity, mapped nested models.
     var unmappedRootType: (any SmartEncodable.Type)?
 
@@ -24,6 +33,7 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
         let keyEncodingStrategy: SmartKeyEncodingStrategy
         let userInfo: [CodingUserInfoKey: Any]
         var unmappedRootType: (any SmartEncodable.Type)? = nil
+        var dynamicValueEncodingStrategy: DynamicValueEncodingStrategy = .legacy
     }
 
     /// The options set on the top-level encoder.
@@ -33,7 +43,8 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
                         nonConformingFloatEncodingStrategy: nonConformingFloatEncodingStrategy,
                         keyEncodingStrategy: smartKeyEncodingStrategy,
                         userInfo: userInfo,
-                        unmappedRootType: unmappedRootType)
+                        unmappedRootType: unmappedRootType,
+                        dynamicValueEncodingStrategy: smartDynamicValueEncodingStrategy)
     }
 
 

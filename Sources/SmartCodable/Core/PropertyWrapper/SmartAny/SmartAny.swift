@@ -87,7 +87,10 @@ extension SmartAny: Codable {
         
         var container = encoder.singleValueContainer()
         
-        if let dict = wrappedValue as? [String: Any] {
+        if let impl = encoder as? JSONEncoderImpl,
+           impl.options.dynamicValueEncodingStrategy == .recursive {
+            try container.encode(AnyEncodableBox(value: wrappedValue))
+        } else if let dict = wrappedValue as? [String: Any] {
             let value = dict.cover
             try container.encode(value)
         } else if let arr = wrappedValue as? [Any] {

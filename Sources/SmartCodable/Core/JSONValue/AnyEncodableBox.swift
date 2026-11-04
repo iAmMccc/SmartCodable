@@ -18,7 +18,10 @@ struct AnyEncodableBox: Encodable {
     let value: Any
 
     func encode(to encoder: Encoder) throws {
-        if let encodable = value as? Encodable {
+        if let impl = encoder as? JSONEncoderImpl,
+           impl.options.dynamicValueEncodingStrategy == .recursive {
+            impl.singleValue = try impl.wrapDynamicValue(value)
+        } else if let encodable = value as? Encodable {
             try _encodeOpened(encodable, to: encoder)
         } else if let jsonValue = JSONValue.make(value) {
             try jsonValue.encode(to: encoder)
@@ -75,5 +78,35 @@ extension JSONValue: Encodable {
                 try container.encode(value, forKey: _JSONKey(stringValue: key, intValue: nil))
             }
         }
+    }
+}
+
+// All runtime collection nodes share one traversal; leaves re-enter the typed
+// encoder so Date/Data/URL and model snapshots keep their normal semantics.
+extension JSONEncoderImpl {
+    func wrapDynamicValue(_ value: Any) throws -> JSONValue {
+        if let optional = value as? any _SmartOptionalEncodable {
+            guard let wrapped = optional._smartWrappedValue else { return .null }
+            return try wrapDynamicValue(wrapped)
+        }
+        if value is NSNull { return .null }
+        if let dictionary = value as? [String: Any] {
+            var object: [String: JSONValue] = [:]
+            for (key, value) in dictionary {
+                let child = getEncoder(for: _JSONKey(stringValue: key, intValue: nil))
+                object[key] = try child.wrapDynamicValue(value)
+            }
+            return .object(object)
+        }
+        if let array = value as? [Any] {
+            return .array(try array.enumerated().map { index, value in
+                try getEncoder(for: _JSONKey(index: index)).wrapDynamicValue(value)
+            })
+        }
+        if let encodable = value as? any Encodable { return try wrapUntyped(encodable) }
+        if let json = JSONValue.make(value) { return json }
+        throw EncodingError.invalidValue(value, .init(
+            codingPath: codingPath, debugDescription: "Unsupported runtime value in recursive dynamic encoding."
+        ))
     }
 }
