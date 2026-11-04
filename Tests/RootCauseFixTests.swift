@@ -193,4 +193,82 @@ final class RootCauseFixTests: XCTestCase {
         SmartUpdater.update(&host, from: ["child": ["json_name": "new"]])
         XCTAssertEqual(host.child.name, "new")
     }
+
+    private struct Positive: Decodable {
+        let value: Int
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            value = try container.decode(Int.self)
+            guard value > 0 else {
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "positive required")
+            }
+        }
+    }
+
+    private struct Cursor: SmartCodableX {
+        var values: [Int?] = []
+        var indices: [Int] = []
+        init() {}
+        init(from decoder: Decoder) throws {
+            var container = try decoder.unkeyedContainer()
+            while !container.isAtEnd {
+                values.append(try container.decodeIfPresent(Positive.self)?.value)
+                indices.append(container.currentIndex)
+            }
+            if let impl = decoder as? JSONDecoderImpl,
+               impl.options.unkeyedDecodingStrategy == .consumeOnce {
+                XCTAssertThrowsError(try container.decodeIfPresent(Positive.self))
+                XCTAssertEqual(container.currentIndex, indices.last)
+            }
+        }
+    }
+
+    func testSingleConsumptionOptInKeepsDefaultLegacyResults() throws {
+        let legacy = try XCTUnwrap(Cursor.deserialize(from: "[0,2,3]"))
+        XCTAssertEqual(legacy.values, [nil, 3])
+        XCTAssertEqual(legacy.indices, [2, 3])
+        for input in ["[0,2,3]", "[null,2,3]", "[\"bad\",2,3]"] {
+            let optedIn = try XCTUnwrap(Cursor.deserialize(from: input, options: [.unkeyed(.consumeOnce)]))
+            XCTAssertEqual(optedIn.values, [nil, 2, 3])
+            XCTAssertEqual(optedIn.indices, [1, 2, 3])
+        }
+        let decoder = SmartJSONDecoder()
+        decoder.smartUnkeyedDecodingStrategy = .consumeOnce
+        XCTAssertEqual(try decoder.smartDecode(Cursor.self, from: "[0]").values, [nil])
+    }
+
+    func testSingleConsumptionPropagatesToNestedModels() throws {
+        struct Host: SmartCodableX { var values = Cursor() }
+        let host = try XCTUnwrap(Host.deserialize(from: ["values": [0, 2, 3]], options: [.unkeyed(.consumeOnce)]))
+        XCTAssertEqual(host.values.values, [nil, 2, 3])
+    }
+
+    private struct FallbackValue: Decodable, TypeTransformable {
+        let value: String
+        init(value: String) { self.value = value }
+        init(from decoder: Decoder) throws { throw Expected.failure }
+        static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> FallbackValue? {
+            guard case .string(let text) = value, text != "bad" else { return nil }
+            return FallbackValue(value: text.uppercased())
+        }
+    }
+
+    func testSingleConsumptionHandlesBothSuccessfulAndFailedFallback() throws {
+        struct Sequence: Decodable {
+            var values: [String?] = []
+            var indices: [Int] = []
+            init(from decoder: Decoder) throws {
+                var container = try decoder.unkeyedContainer()
+                while !container.isAtEnd {
+                    values.append(try container.decodeIfPresent(FallbackValue.self)?.value)
+                    indices.append(container.currentIndex)
+                }
+            }
+        }
+        let decoder = SmartJSONDecoder()
+        decoder.smartUnkeyedDecodingStrategy = .consumeOnce
+        let result = try decoder.smartDecode(Sequence.self, from: "[\"bad\",\"second\",\"third\"]")
+        XCTAssertEqual(result.values, [nil, "SECOND", "THIRD"])
+        XCTAssertEqual(result.indices, [1, 2, 3])
+    }
 }

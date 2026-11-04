@@ -22,6 +22,7 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         let keyDecodingStrategy: SmartKeyDecodingStrategy
         var userInfo: [CodingUserInfoKey : Any]
         var preMappedRootType: (any SmartDecodable.Type)? = nil
+        var unkeyedDecodingStrategy: UnkeyedDecodingStrategy = .legacy
     }
     
     /// The options set on the top-level decoder.
@@ -31,7 +32,8 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
             dataDecodingStrategy: smartDataDecodingStrategy,
             nonConformingFloatDecodingStrategy: nonConformingFloatDecodingStrategy,
             keyDecodingStrategy: smartKeyDecodingStrategy,
-            userInfo: userInfo
+            userInfo: userInfo,
+            unkeyedDecodingStrategy: smartUnkeyedDecodingStrategy
         )
     }
     
@@ -40,6 +42,13 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     open var smartKeyDecodingStrategy: SmartKeyDecodingStrategy = .useDefaultKeys
 
     
+    public enum UnkeyedDecodingStrategy: Sendable {
+        case legacy
+        case consumeOnce
+    }
+
+    open var smartUnkeyedDecodingStrategy: UnkeyedDecodingStrategy = .legacy
+
     // MARK: - Decoding Values
 
     /// Decodes a top-level value of the given type from the given JSON representation.

@@ -305,17 +305,19 @@ extension JSONDecoderImpl.UnkeyedContainer {
 
     ///   is not convertible to the requested type.
     mutating func decodeIfPresent<T>(_ type: T.Type) throws -> T? where T : Decodable {
+        if impl.options.unkeyedDecodingStrategy == .consumeOnce {
+            _ = try getNextValue(ofType: type)
+        }
+        // This operation owns consumption. Fallback only computes a value.
+        defer { currentIndex += 1 }
         let newDecoder = decoderForNextElement(ofType: type)
         if let decoded = try? newDecoder.unwrap(as: type) {
-            self.currentIndex += 1
             return didFinishMapping(decoded)
-        } else if let decoded: T = optionalDecode() {
-            self.currentIndex += 1
-            return didFinishMapping(decoded)
-        } else {
-            self.currentIndex += 1
-            return nil
         }
+        let decoded: T? = optionalValue()
+        // Preserve the historical generic-fallback cursor behavior by default.
+        if impl.options.unkeyedDecodingStrategy == .legacy { currentIndex += 1 }
+        return decoded.map { didFinishMapping($0) }
     }
     
     @inline(__always) private mutating func decodeIfPresentFixedWidthInteger<T: FixedWidthInteger>() -> T? {
@@ -344,19 +346,15 @@ extension JSONDecoderImpl.UnkeyedContainer {
     }
     
     fileprivate mutating func optionalDecode<T>() -> T? {
-        guard let value = try? self.getNextValue(ofType: T.self) else {
-            self.currentIndex += 1
-            return nil
-        }
-        let key = _JSONKey(index: self.currentIndex)
+        defer { currentIndex += 1 }
+        return optionalValue()
+    }
+
+    private func optionalValue<T>() -> T? {
+        guard let value = try? getNextValue(ofType: T.self) else { return nil }
+        let key = _JSONKey(index: currentIndex)
         SmartSentinel.monitorLog(impl: impl, isOptionalLog: true, forKey: key, value: value, type: T.self)
-        if let decoded = Patcher<T>.convertToType(from: value, impl: impl) {
-            self.currentIndex += 1
-            return decoded
-        } else {
-            self.currentIndex += 1
-            return nil
-        }
+        return Patcher<T>.convertToType(from: value, impl: impl)
     }
 }
 
