@@ -208,8 +208,10 @@ extension SmartSentinel {
         /// 当前模式是否允许输出指定级别的日志。
         ///
         /// 级别之间不是简单的数值大小关系：`verbose` 包含 `alert`，
-        /// 而 `none` 不允许任何日志。不要用 `rawValue` 比较。
+        /// 而 `none` 不允许任何日志。`.none` 不是可发出的级别。
+        /// 不要用 `rawValue` 比较。
         func allows(_ level: Level) -> Bool {
+            if level == .none { return false }
             switch self {
             case .none:
                 return false

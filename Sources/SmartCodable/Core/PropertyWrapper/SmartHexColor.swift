@@ -185,7 +185,7 @@ extension SmartHexColor {
         guard let components = color.rgbaComponents else { return nil }
 
         func clamped255(_ value: CGFloat) -> Int {
-            return min(max(Int(value * 255), 0), 255)
+            return min(max(Int((value * 255).rounded()), 0), 255)
         }
         
         let r = clamped255(components.r)
@@ -313,6 +313,10 @@ extension SmartHexColor {
 extension ColorObject {
     var rgbaComponents: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
 #if os(macOS)
+        // catalog 颜色读取 colorSpace 会抛异常。calibrated 构造的颜色空间等于 genericRGB，直接读分量。
+        if type == .componentBased, colorSpace == .genericRGB {
+            return (redComponent, greenComponent, blueComponent, alphaComponent)
+        }
         guard let converted = usingColorSpace(.deviceRGB) else { return nil }
         return (converted.redComponent, converted.greenComponent, converted.blueComponent, converted.alphaComponent)
 #else
