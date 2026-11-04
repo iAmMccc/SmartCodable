@@ -50,25 +50,6 @@ public struct SmartUpdater<T: SmartCodableX> {
         dest = model
     }
 
-    /// `toDictionary(useMappedKeys: true)` 输出的是 mapping 的第一个别名。
-    /// src 可能使用其它别名，直接把 src 合并进去会让旧别名值先被解码器命中，
-    /// 新值静默丢失。这里先按 mapping 把 src 归一化到同一个输出 key。
-    private static func normalizeSourceKeys(_ src: [String: Any]) -> [String: Any] {
-        guard let mappings = T.mappingForKey(), !mappings.isEmpty,
-              let json = JSONValue.make(src),
-              case .object(let resolved) = KeysMapper.convertFrom(json, type: T.self) else {
-            return src
-        }
-
-        var normalized = src
-        for mapping in mappings {
-            guard let canonical = mapping.from.first,
-                  let selected = resolved[mapping.to.stringValue] else { continue }
-            normalized[canonical] = selected.toFoundation()
-        }
-        return normalized
-    }
-
     /// Update a model and explicitly restore runtime state excluded from Codable.
     ///
     /// `preserving` runs only after decoding succeeds, before replacing `dest`.
@@ -105,11 +86,28 @@ public struct SmartUpdater<T: SmartCodableX> {
     }
 
     private static func mergedModel(from dest: T, with src: [String: Any]?) -> T? {
-        guard let src, var dictionary = dest.toDictionary(useMappedKeys: true) else {
-            return nil
+        guard let src, let source = JSONValue.make(src) else { return nil }
+        let encoder = SmartJSONEncoder()
+        encoder.unmappedRootType = T.self
+        encoder.userInfo[CodingUserInfoKey.useMappedKeys!] = true
+        guard let encoded = try? encoder.encode(dest),
+              var dictionary = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any],
+              var resolved = KeysMapper.convertFrom(source, type: T.self)?.object ?? source.object else { return nil }
+        // Preserve the existing explicit-null behavior of the primary alias.
+        for mapping in T.mappingForKey() ?? [] {
+            if resolved[mapping.to.stringValue] == nil,
+               let primary = mapping.from.first, src[primary] is NSNull {
+                resolved[mapping.to.stringValue] = .null
+            }
         }
-        updateDict(&dictionary, from: normalizeSourceKeys(src))
-        return T.deserialize(from: dictionary)
+        // Alias resolution happens once on source data. The merge and final root
+        // decode use CodingKey identities, so an alias cannot overwrite a sibling.
+        updateDict(&dictionary, from: resolved.mapValues { $0.toFoundation() })
+        guard var model = try? SmartJSONDecoder().decodeValue(
+            T.self, from: dictionary, preMappedRootType: T.self
+        ) else { return nil }
+        model.didFinishMapping()
+        return model
     }
 }
 

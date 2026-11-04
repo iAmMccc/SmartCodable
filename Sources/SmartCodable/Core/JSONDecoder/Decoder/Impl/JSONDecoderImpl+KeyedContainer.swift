@@ -25,11 +25,18 @@ extension JSONDecoderImpl {
             // impl 中的上下文引用与容器成员必须来自同一视图
             self.snapshot = impl.modelSnapshot
 
-            self.dictionary = _convertDictionary(
-                dictionary,
-                snapshot: impl.modelSnapshot,
-                options: impl.options
-            )
+            if codingPath.isEmpty,
+               let rootType = impl.options.preMappedRootType,
+               let owner = impl.modelSnapshot?.objectType,
+               rootType == owner {
+                self.dictionary = dictionary
+            } else {
+                self.dictionary = _convertDictionary(
+                    dictionary,
+                    snapshot: impl.modelSnapshot,
+                    options: impl.options
+                )
+            }
             // The transformation of the dictionary does not affect the structure,
             // but only adds a new field to the data corresponding to the current container.
             // No impl changes are required

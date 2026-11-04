@@ -58,6 +58,10 @@ final class RootCauseFixTests: XCTestCase {
         let encoded = try XCTUnwrap(Model().toDictionary())
         XCTAssertEqual(encoded["firstName"] as? String, "FIRST")
         XCTAssertEqual(encoded["name"] as? String, "independent")
+        var model = Model()
+        SmartUpdater.update(&model, from: ["first_name": "new-first"])
+        XCTAssertEqual(model.firstName, "new-first")
+        XCTAssertEqual(model.name, "independent")
     }
 
     func testDecodeKeepsSessionMetadataOutOfCallerConfiguration() throws {
@@ -146,5 +150,47 @@ final class RootCauseFixTests: XCTestCase {
             XCTAssertEqual(result?.id, index)
             XCTAssertEqual(result?.value, 7)
         }
+    }
+
+    private struct Alias: SmartCodableX {
+        var firstName = "old-first"
+        var name = "old-full"
+        static func mappingForKey() -> [SmartKeyTransformer]? {
+            [CodingKeys.firstName <--- ["name", "first_name"]]
+        }
+    }
+
+    func testUpdaterMergesByFieldIdentityAcrossAllEntrypoints() {
+        let json = "{\"first_name\":\"new-first\"}"
+        var dictionary = Alias(), string = Alias(), data = Alias()
+        SmartUpdater.update(&dictionary, from: ["first_name": "new-first"])
+        SmartUpdater.update(&string, from: json)
+        SmartUpdater.update(&data, from: Data(json.utf8))
+        for model in [dictionary, string, data] {
+            XCTAssertEqual(model.firstName, "new-first")
+            XCTAssertEqual(model.name, "old-full")
+        }
+        var empty = Alias()
+        SmartUpdater.update(&empty, from: [:])
+        XCTAssertEqual(empty.firstName, "old-first")
+        XCTAssertEqual(empty.name, "old-full")
+    }
+
+    func testUpdaterKeepsNestedMappingsAndPrimaryAliasNullFallback() {
+        struct Child: SmartCodableX {
+            var name = "declared"
+            static func mappingForKey() -> [SmartKeyTransformer]? { [CodingKeys.name <--- ["json_name", "alt"]] }
+        }
+        struct Host: SmartCodableX {
+            var child = Child(name: "retained")
+            var value = "declared"
+            static func mappingForKey() -> [SmartKeyTransformer]? { [CodingKeys.value <--- ["primary", "alt"]] }
+        }
+        var host = Host(child: Child(name: "retained"), value: "runtime")
+        SmartUpdater.update(&host, from: ["primary": NSNull()])
+        XCTAssertEqual(host.value, "declared")
+        XCTAssertEqual(host.child.name, "retained")
+        SmartUpdater.update(&host, from: ["child": ["json_name": "new"]])
+        XCTAssertEqual(host.child.name, "new")
     }
 }

@@ -12,6 +12,9 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
     open var smartKeyEncodingStrategy: SmartKeyEncodingStrategy = .useDefaultKeys
     open var smartDataEncodingStrategy: SmartDataEncodingStrategy = .base64
 
+    /// Internal Updater boundary: root field identity, mapped nested models.
+    var unmappedRootType: (any SmartEncodable.Type)?
+
    
     /// Options set on the top-level encoder to pass down the encoding hierarchy.
     struct _Options {
@@ -20,6 +23,7 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
         let nonConformingFloatEncodingStrategy: NonConformingFloatEncodingStrategy
         let keyEncodingStrategy: SmartKeyEncodingStrategy
         let userInfo: [CodingUserInfoKey: Any]
+        var unmappedRootType: (any SmartEncodable.Type)? = nil
     }
 
     /// The options set on the top-level encoder.
@@ -28,7 +32,8 @@ open class SmartJSONEncoder: JSONEncoder, @unchecked Sendable {
                         dataEncodingStrategy: smartDataEncodingStrategy,
                         nonConformingFloatEncodingStrategy: nonConformingFloatEncodingStrategy,
                         keyEncodingStrategy: smartKeyEncodingStrategy,
-                        userInfo: userInfo)
+                        userInfo: userInfo,
+                        unmappedRootType: unmappedRootType)
     }
 
 

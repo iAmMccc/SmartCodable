@@ -195,7 +195,8 @@ extension _SpecialTreatmentEncoder {
             if let mappings = objectType.mappingForKey() {
                 for mapping in mappings {
                     if mapping.to.stringValue == newKey.stringValue {
-                        if useMappedKeys, let first = mapping.from.first {
+                        let isUnmappedRoot = codingPath.isEmpty && options.unmappedRootType == objectType
+                        if useMappedKeys, !isUnmappedRoot, let first = mapping.from.first {
                             newKey = _JSONKey.init(stringValue: first, intValue: nil)
                         } else {
                             newKey = mapping.to

@@ -21,6 +21,7 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         let nonConformingFloatDecodingStrategy: NonConformingFloatDecodingStrategy
         let keyDecodingStrategy: SmartKeyDecodingStrategy
         var userInfo: [CodingUserInfoKey : Any]
+        var preMappedRootType: (any SmartDecodable.Type)? = nil
     }
     
     /// The options set on the top-level decoder.
@@ -53,10 +54,12 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         return try decodeValue(type, from: input)
     }
 
-    /// Decode using invocation-local options and session metadata.
-    func decodeValue<T: Decodable>(_ type: T.Type, from input: Any) throws -> T {
+    /// Updater resolves only the root model's field names before merging.
+    func decodeValue<T: Decodable>(_ type: T.Type, from input: Any,
+                                   preMappedRootType: (any SmartDecodable.Type)? = nil) throws -> T {
         let mark = SmartSentinel.parsingMark()
         var callOptions = options
+        callOptions.preMappedRootType = preMappedRootType
         if let parsingMark = CodingUserInfoKey.parsingMark {
             callOptions.userInfo[parsingMark] = mark
         }
