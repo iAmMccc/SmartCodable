@@ -1,0 +1,152 @@
+import UIKit
+import SmartCodable
+
+/// designatedPath 取内层对象；空段路径得到 nil。跨层别名按声明顺序取值，字典可从 JSON 字符串解码。
+final class DesignatedPathDemoViewController: DemoBaseViewController {
+
+    struct NameModel: SmartCodableX {
+        var name = "dft"
+    }
+
+    struct AliasModel: SmartCodableX {
+        var name = "dft"
+
+        static func mappingForKey() -> [SmartKeyTransformer]? {
+            [CodingKeys.name <--- ["a.b", "alt"]]
+        }
+    }
+
+    struct DictModel: SmartCodableX {
+        var d: [String: Int] = ["z": 0]
+    }
+
+    struct FinishChild: SmartCodableX {
+        var n: Int = 0
+
+        mutating func didFinishMapping() {
+            n += 100
+        }
+    }
+
+    struct FinishMapModel: SmartCodableX {
+        var map: [String: FinishChild] = [:]
+    }
+
+    override var defaultJSON: String { #"{"a":{"b":{"name":"x"}},"name":"root"}"# }
+
+    override func run(with json: String) -> [String] {
+        var report = DemoReport()
+        let canonical = #"{"a":{"b":{"name":"x"}},"name":"root"}"#
+        report.add(
+            input: json,
+            api: "NameModel.deserialize(from: designatedPath: \"a.b\").name",
+            expected: "x",
+            actual: name(json, path: "a.b")
+        )
+        let paths = [
+            ("", "root"),
+            (" ", "nil"),
+            ("a.", "nil"),
+            (".a", "nil"),
+            ("a..b", "nil"),
+        ]
+        for (path, expected) in paths {
+            let shown = path.isEmpty ? "\"\"" : "\"\(path)\""
+            report.add(
+                input: canonical,
+                api: "NameModel.deserialize(from: designatedPath: \(shown)).name",
+                expected: expected,
+                actual: name(canonical, path: path)
+            )
+        }
+
+        let nullInner = #"{"a":{"b":null},"alt":"X"}"#
+        report.add(
+            input: nullInner,
+            api: "AliasModel.deserialize(from:)，name ← [\"a.b\", \"alt\"]",
+            expected: "X",
+            actual: alias(nullInner)
+        )
+        let both = #"{"a":{"b":"Y"},"alt":"X"}"#
+        report.add(
+            input: both,
+            api: "AliasModel.deserialize(from:)，name ← [\"a.b\", \"alt\"]",
+            expected: "Y",
+            actual: alias(both)
+        )
+
+        let dictJSON = #"{"d":"{\"a\":1,\"b\":2}"}"#
+        report.add(
+            input: dictJSON,
+            api: "DictModel.deserialize(from:).d",
+            expected: "[\"a\":1,\"b\":2]",
+            actual: dictionary(dictJSON)
+        )
+        let arrayJSON = #"{"d":"[1]"}"#
+        report.add(
+            input: arrayJSON,
+            api: "DictModel.deserialize(from:).d",
+            expected: "[\"z\":0]",
+            actual: dictionary(arrayJSON)
+        )
+
+        let finishInput: [String: Any] = [
+            "map": [
+                "a": ["n": 1],
+                "b": ["n": 2],
+            ] as [String: Any],
+        ]
+        report.add(
+            input: #"{"map":{"a":{"n":1},"b":{"n":2}}}"#,
+            api: "FinishMapModel.deserialize(from:).map",
+            expected: "a=101, b=102",
+            actual: finishMap(finishInput)
+        )
+        return report.finish()
+    }
+
+    private func name(_ json: String, path: String) -> String {
+        guard let model = NameModel.deserialize(from: json, designatedPath: path) else { return "nil" }
+        return model.name
+    }
+
+    private func alias(_ json: String) -> String {
+        guard let model = AliasModel.deserialize(from: json) else { return "nil" }
+        return model.name
+    }
+
+    private func dictionary(_ json: String) -> String {
+        guard let model = DictModel.deserialize(from: json) else { return "nil" }
+        let body = model.d.keys.sorted().map { "\"\($0)\":\(model.d[$0]!)" }.joined(separator: ",")
+        return "[\(body)]"
+    }
+
+    private func finishMap(_ input: [String: Any]) -> String {
+        guard let model = FinishMapModel.deserialize(from: input) else { return "nil" }
+        let a = model.map["a"].map { String($0.n) } ?? "nil"
+        let b = model.map["b"].map { String($0.n) } ?? "nil"
+        return "a=\(a), b=\(b)"
+    }
+}
+
+private struct DemoReport {
+    private var lines: [String] = []
+    private var matched = 0
+    private var total = 0
+
+    mutating func add(input: String, api: String, expected: String, actual: String, matches: Bool? = nil) {
+        total += 1
+        let same = matches ?? (expected == actual)
+        if same { matched += 1 }
+        lines.append("输入: \(input)")
+        lines.append("API: \(api)")
+        lines.append("期望: \(expected)")
+        lines.append("实际: \(actual)")
+        lines.append("判定: \(same ? "一致" : "不一致")")
+        lines.append("")
+    }
+
+    func finish() -> [String] {
+        lines + ["合计: \(total) 项，一致 \(matched) 项，不一致 \(total - matched) 项"]
+    }
+}
