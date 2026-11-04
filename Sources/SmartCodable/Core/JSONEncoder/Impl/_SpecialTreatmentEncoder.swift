@@ -70,9 +70,9 @@ extension _SpecialTreatmentEncoder {
             let encoder = self.getEncoder(for: additionalKey)
             // Optional 本身不是 SmartEncodable；包装里的模型才是需要快照的类型。
             let snapshotType = encodingSubjectType(of: encodable, fallback: E.self)
-            encoder.cache.cacheSnapshot(for: snapshotType, codingPath: encoder.codingPath)
-            try encodable.encode(to: encoder)
-            encoder.cache.removeSnapshot(for: snapshotType)
+            try encoder.cache.withSnapshot(for: snapshotType, codingPath: encoder.codingPath) {
+                try encodable.encode(to: encoder)
+            }
 
             // If it is modified by SmartFlat, you need to encode to the upper layer to restore the data.
             if encodable is FlatType {
@@ -90,10 +90,6 @@ extension _SpecialTreatmentEncoder {
 
     func wrapDate(_ date: Date, for additionalKey: CodingKey?) throws -> JSONValue {
         
-        if let value = impl.cache.tranform(from: date, with: additionalKey, codingPath: codingPath) {
-            return value
-        }
-
         switch self.options.dateEncodingStrategy {
         case .deferredToDate:
             let encoder = self.getEncoder(for: additionalKey)

@@ -94,9 +94,9 @@ extension JSONEncoderImpl: _SpecialTreatmentEncoder {
             // 字典等 untyped 路径没有静态泛型，必须按动态类型建立快照；
             // 否则模型在这里编码时拿不到 mappingForValue。
             let snapshotType = encodingSubjectType(of: encodable, fallback: type(of: encodable))
-            self.cache.cacheSnapshot(for: snapshotType, codingPath: codingPath)
-            defer { self.cache.removeSnapshot(for: snapshotType) }
-            try encodable.encode(to: self)
+            try cache.withSnapshot(for: snapshotType, codingPath: codingPath) {
+                try encodable.encode(to: self)
+            }
             return self.value ?? .object([:])
         }
     }

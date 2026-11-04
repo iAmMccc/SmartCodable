@@ -14,11 +14,18 @@ class EncodingCache: Cachable {
 
     var snapshots: [EncodingSnapshot] = []
     
+    func withSnapshot<Result>(for type: Any.Type, codingPath: [CodingKey],
+                              _ body: () throws -> Result) rethrows -> Result {
+        cacheSnapshot(for: type, codingPath: codingPath)
+        defer { removeSnapshot(for: type) }
+        return try body()
+    }
+
     /// Caches a snapshot for an Encodable type.
     ///
     /// Takes `Any.Type` so callers can pass the *dynamic* type of an
     /// `Encodable` existential (e.g. a model stored in `[String: Encodable]`).
-    func cacheSnapshot(for type: Any.Type, codingPath: [CodingKey]) {
+    private func cacheSnapshot(for type: Any.Type, codingPath: [CodingKey]) {
         if let object = type as? SmartEncodable.Type {
 
             var snapshot = EncodingSnapshot()
@@ -30,7 +37,7 @@ class EncodingCache: Cachable {
     }
 
     /// Removes the most recent snapshot for the given type
-    func removeSnapshot(for type: Any.Type) {
+    private func removeSnapshot(for type: Any.Type) {
         if type is SmartEncodable.Type {
             if snapshots.count > 0 {
                 snapshots.removeLast()
@@ -41,69 +48,13 @@ class EncodingCache: Cachable {
 
 
 extension EncodingCache {
-    /// 获取对应的值解析器
+    /// Containers pass the original CodingKey; output aliases must never select
+    /// a transformer belonging to a different model field.
     func valueTransformer(for key: CodingKey?, in containerPath: [CodingKey]) -> SmartValueTransformer? {
-        guard let lastKey = key else { return nil }
-        
-        guard let snapshot = findSnapShot(with: containerPath) else { return nil }
-        
-        guard let transformers = snapshot.transformers, !transformers.isEmpty else { return nil }
-
-        return transformers.first { transformer in
-            transformerMatches(transformer, key: lastKey.stringValue, objectType: snapshot.objectType)
-        }
-    }
-
-    /// 一个 transformer 只属于它自己的 location。
-    /// key 映射的别名必须映射到该 transformer 的 location 才算命中，
-    /// 不能因为“当前 key 是某个映射的别名”就返回第一个 transformer。
-    private func transformerMatches(
-        _ transformer: SmartValueTransformer,
-        key: String,
-        objectType: (any SmartEncodable.Type)?
-    ) -> Bool {
-        if transformer.location.stringValue == key { return true }
-        guard let mappings = objectType?.mappingForKey() else { return false }
-        return mappings.contains { mapping in
-            mapping.to.stringValue == transformer.location.stringValue
-            && mapping.from.contains(key)
-        }
+        guard let key, let snapshot = findSnapShot(with: containerPath) else { return nil }
+        return snapshot.transformers?.first { $0.location.stringValue == key.stringValue }
     }
 }
-
-
-extension EncodingCache {
-    
-    /// Transforms a value to JSON using the appropriate transformer
-    /// - Parameters:
-    ///   - value: The value to transform
-    ///   - key: The associated coding key
-    /// - Returns: The transformed JSON value or nil if no transformer applies
-    func tranform(from value: Any, with key: CodingKey?, codingPath: [CodingKey]) -> JSONValue? {
-
-        guard let key = key else { return nil }
-        guard let tranformer = valueTransformer(for: key, in: codingPath) else { return nil }
-        guard let decoded = transform(decodedValue: value, performer: tranformer.performer) else { return nil }
-        return JSONValue.make(decoded)
-    }
-    
-    /// Performs the actual value transformation
-    private func transform<Performer: ValueTransformable>(decodedValue: Any, performer: Performer) -> Any? {
-        // 首先检查是否是属性包装器
-        if let propertyWrapper = decodedValue as? any PropertyWrapperable {
-            let wrappedValue = propertyWrapper.wrappedValue
-            guard let value = wrappedValue as? Performer.Object else {
-                return nil
-            }
-            return performer.transformToJSON(value)
-        } else {
-            guard let value = decodedValue as? Performer.Object else { return nil }
-            return performer.transformToJSON(value)
-        }
-    }
-}
-
-
 
 
 /// Snapshot of encoding state for a particular model
