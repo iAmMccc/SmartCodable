@@ -247,6 +247,16 @@ private func _decimalInteger<T: FixedWidthInteger>(_ parts: _DecimalParts, as ty
     whole.append(contentsOf: repeatElement(UInt8(48), count: trailingZeros))
     if whole.isEmpty { whole = [48] }
 
+    // Check the original decimal value, not only its rounded integer part.
+    // In particular UInt8 must reject both 255.4 and -0.4 under every policy.
+    if parts.negative && !T.isSigned { return nil }
+    let magnitude = String(decoding: whole, as: UTF8.self)
+    let limit = String(describing: parts.negative ? T.min : T.max)
+        .drop(while: { $0 == "-" })
+    guard magnitude.count < limit.count
+            || (magnitude.count == limit.count && magnitude <= limit) else { return nil }
+    if magnitude == limit && fraction.contains(where: { $0 != 48 }) { return nil }
+
     // If the exponent moved every digit past the first fractional place,
     // leading fractional zeroes prevent rounding up even for a leading 9.
     let hasLeadingFractionalZero = parts.scale < 0 && -parts.scale > parts.digits.count
@@ -264,7 +274,7 @@ private func _decimalInteger<T: FixedWidthInteger>(_ parts: _DecimalParts, as ty
         }
     }
     guard whole.count <= parts.maxDigits else { return nil }
-    let magnitude = String(decoding: whole, as: UTF8.self)
-    let signed = parts.negative && magnitude != "0" ? "-" + magnitude : magnitude
+    let roundedMagnitude = String(decoding: whole, as: UTF8.self)
+    let signed = parts.negative && roundedMagnitude != "0" ? "-" + roundedMagnitude : roundedMagnitude
     return T(signed)
 }

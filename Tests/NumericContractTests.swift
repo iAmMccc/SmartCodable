@@ -151,17 +151,23 @@ final class NumericContractTests: XCTestCase {
     func testFractionalValuesNearSmallIntegerLimits() throws {
         let previous = SmartCodableOptions.numberStrategy
         defer { SmartCodableOptions.numberStrategy = previous }
+        // The original value must be inside the target range before applying
+        // a lossy policy. This restores the 7.0.1 small-integer boundary contract.
         let cases: [(String, Int8, Int8, Int8)] = [
-            ("127.4", 73, 127, 127),
-            ("127.5", 73, 127, 73),
-            ("-128.4", 73, -128, -128),
-            ("-128.5", 73, -128, 73)
+            ("127.4", 73, 73, 73),
+            ("127.5", 73, 73, 73),
+            ("-128.4", 73, 73, 73),
+            ("-128.5", 73, 73, 73),
+            ("126.6", 73, 126, 127),
+            ("-127.6", 73, -127, -128)
         ]
         let unsignedCases: [(String, UInt8, UInt8, UInt8)] = [
-            ("255.4", 191, 255, 255),
-            ("255.5", 191, 255, 191),
-            ("-0.4", 191, 0, 0),
-            ("-0.5", 191, 0, 191)
+            ("255.4", 191, 191, 191),
+            ("255.5", 191, 191, 191),
+            ("-0.4", 191, 191, 191),
+            ("-0.5", 191, 191, 191),
+            ("254.6", 191, 254, 255),
+            ("0.4", 191, 0, 0)
         ]
         for (text, strict, truncated, rounded) in cases {
             for (strategy, expected) in [
@@ -194,7 +200,7 @@ final class NumericContractTests: XCTestCase {
         for strategy: SmartCodableOptions.NumberConversionStrategy in [.strict, .truncate, .rounded] {
             SmartCodableOptions.numberStrategy = strategy
             let signed = try XCTUnwrap(Int64ContractModel.deserialize(from: ["value": tinyFraction]))
-            XCTAssertEqual(signed.value, strategy == .strict ? 77 : Int64.min,
+            XCTAssertEqual(signed.value, 77,
                            "text=\(tinyFraction) strategy=\(strategy)")
             let tooLarge = try XCTUnwrap(Int8ContractModel.deserialize(from: ["value": hugeExponent]))
             XCTAssertEqual(tooLarge.value, 73)
