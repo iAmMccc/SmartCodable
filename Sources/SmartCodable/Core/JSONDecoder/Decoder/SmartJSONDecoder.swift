@@ -7,6 +7,9 @@
 
 import Foundation
 
+/// With fixed configuration, smartDecode keeps decoding sessions independent.
+/// Do not concurrently mutate strategies/userInfo. Caller-owned reference values
+/// and custom decoding implementations remain responsible for their own safety.
 open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     
     open var smartDataDecodingStrategy: SmartDataDecodingStrategy = .base64
@@ -17,7 +20,7 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         let dataDecodingStrategy: SmartDataDecodingStrategy
         let nonConformingFloatDecodingStrategy: NonConformingFloatDecodingStrategy
         let keyDecodingStrategy: SmartKeyDecodingStrategy
-        let userInfo: [CodingUserInfoKey : Any]
+        var userInfo: [CodingUserInfoKey : Any]
     }
     
     /// The options set on the top-level decoder.
@@ -47,9 +50,15 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     /// - throws: An error if any value throws an error during decoding.
     public func smartDecode<T : Decodable>(_ type: T.Type, from input: Any) throws -> T {
                 
+        return try decodeValue(type, from: input)
+    }
+
+    /// Decode using invocation-local options and session metadata.
+    func decodeValue<T: Decodable>(_ type: T.Type, from input: Any) throws -> T {
         let mark = SmartSentinel.parsingMark()
+        var callOptions = options
         if let parsingMark = CodingUserInfoKey.parsingMark {
-            userInfo.updateValue(mark, forKey: parsingMark)
+            callOptions.userInfo[parsingMark] = mark
         }
         
         
@@ -91,7 +100,7 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         }
 
         // 执行解析逻辑
-        let impl = JSONDecoderImpl(userInfo: userInfo, from: json, codingPath: [], options: options)
+        let impl = JSONDecoderImpl(userInfo: callOptions.userInfo, from: json, codingPath: [], options: callOptions)
         do {
             let value = try impl.unwrap(as: type)
             SmartSentinel.monitorLogs(in: "\(type)", parsingMark: mark, impl: impl)

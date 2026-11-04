@@ -59,4 +59,92 @@ final class RootCauseFixTests: XCTestCase {
         XCTAssertEqual(encoded["firstName"] as? String, "FIRST")
         XCTAssertEqual(encoded["name"] as? String, "independent")
     }
+
+    func testDecodeKeepsSessionMetadataOutOfCallerConfiguration() throws {
+        struct Model: Decodable {
+            let mark: String
+            init(from decoder: Decoder) throws {
+                mark = decoder.userInfo[CodingUserInfoKey.parsingMark!] as? String ?? "missing"
+            }
+        }
+        let decoder = SmartJSONDecoder()
+        let callerKey = CodingUserInfoKey(rawValue: "caller")!
+        decoder.userInfo[callerKey] = "retained"
+        let first = try decoder.smartDecode(Model.self, from: [:] as [String: Int])
+        let second = try decoder.smartDecode(Model.self, from: [:] as [String: Int])
+        XCTAssertNotEqual(first.mark, "missing")
+        XCTAssertNotEqual(first.mark, second.mark)
+        XCTAssertNil(decoder.userInfo[CodingUserInfoKey.parsingMark!])
+        XCTAssertEqual(decoder.userInfo[callerKey] as? String, "retained")
+    }
+
+    func testConcurrentSharedDecoderSessionsStayDistinctWithFixedConfiguration() throws {
+        struct Model: Decodable {
+            let mark: String
+            let value: Int
+            init(from decoder: Decoder) throws {
+                mark = decoder.userInfo[CodingUserInfoKey.parsingMark!] as? String ?? "missing"
+                let c = try decoder.singleValueContainer()
+                value = try c.decode(Int.self)
+            }
+        }
+        let decoder = SmartJSONDecoder()
+        let lock = NSLock()
+        var results: [(Int, Model?)] = []
+        DispatchQueue.concurrentPerform(iterations: 128) { index in
+            let result = try? decoder.smartDecode(Model.self, from: String(index))
+            lock.lock()
+            results.append((index, result))
+            lock.unlock()
+        }
+        XCTAssertEqual(results.count, 128)
+        var marks = Set<String>()
+        for (input, value) in results {
+            let model = try XCTUnwrap(value)
+            XCTAssertEqual(model.value, input)
+            XCTAssertNotEqual(model.mark, "missing")
+            marks.insert(model.mark)
+        }
+        XCTAssertEqual(marks.count, 128)
+        XCTAssertNil(decoder.userInfo[CodingUserInfoKey.parsingMark!])
+    }
+
+    func testSharedDecoderConcurrentLogsKeepOneSessionPerCall() {
+        struct SharedLogged: SmartCodableX { var id = -1; var value = 7 }
+        let oldMode = SmartSentinel.debugMode
+        defer {
+            SmartSentinel.debugMode = oldMode
+            SmartSentinel.onLogGenerated { _ in }
+        }
+        SmartSentinel.debugMode = .alert
+        let completed = expectation(description: "each session flushes its own log")
+        completed.expectedFulfillmentCount = 64
+        let lock = NSLock()
+        var messages: [String] = []
+        var results: [(Int, SharedLogged?)] = []
+        SmartSentinel.onLogGenerated { message in
+            lock.lock()
+            messages.append(message)
+            lock.unlock()
+            completed.fulfill()
+        }
+        let decoder = SmartJSONDecoder()
+        DispatchQueue.concurrentPerform(iterations: 64) { index in
+            let value = try? decoder.smartDecode(SharedLogged.self, from: ["id": index, "value": "bad"])
+            lock.lock()
+            results.append((index, value))
+            lock.unlock()
+        }
+        wait(for: [completed], timeout: 5)
+        XCTAssertEqual(messages.count, 64)
+        for message in messages {
+            XCTAssertTrue(message.contains("SharedLogged"))
+            XCTAssertEqual(message.components(separatedBy: "[Smart Sentinel]").count - 1, 1)
+        }
+        XCTAssertEqual(results.count, 64)
+        for (index, result) in results {
+            XCTAssertEqual(result?.id, index)
+            XCTAssertEqual(result?.value, 7)
+        }
+    }
 }
