@@ -62,6 +62,20 @@ extension SmartCompact.Dictionary: Codable {
     }
     
     public func encode(to encoder: Encoder) throws {
+        // .recursive：整个数据容器交给统一动态桥（JSONEncoderImpl.wrapDynamicValue）整体编码，
+        // 数据键保持原样，不再经过 smartKeyEncodingStrategy 的键转换，与 @SmartAny 行为一致。
+        // 必须在创建 keyed container 之前分支，否则数据键会被键策略转换并可能相互覆盖。
+        if let impl = encoder as? JSONEncoderImpl,
+           impl.options.dynamicValueEncodingStrategy == .recursive {
+            var data: [String: Any] = [:]
+            for (k, v) in wrappedValue {
+                guard v is Encodable || JSONValue.make(v) != nil else { continue }
+                data[k.description] = v
+            }
+            impl.singleValue = try impl.wrapDynamicValue(data)
+            return
+        }
+
         var container = encoder.container(keyedBy: _JSONKey.self)
         for (k, v) in wrappedValue {
             guard v is Encodable || JSONValue.make(v) != nil else { continue }
