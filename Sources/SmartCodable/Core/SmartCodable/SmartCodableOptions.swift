@@ -14,6 +14,7 @@ public struct SmartCodableOptions {
 
     private static var _numberStrategy: NumberConversionStrategy = .strict
     private static var _ignoreNull: Bool = true
+    private static var _compactElementStrategy: CompactElementStrategy = .legacy
 
     /// Number conversion strategy during decoding (default: .strict)
     ///
@@ -58,6 +59,30 @@ public struct SmartCodableOptions {
             _ignoreNull = newValue
         }
     }
+
+    /// Element decoding strategy for `@SmartCompact.Array` (default: `.legacy`)
+    ///
+    /// - `.legacy`: keeps the 7.0.1 acceptance domain. The raw JSON value is bridged and cast to the
+    ///   element type, so `"2"` is not converted to `2`, `"YES"` is not converted to `true`, and
+    ///   `3.5` is not truncated to `3`. `SmartCodableX` models and `Optional` elements keep their
+    ///   existing behavior.
+    /// - `.convert`: converts the raw JSON value into the declared element type (`"2"` → `2`,
+    ///   `"YES"` → `true`) and decodes ordinary `Codable` elements such as plain structs.
+    ///
+    /// - Note: This affects both decoding and encoding of `@SmartCompact.Array` elements, and never
+    ///   changes ordinary (non-compact) arrays.
+    public static var compactElementStrategy: CompactElementStrategy {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _compactElementStrategy
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _compactElementStrategy = newValue
+        }
+    }
 }
 
 
@@ -78,5 +103,17 @@ extension SmartCodableOptions {
         ///
         /// - Decoding example: Double(3.6) → Int returns 4
         case rounded
+    }
+}
+
+
+extension SmartCodableOptions {
+    /// Element decoding strategy for `@SmartCompact.Array`
+    public enum CompactElementStrategy {
+        /// Bridge the raw JSON value and cast it to the element type (default, 7.0.1 behavior)
+        case legacy
+
+        /// Convert the raw JSON value into the declared element type
+        case convert
     }
 }

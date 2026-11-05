@@ -107,6 +107,10 @@ final class Branch702ReviewRegressionTests: XCTestCase {
     }
 
     func testR1FloatingContainers() throws {
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+        SmartCodableOptions.compactElementStrategy = .convert
+
         struct Model: SmartCodableX {
             var float: Float = -1
             var double: Double = -1
@@ -172,8 +176,15 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         let host = try XCTUnwrap(Host.deserialize(from: ["compact": elements, "only": elements, "ordinary": ordinary]))
         XCTAssertEqual(host.compact.map(\.id), [11, 12])
         XCTAssertEqual(host.compact.map(\.calls), [1, 1])
-        XCTAssertEqual(host.only.map(\.id), [11, 12])
-        XCTAssertEqual(host.only.map(\.calls), [1, 1])
+        // `DecodeOnly` is a plain `SmartDecodable`, so its elements belong to the
+        // opt-in conversion domain: the 7.0.1 JSON-value bridge cannot build them.
+        XCTAssertEqual(host.only.map(\.id), [])
+        let previousElements = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previousElements }
+        SmartCodableOptions.compactElementStrategy = .convert
+        let converted = try XCTUnwrap(Host.deserialize(from: ["compact": elements, "only": elements, "ordinary": ordinary]))
+        XCTAssertEqual(converted.only.map(\.id), [11, 12])
+        XCTAssertEqual(converted.only.map(\.calls), [1, 1])
         XCTAssertEqual(host.ordinary.map(\.id), [11, 9, 12])
         XCTAssertEqual(host.ordinary.map(\.calls), [1, 1, 1])
 
@@ -379,6 +390,9 @@ final class Branch702ReviewRegressionTests: XCTestCase {
     func testR8CompactArrayElementTypes() {
         let previous = SmartCodableOptions.numberStrategy
         defer { SmartCodableOptions.numberStrategy = previous }
+        let previousElements = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previousElements }
+        SmartCodableOptions.compactElementStrategy = .convert
         func compact<T: Codable & Equatable>(_: T.Type, _ values: [Any]) -> [T]? {
             Branch702CompactHost<T>.deserialize(from: ["values": values])?.values
         }
@@ -418,7 +432,15 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(compact(Int.self, mixed), [1, 2, 3, 4]); executed += 1
         SmartCodableOptions.numberStrategy = .rounded
         XCTAssertEqual(compact(Int.self, mixed), [1, 2, 4, 4]); executed += 1
-        XCTAssertEqual(executed, 36)
+
+        // Default `.legacy` keeps the 7.0.1 acceptance domain: only values the JSON
+        // bridge already holds survive the cast, and Bool elements still cast to Int.
+        SmartCodableOptions.compactElementStrategy = .legacy
+        XCTAssertEqual(compact(Int.self, [1, "2", true]), [1, 1]); executed += 1
+        XCTAssertEqual(compact(Bool.self, ["YES", true]), [true]); executed += 1
+        XCTAssertEqual(compact(String.self, [1, "a"]), ["a"]); executed += 1
+        XCTAssertEqual(compact(Double.self, [2.5, "2.5"]), [2.5]); executed += 1
+        XCTAssertEqual(executed, 40)
     }
 
     func testR9TopLevelScalarEncoding() throws {

@@ -132,4 +132,202 @@ final class CompatibilityReviewTests: XCTestCase {
         XCTAssertEqual(missing.value, 7)
         XCTAssertEqual(missing.name, "new")
     }
+
+    // MARK: - Compact arrays with Optional elements
+
+    private struct CompactOptionalHost: SmartCodableX {
+        @SmartCompact.Array var ints: [Int?] = []
+        @SmartCompact.Array var strings: [String?] = []
+        @SmartCompact.Array var bools: [Bool?] = []
+        @SmartCompact.Array var doubles: [Double?] = []
+    }
+
+    func testCompactOptionalElementsDropNullsInsteadOfRetainingPlaceholders() throws {
+        let host = try XCTUnwrap(CompactOptionalHost.deserialize(from: [
+            "ints": [1, NSNull(), 2] as [Any],
+            "strings": ["a", NSNull(), "c"] as [Any],
+            "bools": [true, NSNull(), false] as [Any],
+        ]))
+        // 7.0.1 bridges the raw JSON value and casts it to `T`, so null elements are
+        // dropped. Retaining `Optional.none` would change the array length and the
+        // positions of every element after the first null.
+        XCTAssertEqual(host.ints.count, 2)
+        XCTAssertEqual(host.ints, [1, 2])
+        XCTAssertEqual(host.strings.count, 2)
+        XCTAssertEqual(host.strings, ["a", "c"])
+        XCTAssertEqual(host.bools.count, 2)
+        XCTAssertEqual(host.bools, [true, false])
+    }
+
+    func testCompactOptionalElementsKeepLegacyAcceptanceDomain() throws {
+        // Elements that never bridged to `T` under the JSON-value cast stay dropped,
+        // even when the current scalar decoders could convert them.
+        let cases: [(input: [Any], expected: [Int?])] = [
+            ([1, "bad", 2], [1, 2]),
+            ([1, [7] as [Any], 2], [1, 2]),
+            ([1, ["k": 1] as [String: Any], 2], [1, 2]),
+            ([NSNull(), NSNull()], []),
+            ([1.5, NSNull(), 2.5], []),
+            (["1", NSNull(), "2"], []),
+        ]
+        for (input, expected) in cases {
+            let host = try XCTUnwrap(CompactOptionalHost.deserialize(from: ["ints": input]))
+            XCTAssertEqual(host.ints, expected, "unexpected acceptance for \(input)")
+        }
+
+        let valid = try XCTUnwrap(CompactOptionalHost.deserialize(from: [
+            "ints": [1, 2, 3] as [Any],
+            "doubles": [1.5, NSNull(), 2.5] as [Any],
+        ]))
+        XCTAssertEqual(valid.ints, [1, 2, 3])
+        XCTAssertEqual(valid.doubles, [1.5, 2.5])
+    }
+
+    func testCompactOptionalNestedOptionalElementsDropNulls() throws {
+        struct Host: SmartCodableX {
+            @SmartCompact.Array var values: [Int??] = []
+        }
+        let host = try XCTUnwrap(Host.deserialize(from: ["values": [1, NSNull(), 2] as [Any]]))
+        XCTAssertEqual(host.values.count, 2)
+        XCTAssertEqual(host.values.compactMap { $0 ?? nil }, [1, 2])
+    }
+
+    func testOrdinaryOptionalArraysKeepNullPlaceholders() throws {
+        // The Compact element boundary must not change ordinary Optional arrays.
+        struct Host: SmartCodableX {
+            var values: [Int?] = []
+        }
+        let host = try XCTUnwrap(Host.deserialize(from: ["values": [1, NSNull(), 2] as [Any]]))
+        XCTAssertEqual(host.values.count, 3)
+        XCTAssertEqual(host.values, [1, nil, 2])
+    }
+    func testCompactScalarElementsDefaultToLegacyAcceptanceDomain() throws {
+        // 7.0.1 only appended an element when the bridged JSON value already
+        // matched the declared type. The conversion domain stays opt-in.
+        struct Host: SmartCodableX {
+            @SmartCompact.Array var ints: [Int] = []
+            @SmartCompact.Array var bools: [Bool] = []
+            @SmartCompact.Array var strings: [String] = []
+        }
+        let json: [String: Any] = [
+            "ints": [1, "2", "bad", NSNull(), 3.5, true] as [Any],
+            "bools": ["YES", true, 0] as [Any],
+            "strings": [1, "a", true] as [Any],
+        ]
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        SmartCodableOptions.compactElementStrategy = .legacy
+        let legacy = try XCTUnwrap(Host.deserialize(from: json))
+        XCTAssertEqual(legacy.ints, [1, 1])
+        XCTAssertEqual(legacy.bools, [true, false])
+        XCTAssertEqual(legacy.strings, ["a"])
+
+        SmartCodableOptions.compactElementStrategy = .convert
+        let converted = try XCTUnwrap(Host.deserialize(from: json))
+        XCTAssertEqual(converted.ints, [1, 2])
+        XCTAssertEqual(converted.bools, [true, true, false])
+        XCTAssertEqual(converted.strings, ["1", "a"])
+    }
+
+    func testCompactPlainCodableElementsRequireConversionOptIn() throws {
+        struct Plain: Codable, Equatable {
+            var a: Int
+        }
+        struct Host: SmartCodableX {
+            @SmartCompact.Array var items: [Plain] = []
+        }
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        SmartCodableOptions.compactElementStrategy = .legacy
+        XCTAssertEqual(Host.deserialize(from: ["items": [["a": 1]]])?.items, [])
+
+        SmartCodableOptions.compactElementStrategy = .convert
+        XCTAssertEqual(Host.deserialize(from: ["items": [["a": 1]]])?.items, [Plain(a: 1)])
+    }
+
+    func testCompactModelElementsKeepLegacyDecodingAndCallbacks() throws {
+        struct Host: SmartCodableX {
+            @SmartCompact.Array var values: [CompactCallbackChild] = []
+        }
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        for strategy in [SmartCodableOptions.CompactElementStrategy.legacy, .convert] {
+            SmartCodableOptions.compactElementStrategy = strategy
+            let host = try XCTUnwrap(Host.deserialize(from: [
+                "values": [["id": 1], NSNull(), "bad", ["id": 2]] as [Any],
+            ]))
+            XCTAssertEqual(host.values.map(\.id), [11, 12], "\(strategy)")
+            XCTAssertEqual(host.values.map(\.calls), [1, 1], "\(strategy)")
+        }
+    }
+    func testCompactElementEncodingFollowsTheSameStrategy() throws {
+        // The encode side mirrors the decode side: `.legacy` bridges the element and
+        // does not invoke a plain Encodable; `.convert` uses its conformance.
+        let counter = EncodeCounter()
+        struct Host: SmartCodableX {
+            @SmartCompact.Array var values: [CountingElement] = []
+        }
+        var host = Host()
+        host.values = [CountingElement(counter: counter)]
+
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        SmartCodableOptions.compactElementStrategy = .legacy
+        let legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: SmartJSONEncoder().encode(host)) as? [String: Any])
+        XCTAssertEqual((legacy["values"] as? [Any])?.count, 1)
+        XCTAssertTrue((legacy["values"] as? [Any])?.first is NSNull)
+        XCTAssertEqual(counter.calls, 0)
+
+        SmartCodableOptions.compactElementStrategy = .convert
+        let converted = try XCTUnwrap(JSONSerialization.jsonObject(with: SmartJSONEncoder().encode(host)) as? [String: Any])
+        XCTAssertEqual(converted["values"] as? [Int], [7])
+        XCTAssertEqual(counter.calls, 1)
+
+        // Foundation values follow the same mode: the legacy bridge emits null, while
+        // `.convert` keeps the element's own encoding.
+        struct FoundationHost: SmartCodableX {
+            @SmartCompact.Array var dates: [Date] = []
+            @SmartCompact.Array var data: [Data] = []
+        }
+        var foundation = FoundationHost()
+        foundation.dates = [Date(timeIntervalSinceReferenceDate: 0)]
+        foundation.data = [Data([1, 2, 3])]
+
+        SmartCodableOptions.compactElementStrategy = .legacy
+        let legacyFoundation = try XCTUnwrap(JSONSerialization.jsonObject(with: SmartJSONEncoder().encode(foundation)) as? [String: Any])
+        XCTAssertTrue((legacyFoundation["dates"] as? [Any])?.first is NSNull)
+        XCTAssertTrue((legacyFoundation["data"] as? [Any])?.first is NSNull)
+
+        SmartCodableOptions.compactElementStrategy = .convert
+        let convertedFoundation = try XCTUnwrap(JSONSerialization.jsonObject(with: SmartJSONEncoder().encode(foundation)) as? [String: Any])
+        XCTAssertEqual(convertedFoundation["data"] as? [String], ["AQID"])
+        XCTAssertNotNil((convertedFoundation["dates"] as? [Any])?.first as? Double)
+    }
+}
+
+private final class EncodeCounter {
+    var calls = 0
+}
+
+private struct CountingElement: Encodable {
+    let counter: EncodeCounter
+
+    func encode(to encoder: Encoder) throws {
+        counter.calls += 1
+        var container = encoder.singleValueContainer()
+        try container.encode(7)
+    }
+}
+
+private struct CompactCallbackChild: SmartCodableX {
+    var id = -1
+    var calls = 0
+    mutating func didFinishMapping() {
+        calls += 1
+        id += 10
+    }
 }

@@ -294,6 +294,16 @@ final class AuditRegressionTests: XCTestCase {
             @SmartCompact.Array var items: [Plain] = []
         }
 
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        // Plain `Codable` elements are part of the opt-in conversion domain: the
+        // 7.0.1 JSON-value bridge can only produce a dictionary here.
+        SmartCodableOptions.compactElementStrategy = .legacy
+        let legacy = try XCTUnwrap(Model.deserialize(from: ["items": [["a": 1], ["a": 2]]]))
+        XCTAssertEqual(legacy.items.map(\.a), [])
+
+        SmartCodableOptions.compactElementStrategy = .convert
         let model = try XCTUnwrap(Model.deserialize(from: ["items": [["a": 1], ["a": 2]]]))
         XCTAssertEqual(model.items.map(\.a), [1, 2])
         let encoded = try XCTUnwrap(model.toDictionary())
@@ -306,6 +316,13 @@ final class AuditRegressionTests: XCTestCase {
             @SmartCompact.Array var ages: [Int] = []
         }
 
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        SmartCodableOptions.compactElementStrategy = .legacy
+        XCTAssertEqual(Model.deserialize(from: ["ages": ["Tom", 1, [:], 2, 3, "4"]])?.ages, [1, 2, 3])
+
+        SmartCodableOptions.compactElementStrategy = .convert
         let model = Model.deserialize(from: ["ages": ["Tom", 1, [:], 2, 3, "4"]])
         XCTAssertEqual(model?.ages, [1, 2, 3, 4])
     }
@@ -315,6 +332,13 @@ final class AuditRegressionTests: XCTestCase {
             @SmartCompact.Array var dates: [Date] = []
         }
 
+        let previous = SmartCodableOptions.compactElementStrategy
+        defer { SmartCodableOptions.compactElementStrategy = previous }
+
+        SmartCodableOptions.compactElementStrategy = .legacy
+        XCTAssertEqual(Model.deserialize(from: ["dates": ["invalid", 0]])?.dates.count, 0)
+
+        SmartCodableOptions.compactElementStrategy = .convert
         let model = Model.deserialize(from: ["dates": ["invalid", 0]])
         XCTAssertEqual(model?.dates.count, 1)
         XCTAssertEqual(model?.dates.first?.timeIntervalSince1970, 0)

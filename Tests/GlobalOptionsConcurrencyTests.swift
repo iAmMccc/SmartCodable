@@ -8,6 +8,7 @@ final class GlobalOptionsConcurrencyTests: XCTestCase {
         // 每次测试后恢复默认值，防止污染其他测试
         SmartCodableOptions.numberStrategy = .strict
         SmartCodableOptions.ignoreNull = true
+        SmartCodableOptions.compactElementStrategy = .legacy
         SmartSentinel.debugMode = .none
         super.tearDown()
     }
@@ -30,10 +31,12 @@ final class GlobalOptionsConcurrencyTests: XCTestCase {
                 }
 
                 SmartCodableOptions.ignoreNull = index.isMultiple(of: 2)
+                SmartCodableOptions.compactElementStrategy = index.isMultiple(of: 2) ? .legacy : .convert
                 SmartSentinel.debugMode = index.isMultiple(of: 2) ? .verbose : .alert
 
                 _ = SmartCodableOptions.numberStrategy
                 _ = SmartCodableOptions.ignoreNull
+                _ = SmartCodableOptions.compactElementStrategy
                 _ = SmartSentinel.debugMode
                 group.leave()
             }
