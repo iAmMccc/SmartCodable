@@ -385,5 +385,7 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 共用一条运行时集合遍历，叶子重入现有 typed 编码机制以保留策略及模型快照。
 两种模式分别通过 `SmartJSONDecoder.smartUnkeyedDecodingStrategy` 与
 `SmartJSONEncoder.smartDynamicValueEncodingStrategy` 在实例上选择；
-`SmartDecodingOption` / `SmartEncodingOption` 保持 7.0.1 的 case 集合，不新增 case。
+`SmartDecodingOption` / `SmartEncodingOption` 保持 7.0.1 的 case 集合，不新增 case；
+`@SmartCompact.Array` 的元素接受域由 `SmartCodableOptions.compactElementStrategy` 选择，
+默认 `.legacy` 复原 7.0.1 的 JSON 值桥接（解码与编码同模式），`.convert` 才启用类型转换与普通 Codable 元素。
 默认值、选择方式和异常边界见 [兼容性选项](CompatibilityOptions.md)。

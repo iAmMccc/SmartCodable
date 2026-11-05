@@ -5,8 +5,13 @@ following options select more precise recovery without changing existing callers
 
 `SmartDecodingOption` and `SmartEncodingOption` keep their 7.0.1 case sets; this
 line adds no new option case, so existing exhaustive switches over them keep
-compiling. The opt-in mechanisms below are selected on a decoder or an encoder
-instance instead of through a new option case.
+compiling. Decoder and encoder recovery modes are selected on their respective instances.
+Compact array conversion uses the separate global `compactElementStrategy` bridge;
+none adds a case to either existing option enum.
+
+Existing API calls keep the legacy bridge by default. Select an extension only
+when its conversion and error semantics are desired; updating the package alone
+does not opt a caller into recursive dynamic encoding or Compact conversion.
 
 ## One consumption per optional array element
 
@@ -55,14 +60,64 @@ are traversed recursively. Unsupported leaves throw `EncodingError.invalidValue`
 with their coding path, rather than silently losing data. Compact dictionaries
 still skip unsupported direct entries according to their existing compact contract.
 
+Under the default `.legacy` strategy a runtime value that is neither a JSON
+container nor a `SmartCodableX` model encodes as `null`: its own `encode(to:)`
+is not invoked, so a custom encoder that throws cannot fail the outer encode.
+Choose `.recursive` when such values must be encoded; the custom `encode(to:)`
+then runs and its errors reach the caller instead of becoming `null`.
+
 ## Integer conversion boundaries
 
-The original decimal value must be within the target integer's range before
+The original numeric value must be within the target integer's range before
 `.truncate` or `.rounded` applies. UInt8 rejects `"255.4"` and `"-0.4"` under all
 policies, while `.rounded` accepts `"254.6"` as 255. Out-of-range input falls back
 through the existing property/container recovery path. Range and rounding use
 exact decimal digits, so a tiny fractional overflow at Int64/UInt64 boundaries is
 also rejected; no intermediate Double may make it appear in range.
+
+Numeric strings retain the historical hexadecimal forms accepted by the former
+`Double(string)` bridge: `"0x10"` and `"0x1p4"` both decode as 16. The prefix is
+case-insensitive, a sign and hexadecimal fraction are allowed, and `p`/`P` introduces
+a signed decimal power of two. This bridge applies only to quoted strings, not
+JSON number literals. Binary and octal prefixes (`"0b101"`, `"0o17"`) remain invalid.
+
+Decimal conversion keeps its exact decimal algorithm. The hexadecimal bridge
+also uses exact digits and checks the original value before truncation or rounding:
+`"0xffffffffffffffff"` is UInt64.max, but `"0xffffffffffffffff.0001"` is out of range
+under every policy. Historical floating-point precision loss is not restored.
+
+## Compact array element acceptance
+
+`@SmartCompact.Array` runs in `.legacy` mode by default. An element is appended
+only when the bridged JSON value already matches the declared element type, so
+`[1, "2", "x", null, 3.5, 4]` decodes as `[1, 4]` for `[Int]`, and `["YES", true]`
+decodes as `[true]` for `[Bool]`. Invalid elements are skipped instead of being
+replaced by a type default, which is the part of 7.0.1 behavior this option keeps.
+
+Setting `SmartCodableOptions.compactElementStrategy = .convert` enables the
+conversion domain: numeric and boolean strings are converted, `3.5` follows
+`SmartCodableOptions.numberStrategy`, and plain `Codable` element types decode.
+`SmartCodableX` model elements decode and run `didFinishMapping()` in both
+modes; other `SmartDecodable` types decode only after opting into `.convert`.
+`Optional` elements keep their own legacy path regardless of this option.
+
+Encoding follows the same mode. Under `.legacy` every element is encoded through
+the JSON-value bridge, so an element outside that bridge encodes as `null`
+without invoking an unknown plain `Encodable`. Supported `SmartCodableX` models
+still pass through their historical `toDictionary()` bridge, whose failure becomes
+`null`; this differs from `@SmartAny`, where supported model errors propagate.
+`.convert` encodes elements through their `Encodable` conformance and propagates
+those errors. Keep this global option fixed while encoding or decoding; it is not
+a per-call transaction.
+
+## URL string decoding
+
+`SmartURLTransformer` builds the URL from the decoded string first and only
+applies percent-encoding when `URL(string:)` rejects the input. An
+already-escaped string therefore keeps its escape (`a%20b` stays `a%20b`
+instead of becoming `a%2520b`), and a `#` in the input starts a URL fragment
+instead of remaining part of the path. Unicode, spaces and plain ASCII inputs
+produce the same URL as before.
 
 ## Partial updates and failure recovery
 
