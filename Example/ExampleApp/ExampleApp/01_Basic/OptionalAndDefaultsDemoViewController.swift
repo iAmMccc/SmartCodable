@@ -20,6 +20,16 @@ final class OptionalAndDefaultsDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Profile.deserialize" }
+    override var expectedOutput: [String] {
+        [
+            "id        = 100            (默认 -1)",
+            "nickname  = 匿名      (默认 \"匿名\")",
+            "age       = nil  (可选)",
+            "verified  = false      (默认 false)",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let model = Profile.deserialize(from: json) else {
             return ["解码失败"]

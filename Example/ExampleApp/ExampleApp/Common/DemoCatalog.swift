@@ -9,7 +9,7 @@ enum DemoCatalog {
                           make: { BasicDecodeDemoViewController() }),
                 DemoEntry(title: "可选与默认值", subtitle: "字段缺失 / null / 容错兜底",
                           make: { OptionalAndDefaultsDemoViewController() }),
-                DemoEntry(title: "类型转换", subtitle: "String ↔ Number ↔ Bool 互转",
+                DemoEntry(title: "类型转换", subtitle: "字符串与数字转换、数字转 Bool 和 Bool 转 Int 回退",
                           make: { TypeCoercionDemoViewController() }),
                 DemoEntry(title: "Key 映射", subtitle: "mappingForKey 单 / 多 key",
                           make: { KeyMappingDemoViewController() }),
@@ -35,13 +35,13 @@ enum DemoCatalog {
             DemoSection(title: "2. 解码策略", items: [
                 DemoEntry(title: "解码前预处理", subtitle: "didFinishMapping 之前的清洗",
                           make: { PreDecodeStrategyDemoViewController() }),
-                DemoEntry(title: "解码中策略", subtitle: "全局 vs 局部 SmartDecodingOption",
+                DemoEntry(title: "解码中策略", subtitle: "默认策略与单次 SmartDecodingOption",
                           make: { InDecodeStrategyDemoViewController() }),
                 DemoEntry(title: "解码后回调", subtitle: "didFinishMapping + 混合策略",
                           make: { PostDecodeStrategyDemoViewController() }),
             ]),
             DemoSection(title: "3. 调试日志", items: [
-                DemoEntry(title: "SmartSentinel", subtitle: "对象 / 字典 / 数组 / 并发",
+                DemoEntry(title: "SmartSentinel", subtitle: "单个对象的 verbose 日志回调",
                           make: { SmartSentinelDemoViewController() }),
                 DemoEntry(title: "可选字段日志", subtitle: "debugMode 下可选 null、非可选 null 与类型不匹配的日志条数",
                           make: { OptionalNullLogDemoViewController() }),
@@ -51,7 +51,7 @@ enum DemoCatalog {
                           make: { CustomCodableDemoViewController() }),
                 DemoEntry(title: "多 Key 映射", subtitle: "一字段对应多个 JSON key",
                           make: { MultiKeyMappingDemoViewController() }),
-                DemoEntry(title: "范型解析", subtitle: "ApiCommon<T: SmartCodableX>",
+                DemoEntry(title: "范型解析", subtitle: "ApiResponse<T: SmartCodableX>",
                           make: { GenericDecodeDemoViewController() }),
                 DemoEntry(title: "单值容器", subtitle: "SingleValueContainer 解析",
                           make: { SingleValueDemoViewController() }),
@@ -85,7 +85,7 @@ enum DemoCatalog {
             DemoSection(title: "7. 其它", items: [
                 DemoEntry(title: "继承能力（@SmartSubclass）", subtitle: "已迁移到 SmartCodableMacro 仓库",
                           make: { InheritanceLinkViewController() }),
-                DemoEntry(title: "测试沙盒", subtitle: "一个空白页面，方便临时测试",
+                DemoEntry(title: "测试沙盒", subtitle: "日期解码与编码的临时实验",
                           make: { TestViewController() }),
             ]),
         ]

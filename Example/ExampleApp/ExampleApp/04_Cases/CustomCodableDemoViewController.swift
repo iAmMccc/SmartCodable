@@ -51,6 +51,17 @@ final class CustomCodableDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Player.deserialize; init(from:) / encode(to:) / toJSONString" }
+    override var expectedOutput: [String] {
+        [
+            "name = Mccc",
+            "  • English: 88",
+            "  • Math: 99",
+            "  • Science: 95",
+            "JSON 往返一致 = true",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let player = Player.deserialize(from: json) else {
             return ["解码失败"]
@@ -64,6 +75,7 @@ final class CustomCodableDemoViewController: DemoBaseViewController {
         lines.append("")
         lines.append("---- 重新编码（array 又回到 dict 形式）----")
         lines.append(player.toJSONString(prettyPrint: true) ?? "")
+        lines.append("JSON 往返一致 = \(sameJSON(jsonObject(player.toJSONString()), jsonObject(json)))")
         return lines
     }
 }

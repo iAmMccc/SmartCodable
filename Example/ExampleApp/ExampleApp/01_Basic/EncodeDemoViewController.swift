@@ -27,6 +27,15 @@ final class EncodeDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "User.deserialize; toDictionary / toJSONString / [User].toJSONString" }
+    override var expectedOutput: [String] {
+        [
+            "字典回环一致 = true",
+            "JSON 回环一致 = true",
+            "数组编码一致 = true",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let user = User.deserialize(from: json) else {
             return ["解码失败"]
@@ -45,6 +54,11 @@ final class EncodeDemoViewController: DemoBaseViewController {
         lines.append("---- 数组编码 ----")
         lines.append(users.toJSONString(prettyPrint: true) ?? "")
 
+        let original = jsonObject(json)
+        lines.append("字典回环一致 = \(sameJSON(user.toDictionary(), original))")
+        lines.append("JSON 回环一致 = \(sameJSON(jsonObject(user.toJSONString()), original))")
+        let expectedArray = original.map { [$0, $0] }
+        lines.append("数组编码一致 = \(sameJSON(jsonObject(users.toJSONString()), expectedArray))")
         return lines
     }
 }

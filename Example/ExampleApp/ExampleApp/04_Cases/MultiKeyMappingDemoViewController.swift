@@ -26,6 +26,14 @@ final class MultiKeyMappingDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Account.deserialize; mappingForKey" }
+    override var expectedOutput: [String] {
+        [
+            "displayName = Mccc",
+            "avatar      = https://example.com/m.png",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let model = Account.deserialize(from: json) else {
             return ["解码失败"]

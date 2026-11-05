@@ -77,6 +77,16 @@ final class EnumDecodeDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Player.deserialize; SmartCaseDefaultable / RewardTransformer" }
+    override var expectedOutput: [String] {
+        [
+            "name   = Mccc",
+            "sex    = man",
+            "role   = admin",
+            "reward = .coin(9999)",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let player = Player.deserialize(from: json) else {
             return ["解码失败"]

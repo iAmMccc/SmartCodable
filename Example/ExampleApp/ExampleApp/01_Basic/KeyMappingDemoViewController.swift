@@ -29,6 +29,14 @@ final class KeyMappingDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Student.deserialize; mappingForKey" }
+    override var expectedOutput: [String] {
+        [
+            "name   = Mccc   (来自 nickName/realName/fullName 任意一个)",
+            "school = Tsinghua (来自 stu_school)",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let model = Student.deserialize(from: json) else {
             return ["解码失败"]

@@ -51,11 +51,24 @@ final class ValueTransformDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Person.deserialize; mappingForValue; SmartDateTransformer / YesNoTransformer" }
+    override var expectedOutput: [String] {
+        [
+            "name     = Mccc",
+            "生日格式化 = 1990-08-15",
+            "married  = true",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let model = Person.deserialize(from: json) else {
             return ["解码失败"]
         }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let formattedBirthday = model.birthday.map { formatter.string(from: $0) } ?? "nil"
         return [
+            "生日格式化 = \(formattedBirthday)",
             "name     = \(model.name)",
             "birthday = \(model.birthday.map { "\($0)" } ?? "nil")",
             "married  = \(model.married)",

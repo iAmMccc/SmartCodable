@@ -15,7 +15,7 @@ final class IntegerStrategyDemoViewController: DemoBaseViewController {
         let previous = SmartCodableOptions.numberStrategy
         defer { SmartCodableOptions.numberStrategy = previous }
 
-        var report = DemoReport()
+        var report = DemoReport(unjudgedPrefix: json == defaultJSON ? 0 : 3)
         addIntCases(json, expected: ["77", "12", "13"], field: "v", into: &report)
         addIntCases(#"{"v":"-12.5"}"#, expected: ["77", "-12", "-13"], field: "v", into: &report)
         addIntCases(#"{"v":"1e2"}"#, expected: ["100", "100", "100"], field: "v", into: &report)
@@ -61,9 +61,23 @@ private struct DemoReport {
     private var lines: [String] = []
     private var matched = 0
     private var total = 0
+    private let unjudgedPrefix: Int
+
+    init(unjudgedPrefix: Int) {
+        self.unjudgedPrefix = unjudgedPrefix
+    }
 
     mutating func add(input: String, api: String, expected: String, actual: String, matches: Bool? = nil) {
         total += 1
+        if total <= unjudgedPrefix {
+            lines.append("输入: \(input)")
+            lines.append("API: \(api)")
+            lines.append("期望: 自定义输入未预设期望")
+            lines.append("实际: \(actual)")
+            lines.append("判定: 未判定")
+            lines.append("")
+            return
+        }
         let same = matches ?? (expected == actual)
         if same { matched += 1 }
         lines.append("输入: \(input)")
@@ -75,6 +89,7 @@ private struct DemoReport {
     }
 
     func finish() -> [String] {
-        lines + ["合计: \(total) 项，一致 \(matched) 项，不一致 \(total - matched) 项"]
+        let unjudged = min(total, unjudgedPrefix)
+        return lines + ["合计: \(total) 项，一致 \(matched) 项，不一致 \(total - unjudged - matched) 项，未判定 \(unjudged) 项"]
     }
 }

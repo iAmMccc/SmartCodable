@@ -30,6 +30,16 @@ final class SmartFlatDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Wrapper.deserialize; @SmartFlat" }
+    override var expectedOutput: [String] {
+        [
+            "code         = 0",
+            "message      = ok",
+            "data.id      = 99",
+            "data.title   = Hello Flat",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let wrapper = Wrapper.deserialize(from: json) else {
             return ["解码失败"]

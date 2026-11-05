@@ -31,6 +31,15 @@ final class PreDecodeStrategyDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Article.deserialize; mappingForKey" }
+    override var expectedOutput: [String] {
+        [
+            "title       = SmartCodable 7.0 发布",
+            "author      = Mccc",
+            "publishedAt = 2026-05-26",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let model = Article.deserialize(from: json) else {
             return ["解码失败"]

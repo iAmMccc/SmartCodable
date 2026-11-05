@@ -22,28 +22,36 @@ final class SmartSentinelDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "SmartSentinel.verbose / onLogGenerated; Person.deserialize" }
+    override var expectedOutput: [String] {
+        [
+            "日志回调数 = 1",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         // 1. 打开详细日志，回调收集
+        let previousMode = SmartSentinel.debugMode
         SmartSentinel.debugMode = .verbose
 
         var collected: [String] = []
-        let group = DispatchGroup()
-        group.enter()
-
         SmartSentinel.onLogGenerated { message in
             collected.append(message)
-            group.leave()
         }
 
         _ = Person.deserialize(from: json)
 
-        // 等待主队列回调（最多 200ms 不阻塞 UI）
-        _ = group.wait(timeout: .now() + 0.2)
+        // 回调异步投递主队列；运行循环允许它们执行，等待最多 200ms。
+        let deadline = Date().addingTimeInterval(0.2)
+        while Date() < deadline {
+            RunLoop.current.run(mode: .default, before: deadline)
+        }
 
-        // 关回 none，避免影响其它 demo
-        SmartSentinel.debugMode = .none
+        SmartSentinel.debugMode = previousMode
+        SmartSentinel.onLogGenerated { _ in }
 
         var lines: [String] = []
+        lines.append("日志回调数 = \(collected.count)")
         lines.append("---- SmartSentinel 收集到的日志 ----")
         if collected.isEmpty {
             lines.append("（无日志，可能 JSON 完全合法）")

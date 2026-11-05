@@ -3,7 +3,7 @@ import SmartCodable
 
 /// 案例 5：多态分发。
 /// 列表里每条 item 的真实类型由字段 `type` 决定 —— 用枚举 + 关联值统一表达。
-/// 通过 SmartAssociatedEnumerable 让枚举本身具备解码能力。
+/// 通过 FeedItem 的自定义 init(from:) 按 type 分发。
 final class TypeDispatchDemoViewController: DemoBaseViewController {
 
     // 三种内容元素：文本、图片、视频
@@ -68,6 +68,16 @@ final class TypeDispatchDemoViewController: DemoBaseViewController {
           ]
         }
         """
+    }
+
+    override var demoAPI: String { "Feed.deserialize; FeedItem.init(from:)" }
+    override var expectedOutput: [String] {
+        [
+            "[0] text  -> Hello SmartCodable",
+            "[1] image -> https://x/y.png (1024x768)",
+            "[2] video -> https://x/z.mp4 (90s)",
+            "[3] unknown 类型，已兜底",
+        ]
     }
 
     override func run(with json: String) -> [String] {

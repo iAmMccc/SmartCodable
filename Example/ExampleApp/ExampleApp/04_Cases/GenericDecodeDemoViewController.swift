@@ -31,6 +31,17 @@ final class GenericDecodeDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "ApiResponse<Goods>.deserialize" }
+    override var expectedOutput: [String] {
+        [
+            "code    = 200",
+            "message = ok",
+            "  id    = 1001",
+            "  name  = iPhone Pro Max",
+            "  price = 9999.0",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let resp = ApiResponse<Goods>.deserialize(from: json) else {
             return ["解码失败"]

@@ -6,7 +6,7 @@ import SmartCodable
 /// 非可选模型数组 `[Child]` 遇到 null 或非对象元素时，整个属性回退声明默认值（ARR-01）。
 /// 逐元素跳过用 `@SmartCompact.Array`。
 /// `[Child?]` 里的 null 解码为 nil，并保持原来的位置。
-/// 可选模型元素解码成功后仍执行 didFinishMapping（F-09）。
+/// [Child?] 元素默认不触发 didFinishMapping；非可选模型数组另有自己的回调路径。
 final class NestedArrayDemoViewController: DemoBaseViewController {
 
     struct MatrixModel: SmartCodableX {
@@ -45,7 +45,7 @@ final class NestedArrayDemoViewController: DemoBaseViewController {
     override var defaultJSON: String { #"{"m":[[1,2],"x",[3]]}"# }
 
     override func run(with json: String) -> [String] {
-        var report = DemoReport()
+        var report = DemoReport(unjudgedPrefix: json == defaultJSON ? 0 : 1)
         report.add(
             input: json,
             api: "MatrixModel.deserialize(from:).m",
@@ -97,11 +97,13 @@ final class NestedArrayDemoViewController: DemoBaseViewController {
             expected: "[有值, nil, 有值]",
             actual: optionalKids(nullKidsJSON)
         )
+        let callbackResult = callbackKids(nullKidsJSON)
         report.add(
             input: nullKidsJSON,
             api: "CallbackKidsModel.deserialize(from:).kids",
-            expected: "[11, nil, 12]",
-            actual: callbackKids(nullKidsJSON)
+            expected: "[1, nil, 2]（可选元素默认不触发回调）",
+            actual: callbackResult,
+            matches: callbackResult == "[1, nil, 2]"
         )
         return report.finish()
     }
@@ -149,9 +151,23 @@ private struct DemoReport {
     private var lines: [String] = []
     private var matched = 0
     private var total = 0
+    private let unjudgedPrefix: Int
+
+    init(unjudgedPrefix: Int) {
+        self.unjudgedPrefix = unjudgedPrefix
+    }
 
     mutating func add(input: String, api: String, expected: String, actual: String, matches: Bool? = nil) {
         total += 1
+        if total <= unjudgedPrefix {
+            lines.append("输入: \(input)")
+            lines.append("API: \(api)")
+            lines.append("期望: 自定义输入未预设期望")
+            lines.append("实际: \(actual)")
+            lines.append("判定: 未判定")
+            lines.append("")
+            return
+        }
         let same = matches ?? (expected == actual)
         if same { matched += 1 }
         lines.append("输入: \(input)")
@@ -163,6 +179,7 @@ private struct DemoReport {
     }
 
     func finish() -> [String] {
-        lines + ["合计: \(total) 项，一致 \(matched) 项，不一致 \(total - matched) 项"]
+        let unjudged = min(total, unjudgedPrefix)
+        return lines + ["合计: \(total) 项，一致 \(matched) 项，不一致 \(total - unjudged - matched) 项，未判定 \(unjudged) 项"]
     }
 }

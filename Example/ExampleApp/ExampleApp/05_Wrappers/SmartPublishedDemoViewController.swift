@@ -24,6 +24,17 @@ final class SmartPublishedDemoViewController: DemoBaseViewController {
 
     private var cancellables = Set<AnyCancellable>()
 
+    override var demoAPI: String { "Counter.deserialize; $count/$label Combine sink; assignment" }
+    override var expectedOutput: [String] {
+        [
+            "初始解码值：count=10 label=\"Hello SwiftUI\"",
+            "count -> 10",
+            "label -> Hello SwiftUI",
+            "count -> 11",
+            "label -> Updated!",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         cancellables.removeAll()
 
@@ -42,12 +53,15 @@ final class SmartPublishedDemoViewController: DemoBaseViewController {
             .sink { value in observed.append("label -> \(value)") }
             .store(in: &cancellables)
 
+        let initialCount = counter.count
+        let initialLabel = counter.label
+
         // 模拟一次更新
         counter.count += 1
         counter.label = "Updated!"
 
         var lines: [String] = []
-        lines.append("初始解码值：count=\(counter.count - 1) label=\"Hello SwiftUI\"")
+        lines.append("初始解码值：count=\(initialCount) label=\"\(initialLabel)\"")
         lines.append("")
         lines.append("---- Combine 观察到的事件 ----")
         lines.append(contentsOf: observed)

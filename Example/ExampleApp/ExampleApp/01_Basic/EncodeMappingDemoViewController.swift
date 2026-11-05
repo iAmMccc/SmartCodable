@@ -166,7 +166,7 @@ final class EncodeMappingDemoViewController: DemoBaseViewController {
         return text
     }
 
-    /// 审计测试只锁定两个键值对，不锁定键顺序。对象相等时判定一致，实际行仍输出编码器原文。
+    /// 比较 JSON 对象时忽略键顺序；实际行仍输出编码器原文。
     private func sameJSON(_ lhs: String, _ rhs: String) -> Bool {
         if lhs == rhs { return true }
         guard

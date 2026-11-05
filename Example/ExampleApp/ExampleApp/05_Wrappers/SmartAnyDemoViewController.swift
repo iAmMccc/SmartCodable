@@ -26,6 +26,14 @@ final class SmartAnyDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Box.deserialize; @SmartAny; toJSONString" }
+    override var expectedOutput: [String] {
+        [
+            "dynamic = 3.14",
+            "JSON 往返一致 = true",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let box = Box.deserialize(from: json) else {
             return ["解码失败"]
@@ -41,6 +49,7 @@ final class SmartAnyDemoViewController: DemoBaseViewController {
 
         lines.append("")
         lines.append("📝 @SmartAny 内部把异构值规范化存储，编解码时保持原结构。")
+        lines.append("JSON 往返一致 = \(sameJSON(jsonObject(box.toJSONString()), jsonObject(json)))")
         return lines
     }
 }

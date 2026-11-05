@@ -14,6 +14,23 @@ class DemoBaseViewController: UIViewController {
         ["子类未实现 run(with:)"]
     }
 
+    /// 旧演示页的默认输入契约；逐行匹配实际输出，不从实际结果生成期望。
+    var expectedOutput: [String] { [] }
+    var demoAPI: String { "" }
+
+    func sameJSON(_ lhs: Any?, _ rhs: Any?) -> Bool {
+        guard let lhs, let rhs,
+              JSONSerialization.isValidJSONObject(lhs), JSONSerialization.isValidJSONObject(rhs),
+              let a = try? JSONSerialization.data(withJSONObject: lhs, options: [.sortedKeys]),
+              let b = try? JSONSerialization.data(withJSONObject: rhs, options: [.sortedKeys]) else { return false }
+        return a == b
+    }
+
+    func jsonObject(_ text: String?) -> Any? {
+        guard let text, let data = text.data(using: .utf8) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data)
+    }
+
     /// 子类可重写：是否需要显示输入框（部分 demo 不需要 JSON 输入）。
     var showsInput: Bool { true }
 
@@ -22,6 +39,7 @@ class DemoBaseViewController: UIViewController {
     let inputTextView = UITextView()
     let outputTextView = UITextView()
     private let runButton = UIButton(type: .system)
+    private var isRunning = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,8 +130,34 @@ class DemoBaseViewController: UIViewController {
     }
 
     @objc private func runDemo() {
+        guard !isRunning else { return }
+        isRunning = true
+        let navigationView = navigationController?.view
+        let wasInteractive = navigationView?.isUserInteractionEnabled
+        navigationView?.isUserInteractionEnabled = false
+        defer {
+            if let wasInteractive { navigationView?.isUserInteractionEnabled = wasInteractive }
+            isRunning = false
+        }
         let json = showsInput ? inputTextView.text ?? "" : ""
         let lines = run(with: json)
-        outputTextView.text = lines.joined(separator: "\n")
+        guard !expectedOutput.isEmpty else {
+            outputTextView.text = lines.joined(separator: "\n")
+            return
+        }
+        var report = ["输入: \(json)", "API: \(demoAPI)"]
+        if json == defaultJSON {
+            let actualLines = Set(lines.flatMap { $0.components(separatedBy: "\n") })
+            var matched = 0
+            for expected in expectedOutput {
+                let found = actualLines.contains(expected)
+                if found { matched += 1 }
+                report += ["期望: \(expected)", "实际: \(found ? expected : "未找到该结果，见下方完整输出")", "判定: \(found ? "一致" : "不一致")"]
+            }
+            report.append("合计: \(expectedOutput.count) 项，一致 \(matched) 项，不一致 \(expectedOutput.count - matched) 项")
+        } else {
+            report += ["期望: 自定义输入未预设期望", "判定: 未判定"]
+        }
+        outputTextView.text = (report + ["", "---- 完整输出 ----"] + lines).joined(separator: "\n")
     }
 }

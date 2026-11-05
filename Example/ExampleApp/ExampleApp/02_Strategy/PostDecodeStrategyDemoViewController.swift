@@ -39,6 +39,18 @@ final class PostDecodeStrategyDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Order.deserialize; didFinishMapping" }
+    override var expectedOutput: [String] {
+        [
+            "firstName  = Qi",
+            "lastName   = Xin",
+            "price      = 99.0",
+            "discount   = 0.2",
+            "fullName   = Qi Xin",
+            "finalPrice = 79.2",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let order = Order.deserialize(from: json) else {
             return ["解码失败"]

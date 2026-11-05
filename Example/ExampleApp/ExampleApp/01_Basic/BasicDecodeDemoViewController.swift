@@ -27,6 +27,18 @@ final class BasicDecodeDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Wrapper.deserialize / [User].deserialize(designatedPath: \"data\")" }
+    override var expectedOutput: [String] {
+        [
+            "code: 0",
+            "users.count: 2",
+            "  • 1 Mccc <mccc@example.com>",
+            "  • 2 Apple <apple@example.com>",
+            "  • Mccc",
+            "  • Apple",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         var lines: [String] = []
 

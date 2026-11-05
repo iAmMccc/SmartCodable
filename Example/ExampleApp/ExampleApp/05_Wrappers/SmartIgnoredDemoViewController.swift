@@ -26,6 +26,16 @@ final class SmartIgnoredDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Session.deserialize; @SmartIgnored; toDictionary" }
+    override var expectedOutput: [String] {
+        [
+            "token         = eyJhbGciOi...",
+            "expiresIn     = 3600",
+            "refreshing    = false",
+            "忽略字段未编码 = true",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let session = Session.deserialize(from: json) else {
             return ["解码失败"]
@@ -40,6 +50,12 @@ final class SmartIgnoredDemoViewController: DemoBaseViewController {
         lines.append("---- 编码（被忽略字段不会出现）----")
         lines.append(session.toJSONString(prettyPrint: true) ?? "")
 
+        let dictionary = session.toDictionary()
+        let ignoredFieldsOmitted = dictionary.map {
+            $0["localCachedAt"] == nil && $0["refreshing"] == nil &&
+            ($0["token"] as? String) == session.token && ($0["expiresIn"] as? Int) == session.expiresIn
+        } ?? false
+        lines.append("忽略字段未编码 = \(ignoredFieldsOmitted)")
         return lines
     }
 }

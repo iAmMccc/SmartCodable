@@ -50,6 +50,15 @@ final class SingleValueDemoViewController: DemoBaseViewController {
         """
     }
 
+    override var demoAPI: String { "Report.deserialize; Grade.init(from:).singleValueContainer" }
+    override var expectedOutput: [String] {
+        [
+            "name    = Mccc",
+            "math    = 95 (A)",
+            "english = 72 (C)",
+        ]
+    }
+
     override func run(with json: String) -> [String] {
         guard let report = Report.deserialize(from: json) else {
             return ["解码失败"]
