@@ -38,9 +38,9 @@ build_args=(
 swift build "${build_args[@]}"
 products="$(swift build "${build_args[@]}" --show-bin-path | tail -n 1)"
 
-if [[ -f "$products/Modules/SmartCodable.swiftmodule" ]]; then
+if [[ -e "$products/Modules/SmartCodable.swiftmodule" ]]; then
   module_dir="$products/Modules"
-elif [[ -f "$products/SmartCodable.swiftmodule" ]]; then
+elif [[ -e "$products/SmartCodable.swiftmodule" ]]; then
   module_dir="$products"
 else
   printf 'SmartCodable.swiftmodule not found in %s\n' "$products" >&2
