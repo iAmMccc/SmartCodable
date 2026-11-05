@@ -32,7 +32,17 @@ final class DynamicEncodingRegressionTests: XCTestCase {
             @SmartAny var child: Any? = DynamicChild()
         }
 
+        // Default strategy: only `SmartCodableX` runtime values encode; Date/Data/URL
+        // and plain Encodable values keep the historical null fallback.
+        let legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: SmartJSONEncoder().encode(Model())) as? [String: Any])
+        XCTAssertTrue(legacy["date"] is NSNull)
+        XCTAssertTrue(legacy["data"] is NSNull)
+        XCTAssertTrue(legacy["url"] is NSNull)
+        XCTAssertTrue(legacy["plain"] is NSNull)
+        XCTAssertEqual((legacy["child"] as? [String: String])?["name"], "CHILD")
+
         let encoder = SmartJSONEncoder()
+        encoder.smartDynamicValueEncodingStrategy = .recursive
         encoder.dateEncodingStrategy = .millisecondsSince1970
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(Model())) as? [String: Any])
         XCTAssertEqual((json["date"] as? NSNumber)?.doubleValue, 2000)

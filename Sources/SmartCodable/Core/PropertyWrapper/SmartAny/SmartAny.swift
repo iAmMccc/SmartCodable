@@ -98,11 +98,11 @@ extension SmartAny: Codable {
             try container.encode(value)
         } else if let model = wrappedValue as? SmartCodableX {
             try container.encode(model)
-        } else if wrappedValue is Encodable {
-            // Date/Data/URL/普通 Codable 模型：走它们自己的 Encodable 实现，
-            // 不能交给 SmartAnyImpl 后统一变成 null。
-            try container.encode(AnyEncodableBox(value: wrappedValue))
         } else {
+            // Default strategy keeps 7.0.1 behavior: a runtime value outside the
+            // JSON-value bridge and outside `SmartCodableX` encodes as null without
+            // running its own `encode(to:)`. Opting into `.recursive` traverses it
+            // above, including Date/Data/URL and plain Encodable values.
             let value = SmartAnyImpl(from: wrappedValue)
             try container.encode(value)
         }

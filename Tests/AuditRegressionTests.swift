@@ -366,9 +366,18 @@ final class AuditRegressionTests: XCTestCase {
             @SmartAny var data: Any? = Data([1, 2, 3])
         }
 
+        // The default strategy keeps the historical null fallback: a runtime value
+        // outside the JSON-value bridge never runs its own `encode(to:)`.
         let dictionary = try XCTUnwrap(Model().toDictionary())
-        XCTAssertEqual((dictionary["ts"] as? NSNumber)?.doubleValue, -978307198)
-        XCTAssertEqual(dictionary["data"] as? String, "AQID")
+        XCTAssertTrue(dictionary["ts"] is NSNull)
+        XCTAssertTrue(dictionary["data"] is NSNull)
+
+        // `.recursive` is the existing opt-in entry for encoding runtime values.
+        let encoder = SmartJSONEncoder()
+        encoder.smartDynamicValueEncodingStrategy = .recursive
+        let recursive = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(Model())) as? [String: Any])
+        XCTAssertEqual((recursive["ts"] as? NSNumber)?.doubleValue, -978307198)
+        XCTAssertEqual(recursive["data"] as? String, "AQID")
     }
 
     func testSmartAnyKeepsScientificAndLargeUnsignedNumbers() throws {
