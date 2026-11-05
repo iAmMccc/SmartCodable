@@ -158,12 +158,17 @@ final class AuditRegressionTests: XCTestCase {
 
     // MARK: - Decoder
 
-    func testNestedArrayKeepsElementAlignment() {
+    // 用例意图：嵌套数组元素解码失败时，整个属性回退声明默认值而非保持元素位置
+    func testNestedArrayFallsBackToDeclaredDefault() {
         struct Model: SmartCodableX {
             var values: [Int] = [7, 7, 7]
         }
 
-        XCTAssertEqual(Model.deserialize(from: ["values": [1, NSNull(), 3]])?.values, [1, 0, 3])
+        // 7.0.1 语义：嵌套数组的元素解码失败时错误向上传播，整个属性回退声明默认值 [7, 7, 7]。
+        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
+        //   CASE int-array-null result=[9]
+        //   CASE int-array-null-default-777 result=[7,7,7]
+        XCTAssertEqual(Model.deserialize(from: ["values": [1, NSNull(), 3]])?.values, [7, 7, 7])
     }
 
     func testStringFragmentDecodingMatchesDataInput() throws {
@@ -375,13 +380,14 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual((timestampDictionary["date"] as? NSNumber)?.int64Value, 1_700_000_000_000)
     }
 
-    func testSmartDateTreatsExactMillisecondThresholdAsMilliseconds() throws {
+    func testSmartDateTreatsExactSecondThresholdAsSeconds() throws {
         struct Model: SmartCodableX {
             var date: Date = Date(timeIntervalSince1970: 0)
         }
 
         let model = Model.deserialize(from: ["date": 1_000_000_000_000])
-        XCTAssertEqual(model?.date.timeIntervalSince1970, 1_000_000_000)
+        // 7.0.1 语义：毫秒阈值为 double > 1_000_000_000_000，恰好 1e12 按秒解析。
+        XCTAssertEqual(model?.date.timeIntervalSince1970, 1_000_000_000_000)
 
         let belowThreshold = try XCTUnwrap(Model.deserialize(from: ["date": 999_999_999_999]))
         XCTAssertEqual(belowThreshold.date.timeIntervalSince1970, 999_999_999_999)

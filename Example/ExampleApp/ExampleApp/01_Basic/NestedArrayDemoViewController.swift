@@ -1,8 +1,8 @@
 import UIKit
 import SmartCodable
 
-/// 数组逐元素容错。
-/// 普通数组与嵌套数组按位置回退。
+/// 数组容错行为。
+/// 嵌套数组不再逐位置回退：元素解码失败时错误向上传播，整个属性回退声明默认值。
 /// 非可选模型数组 `[Child]` 遇到 null 或非对象元素时，整个属性回退声明默认值（ARR-01）。
 /// 逐元素跳过用 `@SmartCompact.Array`。
 /// `[Child?]` 里的 null 解码为 nil，并保持原来的位置。
@@ -49,13 +49,13 @@ final class NestedArrayDemoViewController: DemoBaseViewController {
         report.add(
             input: json,
             api: "MatrixModel.deserialize(from:).m",
-            expected: "[[1,2],[],[3]]",
+            expected: "[[9]]",
             actual: matrix(json)
         )
         report.add(
             input: #"{"m":[[1,"a"],[3]]}"#,
             api: "MatrixModel.deserialize(from:).m",
-            expected: "[[1,0],[3]]",
+            expected: "[[9]]",
             actual: matrix(#"{"m":[[1,"a"],[3]]}"#)
         )
         report.add(
@@ -67,7 +67,7 @@ final class NestedArrayDemoViewController: DemoBaseViewController {
         report.add(
             input: #"{"a":[1,null,3]}"#,
             api: "ArrayModel.deserialize(from:).a",
-            expected: "[1,0,3]",
+            expected: "[7]",
             actual: ints(#"{"a":[1,null,3]}"#)
         )
         report.add(

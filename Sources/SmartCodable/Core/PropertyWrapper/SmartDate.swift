@@ -148,7 +148,7 @@ struct DateParser {
     
     private static func parseTimestamp(from raw: Any) -> (Date, SmartDate.DateStrategy)? {
         if let double = raw as? Double ?? Double(raw as? String ?? "") {
-            if double >= 1_000_000_000_000 {
+            if double > 1_000_000_000_000 {
                 return (Date(timeIntervalSince1970: double / 1000), .timestampMilliseconds)
             } else {
                 return (Date(timeIntervalSince1970: double), .timestamp)

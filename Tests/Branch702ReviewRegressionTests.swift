@@ -170,11 +170,17 @@ final class Branch702ReviewRegressionTests: XCTestCase {
 
     func testR5NestedArrayElements() {
         struct Model: SmartCodableX { var m: [[Int]] = [[9]] }
+        // 7.0.1 语义：嵌套数组的元素解码失败时错误向上传播，整个属性回退声明默认值 [[9]]。
+        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
+        //   CASE r5-1 result=[[9]]
+        //   CASE r5-2 result=[[9]]
+        //   CASE r5-3 result=[[9]]
+        //   CASE r5-4 result=[[9]]
         let samples: [([String: Any], [[Int]])] = [
-            (["m": [[1, 2], "x", [3]] as [Any]], [[1, 2], [], [3]]),
-            (["m": [[1, "a"] as [Any], [3]] as [Any]], [[1, 0], [3]]),
+            (["m": [[1, 2], "x", [3]] as [Any]], [[9]]),
+            (["m": [[1, "a"] as [Any], [3]] as [Any]], [[9]]),
             (["m": "x"], [[9]]),
-            (["m": [[1, 2], NSNull(), [3]] as [Any]], [[1, 2], [], [3]])
+            (["m": [[1, 2], NSNull(), [3]] as [Any]], [[9]])
         ]
         var executed = 0
         for (payload, expected) in samples {
@@ -367,7 +373,8 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         let below = try XCTUnwrap(Threshold.deserialize(from: ["date": 999_999_999_999])?.date)
         XCTAssertEqual(below.timeIntervalSince1970, 999_999_999_999)
         let boundary = try XCTUnwrap(Threshold.deserialize(from: ["date": 1_000_000_000_000])?.date)
-        XCTAssertEqual(boundary.timeIntervalSince1970, 1_000_000_000)
+        // 7.0.1 语义：毫秒阈值为 double > 1_000_000_000_000，恰好 1e12 仍按秒解析。
+        XCTAssertEqual(boundary.timeIntervalSince1970, 1_000_000_000_000)
         let above = try XCTUnwrap(Threshold.deserialize(from: ["date": 1_000_000_000_001])?.date)
         XCTAssertEqual(above.timeIntervalSince1970, 1_000_000_000.001, accuracy: 1e-6)
 
@@ -682,10 +689,13 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(withNull.optional.count, 3)
         XCTAssertEqual(withNull.optional.map { $0?.id }, [11, nil, 12])
         XCTAssertEqual(withNull.optional.map { $0?.calls }, [1, nil, 1])
+        // 7.0.1 语义：嵌套数组中的非对象元素使错误向上传播，整个属性回退声明默认值 []。
+        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
+        //   CASE b1-optional-bad result=ids=[] calls=[]
         let withBad = try XCTUnwrap(Host.deserialize(from: ["optional": [["id": 1], "bad", ["id": 2]] as [Any]]))
-        XCTAssertEqual(withBad.optional.count, 3)
-        XCTAssertEqual(withBad.optional.map { $0?.id }, [11, nil, 12])
-        XCTAssertEqual(withBad.optional.map { $0?.calls }, [1, nil, 1])
+        XCTAssertEqual(withBad.optional.count, 0)
+        XCTAssertEqual(withBad.optional.map { $0?.id }, [])
+        XCTAssertEqual(withBad.optional.map { $0?.calls }, [])
         struct NestedHost: SmartCodableX {
             var rows: [[Child?]] = []
         }
@@ -695,8 +705,11 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         struct PlainHost: SmartCodableX { var plain: [Plain?] = [] }
         let plainNull = try XCTUnwrap(PlainHost.deserialize(from: ["plain": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
         XCTAssertEqual(plainNull.plain.map { $0?.id }, [1, nil, 2])
+        // 7.0.1 语义：嵌套数组中的非对象元素使整个属性回退声明默认值 []。
+        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
+        //   CASE b1-plain-optional-bad result=ids=[] calls=[]
         let plainBad = try XCTUnwrap(PlainHost.deserialize(from: ["plain": [["id": 1], "bad", ["id": 2]] as [Any]]))
-        XCTAssertEqual(plainBad.plain.map { $0?.id }, [1, nil, 2])
+        XCTAssertEqual(plainBad.plain.map { $0?.id }, [])
     }
 }
 

@@ -166,15 +166,20 @@ extension JSONDecoderImpl.UnkeyedContainer {
         // decoding the desired result type succeeds, it can not be a tail call.
         // Hopefully the compiler still optimizes well enough that the result
         // doesn't get copied around.
-        //
-        // 根数组与嵌套数组统一按元素容错：单个坏元素回退该元素的默认值并
-        // 保持索引对齐，不能因为嵌套就让整个数组属性回退到声明默认值。
-        guard let result = try? newDecoder.unwrap(as: type) else {
-            let decoded: T = try forceDecode()
-            return didFinishMapping(decoded)
+        if codingPath.isEmpty {
+            guard let result = try? newDecoder.unwrap(as: type) else {
+                let decoded: T = try forceDecode()
+                return didFinishMapping(decoded)
+            }
+            self.currentIndex += 1
+            return didFinishMapping(result)
+        } else {
+            // If it is not the first level of array model parsing, it is not compatible.
+            // Throw an exception to make keyedController compatible.
+            let result = try newDecoder.unwrap(as: type)
+            self.currentIndex += 1
+            return didFinishMapping(result)
         }
-        self.currentIndex += 1
-        return didFinishMapping(result)
     }
     
     @inline(__always) private mutating func decodeFixedWidthInteger<T: FixedWidthInteger>() throws -> T {

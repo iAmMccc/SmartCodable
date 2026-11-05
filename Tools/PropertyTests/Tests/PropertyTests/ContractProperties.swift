@@ -19,6 +19,10 @@ private struct ArrayHost: SmartCodableX {
     var values: [Int] = []
 }
 
+private struct ArrayHostWithDeclaredDefault: SmartCodableX {
+    var values: [Int] = [7, 7, 7]
+}
+
 @Suite(.shrinking)
 struct ContractProperties {
     @Test
@@ -61,9 +65,35 @@ struct ContractProperties {
 
     @Test
     func failedArrayElementDoesNotShiftLaterValues() async {
+        // 契约：数组元素解析失败时，后续元素不得发生错位。
+        // 嵌套属性遵循 7.0.1 基线语义——元素失败会向上传播，整个属性回退到声明的默认值；
+        // 根级数组则保留原有位置，失败元素取元素默认值（Int 为 0）。
         await propertyCheck(count: 150, input: Gen.int(in: 1...100)) { value in
-            let result = ArrayHost.deserialize(from: ["values": [value, NSNull(), value + 1]])
-            #expect(result?.values == [value, 0, value + 1])
+            let nativeValues: [Any] = [value, NSNull(), value + 1]
+
+            // 嵌套属性：元素失败 → 整个属性回退到声明的默认值 []。
+            let nested = ArrayHost.deserialize(from: ["values": nativeValues])
+            #expect(nested?.values == [])
+
+            // 嵌套属性（JSON 字符串输入）：同样回退到声明的默认值 []。
+            let nestedJSON = ArrayHost.deserialize(from: "{\"values\":[\(value),null,\(value + 1)]}")
+            #expect(nestedJSON?.values == [])
+
+            // 嵌套属性：非 null 的坏元素同样让整个属性回退到声明的默认值。
+            let nestedBad = ArrayHost.deserialize(from: ["values": [1, "x", 3] as [Any]])
+            #expect(nestedBad?.values == [])
+
+            // 嵌套属性：回退目标是「声明的默认值」本身，而不是空数组。
+            let nestedDeclaredDefault = ArrayHostWithDeclaredDefault.deserialize(from: ["values": nativeValues])
+            #expect(nestedDeclaredDefault?.values == [7, 7, 7])
+
+            // 根级数组：位置保持不变，失败元素取元素默认值 0，后续元素不位移。
+            let rootNative = try? SmartJSONDecoder().smartDecode([Int].self, from: nativeValues)
+            #expect(rootNative == [value, 0, value + 1])
+
+            // 根级数组（JSON 字符串输入）：同样保持位置。
+            let rootJSON = try? SmartJSONDecoder().smartDecode([Int].self, from: "[\(value),null,\(value + 1)]")
+            #expect(rootJSON == [value, 0, value + 1])
         }
     }
 

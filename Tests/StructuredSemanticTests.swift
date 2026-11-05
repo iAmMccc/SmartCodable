@@ -72,14 +72,17 @@ final class StructuredSemanticTests: XCTestCase {
         }
     }
 
-    func testMalformedArrayElementKeepsFollowingPosition() throws {
+    func testMalformedArrayElementFallsBackToDeclaredDefault() throws {
         var bytes = SemanticBytes()
         for iteration in 0..<160 {
             let first = Int(bytes.next())
             let model = try XCTUnwrap(StructuredArray.deserialize(from: [
                 "values": [first, NSNull(), first + 1]
             ]))
-            XCTAssertEqual(model.values, [first, 0, first + 1],
+            // 7.0.1 语义：数组元素解码失败时错误向上传播，整个属性回退本模型自己的声明默认值。
+            // 依据 7.0.1 oracle 探测输出（v701-full 基线）：输入含 null 元素时，声明默认值为 [7,7,7] 的模型
+            //   回退得到 CASE int-array-null-default-777 result=[7,7,7]；本模型声明默认值为 []，故断言为 []。
+            XCTAssertEqual(model.values, [],
                            "iteration=\(iteration) seed=\(SemanticBytes.seed) first=\(first)")
         }
     }

@@ -1,7 +1,7 @@
 import UIKit
 import SmartCodable
 
-/// 毫秒阈值：小于 1000000000000 的数字按秒解析，大于等于该值的数字按毫秒解析。
+/// 毫秒阈值：小于等于 1000000000000 的数字按秒解析，大于该值的数字按毫秒解析。
 final class SmartDateThresholdDemoViewController: DemoBaseViewController {
 
     struct Model: SmartCodableX {
@@ -22,7 +22,7 @@ final class SmartDateThresholdDemoViewController: DemoBaseViewController {
         report.add(
             input: boundary,
             api: "Model.deserialize(from:).date.timeIntervalSince1970",
-            expected: "1000000000",
+            expected: "1000000000000",
             actual: interval(boundary)
         )
         let above = #"{"date":1000000000001}"#

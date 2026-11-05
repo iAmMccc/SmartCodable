@@ -380,7 +380,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 集合与结构下钻
 
-    /// 根数组与嵌套数组中的 Smart 模型每个元素独立取得默认值（T38）
+    /// 根数组与嵌套数组中可解码成功的 Smart 元素各自取声明默认值；元素解码失败时错误向上传播，整个属性回退声明默认值（T38）
     func testRootAndNestedArraysGiveElementsIndependentDefaults() throws {
         let roots = try XCTUnwrap([ArrayElementChild].deserialize(from: [
             ["tag": "a"],
