@@ -379,4 +379,7 @@ SmartCodableOptions.ignoreNull = false          // 将 null 作为值传递给 A
 泛型 unkeyed optional 回退只计算候选值，游标消费统一由外层操作持有；legacy 模式
 显式保留历史额外消费，consumeOnce 模式只消费一次。动态编码的 recursive 模式
 共用一条运行时集合遍历，叶子重入现有 typed 编码机制以保留策略及模型快照。
+两种模式分别通过 `SmartJSONDecoder.smartUnkeyedDecodingStrategy` 与
+`SmartJSONEncoder.smartDynamicValueEncodingStrategy` 在实例上选择；
+`SmartDecodingOption` / `SmartEncodingOption` 保持 7.0.1 的 case 集合，不新增 case。
 默认值、选择方式和异常边界见 [兼容性选项](CompatibilityOptions.md)。

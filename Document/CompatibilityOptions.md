@@ -3,6 +3,11 @@
 SmartCodable keeps the existing default array and dynamic-value behavior. The
 following options select more precise recovery without changing existing callers.
 
+`SmartDecodingOption` and `SmartEncodingOption` keep their 7.0.1 case sets; this
+line adds no new option case, so existing exhaustive switches over them keep
+compiling. The opt-in mechanisms below are selected on a decoder or an encoder
+instance instead of through a new option case.
+
 ## One consumption per optional array element
 
 The historical generic `UnkeyedDecodingContainer.decodeIfPresent(T.self)` fallback
@@ -15,10 +20,17 @@ decoder.smartUnkeyedDecodingStrategy = .consumeOnce
 // try decoder.smartDecode(CustomSequence.self, from: "[0,2,3]")
 ```
 
-The convenience entry points accept `options: [.unkeyed(.consumeOnce)]`.
-An unsuccessful element consumes one position and returns nil; decoding beyond the
-end throws without advancing. Scalar overloads retain their existing single-element
-conversion behavior. The option does not turn ordinary model arrays into lossy
+The mode is selected on the decoder instance: set
+`SmartJSONDecoder.smartUnkeyedDecodingStrategy` and decode through
+`SmartJSONDecoder.smartDecode(_:from:)`. Under the single-consumption
+(`.consumeOnce`) mode, end-of-container returns `nil` without advancing the
+cursor and without consuming an element, a `null` element returns `nil` and
+consumes that one element, and a normal decode or a tolerant fallback consumes
+exactly one element. A `null` element is not passed to the element type's
+`init(from:)`, so a tolerant decoder cannot fabricate a non-nil value and the
+element type's custom `init(from:)` is not invoked for null elements.
+Scalar overloads retain their existing single-element
+conversion behavior. The mode does not turn ordinary model arrays into lossy
 arrays; use `@SmartCompact.Array` to skip invalid elements.
 
 ## Recursive runtime encoding
@@ -34,9 +46,10 @@ encoder.dateEncodingStrategy = .millisecondsSince1970
 // try encoder.encode(model)
 ```
 
-The dictionary/string convenience methods accept
-`options: [.dynamicValues(.recursive)]`, combined with their existing date or key
-options when needed. Runtime dictionary data keys remain data keys; model fields
+The mode is selected on the encoder instance: set
+`SmartJSONEncoder.smartDynamicValueEncodingStrategy` and encode through
+`SmartJSONEncoder.encode(_:)`, combined with that encoder's existing date or key
+strategies when needed. Runtime dictionary data keys remain data keys; model fields
 still use the model's mappings and value transformers. Optional values and arrays
 are traversed recursively. Unsupported leaves throw `EncodingError.invalidValue`
 with their coding path, rather than silently losing data. Compact dictionaries

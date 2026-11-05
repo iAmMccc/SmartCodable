@@ -18,7 +18,7 @@
 
 ## F-03：同一 SmartJSONDecoder 的并发契约
 
-**状态：契约待确认；一次诊断没有观察到数据竞争或错值。** `Tools/Diagnostics` 用一个 decoder 做 64 次并行解码，TSan 插桩版核心库参与链接，输出 `mismatches=0`，无 TSan 警告；这不是同实例长期并发安全保证。`SmartJSONDecoder` 声明 `@unchecked Sendable`，而 `smartDecode` 仍向实例 `userInfo` 写 `parsingMark`。尚未确定同时修改策略、日志归属和同实例并发的公开语义。不得因这次阴性结果擅自改同步行为。现有两项独立实例/全局选项定向 TSan 均非零执行且通过。
+**状态：契约待确认；一次诊断没有观察到数据竞争或错值。** `Tools/Diagnostics` 用一个 decoder 做 64 次并行解码，TSan 插桩版核心库参与链接，输出 `mismatches=0`，无 TSan 警告；这不是同实例长期并发安全保证。`SmartJSONDecoder` 声明 `@unchecked Sendable`，而当前 `smartDecode` 把 `parsingMark` 写入调用局部的 `options` 副本（`callOptions.userInfo`），并只把该副本传给本次解码，不写回调用者设置的实例 `userInfo`；origin/7.0.1 的 `smartDecode` 则是直接写实例 `userInfo`，两版行为不同。尚未确定同时修改策略、日志归属和同实例并发的公开语义。不得因这次阴性结果擅自改同步行为。现有两项独立实例/全局选项定向 TSan 均非零执行且通过。
 
 ## F-04：高级测试工具本地状态
 
@@ -43,12 +43,12 @@
 
 ## F-06：非可选模型数组中 null 或非对象元素使整个属性回退声明默认值
 
-**状态：已复现；按补丁版本稳定性维持现有实现，contracts.md ARR-01 已改为如实描述该行为并指向 `@SmartCompact.Array`；本轮未修改生产代码。** origin/7.0.1 行为相同，不是 7.0.2 回归。依据：origin/7.0.1 同一文件第 177-178 行注释原文为 “If it is not the first level of array model parsing, it is not compatible. Throw an exception to make keyedController compatible.”，引入提交 `8136261`（2024-05-28「处理Unkey容器的兼容逻辑」）中的原文为「如果不是第一层级的数组模型的解析，就不兼容。抛出异常让keyedController兼容。」`README.md:233` 与 `README_CN.md:232` 推荐 `@SmartCompact.Array` 跳过无效元素。
+**状态：已复现；本轮按发布决定 B2 把 `UnkeyedContainer.decode` 恢复为 7.0.1 的 `codingPath` 分支语义（嵌套数组元素失败时错误向上传播、整个属性回退声明默认值），F-06 结论不变；contracts.md ARR-01 已同步为如实描述该行为并指向 `@SmartCompact.Array`。** origin/7.0.1 行为相同，不是 7.0.2 回归。依据：origin/7.0.1 同一文件第 177-178 行注释原文为 “If it is not the first level of array model parsing, it is not compatible. Throw an exception to make keyedController compatible.”，引入提交 `8136261`（2024-05-28「处理Unkey容器的兼容逻辑」）中的原文为「如果不是第一层级的数组模型的解析，就不兼容。抛出异常让keyedController兼容。」`README.md:233` 与 `README_CN.md:232` 推荐 `@SmartCompact.Array` 跳过无效元素。
 
 - 模型：`struct Child: SmartCodableX { var id = -1 }`，`didFinishMapping` 中 `id += 10`；`var ordinary: [Child] = []`。输入 `{"ordinary": [{"id":1}, null, {"id":2}]}`。实际 `[]`。非对象元素 `"bad"` 同样得到 `[]`。
-- 对照：中间元素为 `{}` 时得到逐元素 `[11, 9, 12]`；`[[Int]]` 的 null 元素逐元素回退为 `[]`；`[Int]` 的 null 元素回退为 0（`Tests/AuditRegressionTests.swift` 的 `testNestedArrayKeepsElementAlignment` 得到 `[1, 0, 3]`）。
-- 触发链：`KeyedContainer._decodeDecodable`（`Sources/SmartCodable/Core/JSONDecoder/Decoder/Impl/JSONDecoderImpl+KeyedContainer.swift` 第 434-442、501-509 行）进入 `Array.init(from:)` 逐元素解码。`UnkeyedContainer.decode`（`JSONDecoderImpl+UnkeyedContainer.swift` 第 158-178 行）失败后调用 `forceDecode`（第 206-229 行）。null 元素在 `JSONDecoderImpl.swift` 第 85-89 行抛出 "Cannot get keyed decoding container -- found null value instead"。错误冒出 `Array.init`，属性级 `try?` 失败，整个属性使用声明默认值 `[]`。
-- origin/7.0.1 的 `JSONDecoderImpl+UnkeyedContainer.swift` 第 169-182 行在 `codingPath` 非空时直接 `try unwrap`（第 179 行），不进入 `forceDecode`。属性同样回退为 `[]`。属既有问题。
+- 对照：中间元素为 `{}` 时得到逐元素 `[11, 9, 12]`；`[[Int]]` 的 null 元素使整个属性回退为声明默认值 `[[9]]`；`[Int]` 的 null 元素使整个属性回退为声明默认值 `[7, 7, 7]`（`Tests/AuditRegressionTests.swift` 的 `testNestedArrayFallsBackToDeclaredDefault` 现在得到 `[7, 7, 7]`；7.0.1 oracle 探测输出：`CASE int-array-null result=[9]` 与 `CASE int-array-null-default-777 result=[7,7,7]`）。
+- 触发链：`KeyedContainer._decodeDecodable`（`Sources/SmartCodable/Core/JSONDecoder/Decoder/Impl/JSONDecoderImpl+KeyedContainer.swift` 第 434-442、501-509 行）进入 `Array.init(from:)` 逐元素解码；元素类型是泛型参数，元素统一走 `UnkeyedContainer.decode` 的泛型分支。`UnkeyedContainer.decode`（`JSONDecoderImpl+UnkeyedContainer.swift` 第 158-183 行）在 `codingPath` 非空时直接 `try newDecoder.unwrap(as: type)`（第 179 行），元素失败即抛出，不再调用 `forceDecode`（第 211 行起）。null 元素在 `JSONDecoderImpl.swift` 第 85-89 行抛出 "Cannot get keyed decoding container -- found null value instead"。错误冒出 `Array.init`，属性级 `try?` 失败，整个属性使用声明默认值 `[]`。
+- 本轮已把生产代码恢复到 origin/7.0.1 的 `JSONDecoderImpl+UnkeyedContainer.swift` 第 169-182 行形态：`codingPath` 非空时直接 `try unwrap`（第 179 行），不进入 `forceDecode`。属性同样回退为 `[]`。7.0.1 oracle 探测输出（`CASE model-array-null result=ids=[] calls=[]`）。
 - `Tests/Branch702ReviewRegressionTests.swift` 的 `testR2CallbacksAndOrdinaryArray` 现有断言把 null 输入的 `ordinary` 固定为 `[]`；`{}` 元素的断言为 `[11, 9, 12]`。
 - 重放：`swift test --filter Branch702ReviewRegressionTests/testR2CallbacksAndOrdinaryArray`。
 
@@ -65,12 +65,12 @@
 
 ## F-09：[Model?] 数组元素不执行 didFinishMapping
 
-**状态：已修复（2026-11-04）。** 修复前 origin/7.0.1 已存在，不是当时的 7.0.2 回归。
+**状态：已修复（2026-11-04）。** 修复前 origin/7.0.1 已存在，不是当时的 7.0.2 回归。本轮按发布决定保留可选元素的回调修复（B1，作为经批准的缺陷修正例外保留），同时把嵌套数组的逐元素容错（B2）回退为 7.0.1 的 `codingPath` 语义：嵌套数组中无法解码的元素使错误向上传播，整个属性回退为声明默认值，因此非对象元素场景现在回退为声明默认值 `[]`。
 
-- 输入：`struct Child: SmartCodableX { var id = -1; var calls = 0; didFinishMapping 中 calls += 1、id += 10 }`，`var optional: [Child?] = []`，`{"optional": [{"id":1}, null, {"id":2}]}`。期望非 nil 元素 id 为 11、12（各回调 1 次）。修复前实际 `[1, nil, 2]`，calls `[0, nil, 0]`。非对象元素 `"bad"` 修复前同样得到 `[1, nil, 2]`。
+- 输入：`struct Child: SmartCodableX { var id = -1; var calls = 0; didFinishMapping 中 calls += 1、id += 10 }`，`var optional: [Child?] = []`，`{"optional": [{"id":1}, null, {"id":2}]}`。期望非 nil 元素 id 为 11、12（各回调 1 次）。修复前实际 `[1, nil, 2]`，calls `[0, nil, 0]`。非对象元素 `"bad"` 在 7.0.1 基线探测结果中使嵌套数组的错误向上传播，整个属性回退为声明默认值 `[]`（ids `[]`、calls `[]`）；此前记录的 `[1, nil, 2]` 对非对象元素场景并不成立，本轮已更正。
 - 对照：`var child: Child?`、`[String: Child?]` 的值、`var children: [Child]?` 的元素都执行回调，id 为 11。
 - 修复前触发链：`didFinishMapping<T>` 中 `guard T.self is SmartDecodable.Type else { return decodeValue }`，`T` 为 `Optional<Child>` 时直接返回。origin/7.0.1 同文件第 371-374 行相同。
 - 修复：`Sources/SmartCodable/Core/JSONDecoder/Decoder/Impl/JSONDecoderImpl+UnkeyedContainer.swift` 第 366-388 行对 `Optional<SmartDecodable>` 元素解包（第 397-403 行 `mappedElement`）。非 nil 元素回调一次，nil 保持 nil。与 keyed 容器 `decodeIfPresent` 后回调一致（`JSONDecoderImpl+KeyedContainer.swift` 第 423-431 行）。
-- 测试：`Tests/Branch702ReviewRegressionTests.swift` 的 `testR17OptionalModelArrayKeepsElementPositions`。null 与 "bad" 两组 ids `[11, nil, 12]`、calls `[1, nil, 1]`；`[[Child?]]` → `[[11, nil]]`；无回调 `[Plain?]` 两组 `[1, nil, 2]`。修复前 ids `[1, nil, 2]`、calls `[0, nil, 0]`。
+- 测试：`Tests/Branch702ReviewRegressionTests.swift` 的 `testR17OptionalModelArrayKeepsElementPositions`。null 组 ids `[11, nil, 12]`、calls `[1, nil, 1]`（保留的 B1 回调修复）；非对象 `"bad"` 组本轮恢复 7.0.1 语义后 ids `[]`、calls `[]`；`[[Child?]]` → `[[11, nil]]`；无回调 `[Plain?]` 的 null 组 `[1, nil, 2]`、非对象 `"bad"` 组 `[]`。修复前（7.0.1 基线）null 组 ids `[1, nil, 2]`、calls `[0, nil, 0]`。
 - 重放：`swift test --filter Branch702ReviewRegressionTests/testR17OptionalModelArrayKeepsElementPositions`。
 
