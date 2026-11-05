@@ -306,7 +306,16 @@ extension JSONDecoderImpl.UnkeyedContainer {
     ///   is not convertible to the requested type.
     mutating func decodeIfPresent<T>(_ type: T.Type) throws -> T? where T : Decodable {
         if impl.options.unkeyedDecodingStrategy == .consumeOnce {
-            _ = try getNextValue(ofType: type)
+            // Apple's contract for `decodeIfPresent`: it returns nil when the
+            // container has no remaining element and nil when the current
+            // element is null. Neither case may consume an element that does
+            // not exist, and a null element must not reach `type.init(from:)`:
+            // a null-tolerant `init(from:)` would otherwise fabricate a value.
+            guard !self.isAtEnd else { return nil }
+            if self.array[self.currentIndex] == .null {
+                self.currentIndex += 1
+                return nil
+            }
         }
         // This operation owns consumption. Fallback only computes a value.
         defer { currentIndex += 1 }
@@ -346,6 +355,12 @@ extension JSONDecoderImpl.UnkeyedContainer {
     }
     
     fileprivate mutating func optionalDecode<T>() -> T? {
+        // `.consumeOnce` never consumes a non-existent element: at the end of the
+        // container the cursor stays where it is. `.legacy` keeps its historical
+        // single increment.
+        if impl.options.unkeyedDecodingStrategy == .consumeOnce, self.isAtEnd {
+            return nil
+        }
         defer { currentIndex += 1 }
         return optionalValue()
     }

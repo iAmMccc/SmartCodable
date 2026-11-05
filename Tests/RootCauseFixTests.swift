@@ -110,7 +110,7 @@ extension RootCauseFixTests {
             }
             if let impl = decoder as? JSONDecoderImpl,
                impl.options.unkeyedDecodingStrategy == .consumeOnce {
-                XCTAssertThrowsError(try container.decodeIfPresent(Positive.self))
+                XCTAssertNil(try container.decodeIfPresent(Positive.self))
                 XCTAssertEqual(container.currentIndex, indices.last)
             }
         }
