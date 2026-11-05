@@ -13,6 +13,8 @@ swift test -v
 swift test --sanitize=thread
 ```
 
+更详细的测试支持范围和验证方法见 [测试契约](../../Documentation/Testing/contracts.md)、[测试运行与反例重放](../../Documentation/Testing/replay-guide.md) 和 [覆盖率与变异测试指南](../../Documentation/Testing/coverage-and-mutation.md)。
+
 ## 测试文件位置
 
 ```

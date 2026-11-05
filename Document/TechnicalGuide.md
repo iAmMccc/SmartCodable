@@ -63,7 +63,7 @@ JSONDecoderImpl.unwrap(as: type)                  // JSONDecoderImpl+Unwrap.swif
                 └── 逐属性解码：
                     ├── 1. 检查 ValueTransformer // mappingForValue() 自定义转换（读自身 snapshot）
                     ├── 2. 尝试标准解码
-                    ├── 3. 类型转换 Patcher       // Int↔String, Bool↔Int 等
+                    ├── 3. 类型转换 Patcher       // String→Int、Int→Bool 等
                     └── 4. 默认值回退 snapshot    // Mirror 反射获取的初始值
   ↓
 didFinishMapping()                                // 用户回调，可做后处理
