@@ -54,9 +54,6 @@ public enum SmartDecodingOption: Hashable {
     
     /// The mapping strategy for keys during parsing
     case key(JSONDecoder.SmartKeyDecodingStrategy)
-
-    /// Opt in to consuming each generic decodeIfPresent element once.
-    case unkeyed(SmartJSONDecoder.UnkeyedDecodingStrategy)
     
     /// 附加用于日志系统的上下文信息，例如网络请求的 URL、参数、调用位置等。
     case logContext(header: String, footer: String)
@@ -74,8 +71,6 @@ public enum SmartDecodingOption: Hashable {
             hasher.combine(3)
         case .logContext:
             hasher.combine(4)
-        case .unkeyed:
-            hasher.combine(5)
         }
     }
     
@@ -90,8 +85,6 @@ public enum SmartDecodingOption: Hashable {
         case (.key, .key):
             return true
         case (.logContext, .logContext):
-            return true
-        case (.unkeyed, .unkeyed):
             return true
         default:
             return false
@@ -279,8 +272,6 @@ fileprivate func createDecoder<T>(type: T.Type, options: Set<SmartDecodingOption
                 _decoder.nonConformingFloatDecodingStrategy = strategy
             case .key(let strategy):
                 _decoder.smartKeyDecodingStrategy = strategy
-            case .unkeyed(let strategy):
-                _decoder.smartUnkeyedDecodingStrategy = strategy
             case .logContext(let header, let footer):
                 var userInfo = _decoder.userInfo
                 if let headerKey = CodingUserInfoKey.logContextHeader {

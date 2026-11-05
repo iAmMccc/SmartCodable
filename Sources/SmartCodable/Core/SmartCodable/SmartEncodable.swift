@@ -35,8 +35,6 @@ public enum SmartEncodingOption: Hashable {
     
     /// The mapping strategy for keys during parsing
     case key(JSONEncoder.SmartKeyEncodingStrategy)
-
-    case dynamicValues(SmartJSONEncoder.DynamicValueEncodingStrategy)
     
     /// Handles the hash value, ignoring the impact of associated values.
     public func hash(into hasher: inout Hasher) {
@@ -49,8 +47,6 @@ public enum SmartEncodingOption: Hashable {
             hasher.combine(2)
         case .key:
             hasher.combine(3)
-        case .dynamicValues:
-            hasher.combine(4)
         }
     }
     
@@ -63,8 +59,6 @@ public enum SmartEncodingOption: Hashable {
         case (.float, .float):
             return true
         case (.key, .key):
-            return true
-        case (.dynamicValues, .dynamicValues):
             return true
         default:
             return false
@@ -168,8 +162,6 @@ fileprivate func _transformToJson<T>(_ some: Encodable, type: Any.Type, useMappe
                 jsonEncoder.nonConformingFloatEncodingStrategy = strategy
             case .key(let strategy):
                 jsonEncoder.smartKeyEncodingStrategy = strategy
-            case .dynamicValues(let strategy):
-                jsonEncoder.smartDynamicValueEncodingStrategy = strategy
             }
         }
     }

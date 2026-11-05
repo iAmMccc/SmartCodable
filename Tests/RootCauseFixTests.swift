@@ -120,19 +120,21 @@ extension RootCauseFixTests {
         let legacy = try XCTUnwrap(Cursor.deserialize(from: "[0,2,3]"))
         XCTAssertEqual(legacy.values, [nil, 3])
         XCTAssertEqual(legacy.indices, [2, 3])
+        let decoder = SmartJSONDecoder()
+        decoder.smartUnkeyedDecodingStrategy = .consumeOnce
         for input in ["[0,2,3]", "[null,2,3]", "[\"bad\",2,3]"] {
-            let optedIn = try XCTUnwrap(Cursor.deserialize(from: input, options: [.unkeyed(.consumeOnce)]))
+            let optedIn = try XCTUnwrap(decoder.smartDecode(Cursor.self, from: input))
             XCTAssertEqual(optedIn.values, [nil, 2, 3])
             XCTAssertEqual(optedIn.indices, [1, 2, 3])
         }
-        let decoder = SmartJSONDecoder()
-        decoder.smartUnkeyedDecodingStrategy = .consumeOnce
         XCTAssertEqual(try decoder.smartDecode(Cursor.self, from: "[0]").values, [nil])
     }
 
     func testSingleConsumptionPropagatesToNestedModels() throws {
         struct Host: SmartCodableX { var values = Cursor() }
-        let host = try XCTUnwrap(Host.deserialize(from: ["values": [0, 2, 3]], options: [.unkeyed(.consumeOnce)]))
+        let decoder = SmartJSONDecoder()
+        decoder.smartUnkeyedDecodingStrategy = .consumeOnce
+        let host = try XCTUnwrap(decoder.smartDecode(Host.self, from: ["values": [0, 2, 3]] as [String: Any]))
         XCTAssertEqual(host.values.values, [nil, 2, 3])
     }
 
@@ -174,8 +176,11 @@ extension RootCauseFixTests {
         XCTAssertTrue(array[1] is NSNull)
         let compact = try XCTUnwrap(json["compact"] as? [String: Any])
         XCTAssertEqual((compact["nested"] as? [String: Any])?["model"] as? [String: String], ["encoded_name": "CHILD"])
-        let throughConvenience = try XCTUnwrap(DynamicHost().toDictionary(options: [.dynamicValues(.recursive)]))
-        XCTAssertNotNil((throughConvenience["payload"] as? [String: Any])?["dataKey"])
+        let convenienceEncoder = SmartJSONEncoder()
+        convenienceEncoder.smartDynamicValueEncodingStrategy = .recursive
+        let convenienceData = try convenienceEncoder.encode(DynamicHost())
+        let throughInstance = try XCTUnwrap(JSONSerialization.jsonObject(with: convenienceData, options: .fragmentsAllowed) as? [String: Any])
+        XCTAssertNotNil((throughInstance["payload"] as? [String: Any])?["dataKey"])
     }
 
     func testRecursiveDynamicReportsUnsupportedLeafAtItsActualPath() throws {
