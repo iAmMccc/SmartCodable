@@ -36,7 +36,7 @@ jobs:
   thread-sanitizer:
 
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v4
@@ -52,6 +52,18 @@ jobs:
         swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated > "$RUNNER_TEMP/tsan-context.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-context.log"; exit 1; }
         cat "$RUNNER_TEMP/tsan-context.log"
         grep -Eq 'Executed [1-9][0-9]* tests?, with 0 failures' "$RUNNER_TEMP/tsan-context.log"
+    # 覆盖共享 decoder 在固定配置下的并发会话隔离；零匹配也视为失败。
+    - name: Run Thread Sanitizer shared decoder sessions concurrency test
+      run: |
+        swift test --sanitize=thread --filter RootCauseFixTests.testConcurrentSharedDecoderSessionsStayDistinctWithFixedConfiguration > "$RUNNER_TEMP/tsan-shared-sessions.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-shared-sessions.log"; exit 1; }
+        cat "$RUNNER_TEMP/tsan-shared-sessions.log"
+        grep -Eq 'Executed [1-9][0-9]* tests?, with 0 failures' "$RUNNER_TEMP/tsan-shared-sessions.log"
+    # 覆盖共享 decoder 并发日志按调用隔离会话；零匹配也视为失败。
+    - name: Run Thread Sanitizer shared decoder logs concurrency test
+      run: |
+        swift test --sanitize=thread --filter RootCauseFixTests.testSharedDecoderConcurrentLogsKeepOneSessionPerCall > "$RUNNER_TEMP/tsan-shared-logs.log" 2>&1 || { cat "$RUNNER_TEMP/tsan-shared-logs.log"; exit 1; }
+        cat "$RUNNER_TEMP/tsan-shared-logs.log"
+        grep -Eq 'Executed [1-9][0-9]* tests?, with 0 failures' "$RUNNER_TEMP/tsan-shared-logs.log"
 
   property-tests:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/7.0.2'
