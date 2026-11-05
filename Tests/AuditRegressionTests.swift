@@ -205,15 +205,17 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual(model?.map["k"]?.n, 1)
     }
 
-    func testDictionaryElementsRunDidFinishMapping() {
+    // 7.0.1 语义：字典子模型默认不在字典解包路径触发完成回调。
+    // 依据 7.0.1 oracle 探测输出：CASE dictionary-valid ids=[1,2] calls=[0,0] tally=0
+    func testDictionaryElementsDoNotRunDidFinishMappingByDefault() {
         struct Model: SmartCodableX {
             var map: [String: DidFinishChild] = [:]
         }
 
         let model = Model.deserialize(from: ["map": ["a": ["n": 1], "b": ["n": 2]]])
-        XCTAssertEqual(DidFinishCounter.value, 2)
-        XCTAssertEqual(model?.map["a"]?.n, 101)
-        XCTAssertEqual(model?.map["b"]?.n, 102)
+        XCTAssertEqual(DidFinishCounter.value, 0)
+        XCTAssertEqual(model?.map["a"]?.n, 1)
+        XCTAssertEqual(model?.map["b"]?.n, 2)
     }
 
     func testCrossLevelMappingSkipsNullAlias() {

@@ -30,6 +30,13 @@ extension SmartCompact.Array: Codable {
         // Scalar decoding in SmartJSONDecoder may return a default for a malformed
         // element. Compact arrays must skip that element, not append the default.
         let decodeValue: () -> Any? = {
+            // Keep 7.0.1's JSON-value path for Optional model elements. Unwrapping
+            // them as Decodable would create models and dynamically unbox them
+            // for a callback, changing both the retained values and side effects.
+            if let optional = T.self as? _OptionalType.Type,
+               optional.wrappedType is any SmartDecodable.Type {
+                return try? container.decode(SmartAnyImpl.self).peel
+            }
             if T.self is any TypeTransformable.Type {
                 guard let element = try? container.superDecoder() else { return nil }
                 if let impl = element as? JSONDecoderImpl {

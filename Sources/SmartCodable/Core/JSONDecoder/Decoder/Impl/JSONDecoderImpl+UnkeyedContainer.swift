@@ -382,40 +382,20 @@ extension JSONDecoderImpl.UnkeyedContainer {
 extension JSONDecoderImpl.UnkeyedContainer {
     // 被属性包装器包裹的，不会调用该方法。Swift的类型系统在运行时无法直接识别出wrappedValue的实际类型.
     fileprivate func didFinishMapping<T>(_ decodeValue: T) -> T {
-        // [Child?] 的元素类型是 Optional：先解包，非 nil 元素回调一次，nil 保持 nil。
-        if T.self is SmartDecodable.Type {
-            if var value = decodeValue as? SmartDecodable {
-                value.didFinishMapping()
-                if let temp = value as? T { return temp }
-            } else if let value = decodeValue as? (any PropertyWrapperable) {
-                if let temp = value.wrappedValueDidFinishMapping() as? T {
-                    return temp
-                }
+        // Optional 元素（`[Child?]`）不是 SmartDecodable：7.0.1 不对其执行完成回调，
+        // 这里保持同一默认边界，避免默认路径多出一次非幂等回调。
+        guard T.self is SmartDecodable.Type else { return decodeValue }
+
+        // 减少动态派发开销，is 检查是编译时静态行为，比 as? 动态转换更高效。
+        if var value = decodeValue as? SmartDecodable {
+            value.didFinishMapping()
+            if let temp = value as? T { return temp }
+        } else if let value = decodeValue as? (any PropertyWrapperable) {
+            if let temp = value.wrappedValueDidFinishMapping() as? T {
+                return temp
             }
-            return decodeValue
         }
-
-        guard let optionalType = T.self as? _OptionalType.Type,
-              optionalType.wrappedType is SmartDecodable.Type,
-              let updated = (decodeValue as? any _UnkeyedOptionalMapping)?.mappedElement() as? T else {
-            return decodeValue
-        }
-        return updated
-    }
-}
-
-/// `[Child?]` 的元素在运行时是 Optional，keyed 路径看不到这一层。
-private protocol _UnkeyedOptionalMapping {
-    func mappedElement() -> Any
-}
-
-extension Optional: _UnkeyedOptionalMapping {
-    func mappedElement() -> Any {
-        guard case .some(let wrapped) = self else { return self as Any }
-        guard var model = wrapped as? any SmartDecodable else { return self as Any }
-        model.didFinishMapping()
-        guard let updated = model as? Wrapped else { return self as Any }
-        return Optional(updated) as Any
+        return decodeValue
     }
 }
 

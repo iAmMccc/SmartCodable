@@ -126,6 +126,31 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(withBad.ordinary.map(\.id), [])
     }
 
+    func testCompactOptionalModelsKeepLegacyEmptyResultWithoutCallbacks() throws {
+        struct Host: SmartDecodable {
+            @SmartCompact.Array var values: [Branch702CallbackChild?] = []
+        }
+        let inputs: [[Any]] = [
+            [["id": 1], ["id": 2]],
+            [["id": 1], NSNull(), ["id": 2]],
+            [["id": 1], "bad", ["id": 2]],
+            []
+        ]
+        for strategy in [SmartJSONDecoder.UnkeyedDecodingStrategy.legacy, .consumeOnce] {
+            for input in inputs {
+                let trace = Branch702CallbackTrace()
+                let decoder = SmartJSONDecoder()
+                decoder.smartUnkeyedDecodingStrategy = strategy
+                decoder.userInfo[Branch702CallbackTrace.key] = trace
+                let host = try decoder.smartDecode(Host.self, from: ["values": input])
+                // 7.0.1 does not decode Optional model elements in Compact arrays.
+                XCTAssertEqual(host.values.map { $0?.id }, [])
+                XCTAssertEqual(host.values.map { $0?.calls }, [])
+                XCTAssertEqual(trace.callbacks, [])
+            }
+        }
+    }
+
     func testR3AllUpdateInputs() {
         struct Model: SmartCodableX {
             var firstName = "old-first"
@@ -676,6 +701,34 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(wideNumber.stringValue, "18446744073709551615")
     }
 
+    func testOptionalModelArrayFailureDoesNotRunCompletionBeforeFallback() throws {
+        struct Host: SmartDecodable {
+            var optional: [Branch702CallbackChild?] = []
+            var ordinary: [Branch702CallbackChild] = []
+        }
+        let elements: [Any] = [["id": 1], "bad", ["id": 2]]
+        for strategy in [SmartJSONDecoder.UnkeyedDecodingStrategy.legacy, .consumeOnce] {
+            let trace = Branch702CallbackTrace()
+            let decoder = SmartJSONDecoder()
+            decoder.smartUnkeyedDecodingStrategy = strategy
+            decoder.userInfo[Branch702CallbackTrace.key] = trace
+
+            let optional = try decoder.smartDecode(Host.self, from: ["optional": elements])
+            XCTAssertEqual(optional.optional.count, 0)
+            XCTAssertEqual(trace.callbacks, [])
+            XCTAssertEqual(trace.events, ["decoded:1"])
+
+            trace.callbacks = []
+            trace.events = []
+            let ordinary = try decoder.smartDecode(Host.self, from: ["ordinary": elements])
+            XCTAssertEqual(ordinary.ordinary.count, 0)
+            // The first model completes before the next element fails. Falling
+            // back to [] must not erase that externally visible side effect.
+            XCTAssertEqual(trace.callbacks, [1])
+            XCTAssertEqual(trace.events, ["decoded:1", "callback:1"])
+        }
+    }
+
     func testR17OptionalModelArrayKeepsElementPositions() throws {
         struct Child: SmartCodableX {
             var id = -1
@@ -687,8 +740,11 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         }
         let withNull = try XCTUnwrap(Host.deserialize(from: ["optional": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
         XCTAssertEqual(withNull.optional.count, 3)
-        XCTAssertEqual(withNull.optional.map { $0?.id }, [11, nil, 12])
-        XCTAssertEqual(withNull.optional.map { $0?.calls }, [1, nil, 1])
+        // 7.0.1 语义：`[Child?]` 的元素类型是 Optional，不算 SmartDecodable，
+        // 默认不触发完成回调。依据 7.0.1 oracle 探测输出：
+        //   CASE optional-array-valid-null ids=[1,nil,2] calls=[0,nil,0]
+        XCTAssertEqual(withNull.optional.map { $0?.id }, [1, nil, 2])
+        XCTAssertEqual(withNull.optional.map { $0?.calls }, [0, nil, 0])
         // 7.0.1 语义：嵌套数组中的非对象元素使错误向上传播，整个属性回退声明默认值 []。
         // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
         //   CASE b1-optional-bad result=ids=[] calls=[]
@@ -700,7 +756,7 @@ final class Branch702ReviewRegressionTests: XCTestCase {
             var rows: [[Child?]] = []
         }
         let nested = try XCTUnwrap(NestedHost.deserialize(from: ["rows": [[["id": 1], NSNull()] as [Any]]]))
-        XCTAssertEqual(nested.rows.map { $0.map { $0?.id } }, [[11, nil]])
+        XCTAssertEqual(nested.rows.map { $0.map { $0?.id } }, [[1, nil]])
         struct Plain: SmartCodableX { var id = -1 }
         struct PlainHost: SmartCodableX { var plain: [Plain?] = [] }
         let plainNull = try XCTUnwrap(PlainHost.deserialize(from: ["plain": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
@@ -715,4 +771,35 @@ final class Branch702ReviewRegressionTests: XCTestCase {
 
 private struct Branch702CompactHost<Element: Codable>: SmartCodableX {
     @SmartCompact.Array var values: [Element] = []
+}
+
+private final class Branch702CallbackTrace {
+    static let key = CodingUserInfoKey(rawValue: "Branch702CallbackTrace")!
+    var callbacks: [Int] = []
+    var events: [String] = []
+}
+
+private struct Branch702CallbackChild: SmartCodableX {
+    var id = -1
+    var calls = 0
+    private var trace: Branch702CallbackTrace?
+
+    enum CodingKeys: String, CodingKey { case id, calls }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        calls = try container.decodeIfPresent(Int.self, forKey: .calls) ?? 0
+        trace = decoder.userInfo[Branch702CallbackTrace.key] as? Branch702CallbackTrace
+        trace?.events.append("decoded:\(id)")
+    }
+
+    mutating func didFinishMapping() {
+        trace?.callbacks.append(id)
+        trace?.events.append("callback:\(id)")
+        calls += 1
+        id += 10
+    }
 }

@@ -346,24 +346,10 @@ extension JSONDecoderImpl {
                 from: value,
                 codingPath: newPath,
                 options: self.options)
-            let decoded = try dictType.elementType._eraseCreateByDirectUnwrap(from: newDecoder)
-            result[key] = finishMapping(decoded)
+            // 字典子模型沿用 7.0.1 契约：默认不在此处触发完成回调。
+            result[key] = try dictType.elementType._eraseCreateByDirectUnwrap(from: newDecoder)
         }
         return result as! T
-    }
-
-    /// 字典元素同样是模型入口，必须与 keyed/unkeyed 路径一样执行
-    /// didFinishMapping / 包装器完成回调。
-    private func finishMapping(_ value: Any) -> Any {
-        if var model = value as? any SmartDecodable {
-            model.didFinishMapping()
-            return model
-        }
-        if let wrapper = value as? any PropertyWrapperable,
-           let updated = wrapper.wrappedValueDidFinishMapping() {
-            return updated
-        }
-        return value
     }
     
     func createTypeMismatchError(type: Any.Type, for additionalKey: CodingKey? = nil, value: JSONValue) -> DecodingError {
