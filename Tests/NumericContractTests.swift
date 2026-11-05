@@ -53,6 +53,7 @@ private struct UInt32ContractModel: SmartCodableX {
 
 final class NumericContractTests: XCTestCase {
     func testEveryInt8FromNumberAndDecimalString() throws {
+        struct AlternativeDefault: SmartCodableX { var value: Int8 = -7 }
         for integer in -128...127 {
             for input: Any in [integer, String(integer)] {
                 let model = try XCTUnwrap(
@@ -62,9 +63,13 @@ final class NumericContractTests: XCTestCase {
                 XCTAssertEqual(model.value, Int8(integer), "Int8 input=\(input)")
             }
         }
+        for input: Any in [73, "73"] {
+            XCTAssertEqual(try XCTUnwrap(AlternativeDefault.deserialize(from: ["value": input])).value, 73)
+        }
     }
 
     func testEveryUInt8FromNumberAndDecimalString() throws {
+        struct AlternativeDefault: SmartCodableX { var value: UInt8 = 7 }
         for integer in 0...255 {
             for input: Any in [integer, String(integer)] {
                 let model = try XCTUnwrap(
@@ -73,6 +78,9 @@ final class NumericContractTests: XCTestCase {
                 )
                 XCTAssertEqual(model.value, UInt8(integer), "UInt8 input=\(input)")
             }
+        }
+        for input: Any in [191, "191"] {
+            XCTAssertEqual(try XCTUnwrap(AlternativeDefault.deserialize(from: ["value": input])).value, 191)
         }
     }
 

@@ -112,7 +112,7 @@ final class SmartFlatTests: XCTestCase {
         XCTAssertTrue(models.allSatisfy(\.extra))
     }
 
-    /// 同一宿主连续两个 @SmartFlat，内层同名字段声明默认值各不相同，互不串值（T09）
+    /// 同一宿主连续两个 @SmartFlat，内层同名字段声明默认值各不相同，互不串值
     func testConsecutiveSmartFlatsKeepTheirOwnInnerDefaultsForSameNamedField() throws {
         struct Model: SmartCodableX {
             @SmartFlat var first: FlatSharedA?
@@ -127,7 +127,7 @@ final class SmartFlatTests: XCTestCase {
         XCTAssertEqual(model.tail, "host-tail", "宿主尾字段不受平铺影响")
     }
 
-    /// @SmartFlat 嵌套 @SmartFlat：各层取各自默认值，最外层宿主不受影响（T10）
+    /// @SmartFlat 嵌套 @SmartFlat：各层取各自默认值，最外层宿主不受影响
     func testNestedSmartFlatKeepsPerLevelDefaults() throws {
         struct Model: SmartCodableX {
             @SmartFlat var middle: FlatMiddleProbe?
@@ -141,7 +141,7 @@ final class SmartFlatTests: XCTestCase {
         XCTAssertEqual(model.host, "host-default")
     }
 
-    /// Flat 编码：内层字段平铺回宿主层级输出，不产生内层包装键（T48）
+    /// Flat 编码：内层字段平铺回宿主层级输出，不产生内层包装键
     func testSmartFlatEncodeFlattensInnerFieldsToHostLevel() throws {
         struct Model: SmartCodableX {
             @SmartFlat var inner: FlatEncodeInner = FlatEncodeInner()
@@ -209,31 +209,31 @@ private struct IgnoredSettings: SmartCodableX {
     var isEnabled: Bool = true
 }
 
-/// 连续 Flat 用例：同名字段、不同默认值（T09）
+/// 连续 Flat 用例：同名字段、不同默认值
 private final class FlatSharedA: SmartCodableX {
     var shared = "a-default"
     required init() {}
 }
 
-/// 连续 Flat 用例：同名字段、不同默认值（T09）
+/// 连续 Flat 用例：同名字段、不同默认值
 private final class FlatSharedB: SmartCodableX {
     var shared = "b-default"
     required init() {}
 }
 
-/// 嵌套 Flat 用例：最内层模型（T10）
+/// 嵌套 Flat 用例：最内层模型
 private final class FlatLeafProbe: SmartCodableX {
     var leaf = "leaf-default"
     required init() {}
 }
 
-/// 嵌套 Flat 用例：中间层自身也是 Flat（T10）
+/// 嵌套 Flat 用例：中间层自身也是 Flat
 private struct FlatMiddleProbe: SmartCodableX {
     @SmartFlat var inner: FlatLeafProbe?
     var middle = "middle-default"
 }
 
-/// Flat 编码用例的内层模型（T48）
+/// Flat 编码用例的内层模型
 private struct FlatEncodeInner: SmartCodableX {
     var tag = "inner-default"
 }

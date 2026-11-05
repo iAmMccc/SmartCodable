@@ -1,10 +1,11 @@
+import CoreFoundation
 import Foundation
 import XCTest
 @testable import SmartCodable
 
-/// F-03: `@SmartCompact.Dictionary` 的数据容器在 `.recursive` 策略下必须整体走统一动态桥，
+/// `@SmartCompact.Dictionary` 的数据容器在 `.recursive` 策略下必须整体走统一动态桥，
 /// 数据键保持原样（不被 smartKeyEncodingStrategy 转换），与 `@SmartAny` 行为一致。
-private struct F03UpperTransformer: ValueTransformable {
+private struct DynamicKeyUpperTransformer: ValueTransformable {
     typealias Object = String
     typealias JSON = String
 
@@ -12,15 +13,15 @@ private struct F03UpperTransformer: ValueTransformable {
     func transformToJSON(_ value: String) -> String? { value.uppercased() }
 }
 
-private struct F03ChildModel: SmartCodableX {
+private struct DynamicKeyChildModel: SmartCodableX {
     var userName = "child"
 
     static func mappingForValue() -> [SmartValueTransformer]? {
-        [CodingKeys.userName <--- F03UpperTransformer()]
+        [CodingKeys.userName <--- DynamicKeyUpperTransformer()]
     }
 }
 
-private struct F03Opaque {
+private struct UnsupportedDynamicValue {
     let marker = 1
 }
 
@@ -88,7 +89,7 @@ final class CompactDynamicKeyTests: XCTestCase {
 
         let json = try encodedJSON(Model(), recursive: true)
         let payload = try XCTUnwrap(json["payload"] as? [String: Any])
-        print("F03-COUNTEREXAMPLE-RECURSIVE: " + Self.describe(payload))
+        print("Recursive payload: " + Self.describe(payload))
 
         XCTAssertEqual((payload["firstName"] as? NSNumber)?.intValue, 1,
                        "observed payload: \(payload)")
@@ -131,12 +132,14 @@ final class CompactDynamicKeyTests: XCTestCase {
         // 嵌套字典的数据键同样保持原样
         let anyNested = try XCTUnwrap(anyPayload["nestedPayload"] as? [String: Any])
         let compactNested = try XCTUnwrap(compactPayload["nestedPayload"] as? [String: Any])
-        print("F03-MATRIX-SMARTANY: " + Self.describe(anyPayload))
-        print("F03-MATRIX-COMPACT: " + Self.describe(compactPayload))
-        print("F03-MATRIX-SMARTANY-NESTED: " + Self.describe(anyNested))
-        print("F03-MATRIX-COMPACT-NESTED: " + Self.describe(compactNested))
+        print("SmartAny payload: " + Self.describe(anyPayload))
+        print("Compact payload: " + Self.describe(compactPayload))
+        print("SmartAny nested payload: " + Self.describe(anyNested))
+        print("Compact nested payload: " + Self.describe(compactNested))
         XCTAssertEqual(Set(anyNested.keys), Set(compactNested.keys))
         XCTAssertEqual(Set(compactNested.keys), ["innerName", "inner_name"])
+        XCTAssertEqual(anyNested["innerName"] as? String, "x")
+        XCTAssertEqual(anyNested["inner_name"] as? String, "y")
         XCTAssertEqual(compactNested["innerName"] as? String, "x")
         XCTAssertEqual(compactNested["inner_name"] as? String, "y")
         XCTAssertNil(compactNested["inner-name"])
@@ -146,7 +149,7 @@ final class CompactDynamicKeyTests: XCTestCase {
 
     func testNestedModelInsideDataContainerKeepsOwnKeyMappingAndTransformer() throws {
         struct Model: SmartCodableX {
-            @SmartCompact.Dictionary var payload: [String: Any] = ["childModel": F03ChildModel()]
+            @SmartCompact.Dictionary var payload: [String: Any] = ["childModel": DynamicKeyChildModel()]
         }
 
         let json = try encodedJSON(Model(), recursive: true)
@@ -177,7 +180,7 @@ final class CompactDynamicKeyTests: XCTestCase {
                 "nullValue": NSNull(),
                 "nestedDict": ["innerKey": "innerValue"],
                 "nestedArray": [1, "two", true],
-                "nestedModel": F03ChildModel(),
+                "nestedModel": DynamicKeyChildModel(),
                 "optionalValue": Optional(3) as Any,
                 "nilOptionalValue": Optional<Int>.none as Any
             ]
@@ -197,6 +200,8 @@ final class CompactDynamicKeyTests: XCTestCase {
         XCTAssertEqual((payload["intValue"] as? NSNumber)?.intValue, 7)
         XCTAssertEqual((payload["doubleValue"] as? NSNumber)?.doubleValue, 1.5)
         XCTAssertEqual((payload["boolValue"] as? NSNumber)?.boolValue, true)
+        XCTAssertNotEqual(CFGetTypeID(try XCTUnwrap(payload["intValue"] as? NSNumber)), CFBooleanGetTypeID())
+        XCTAssertEqual(CFGetTypeID(try XCTUnwrap(payload["boolValue"] as? NSNumber)), CFBooleanGetTypeID())
         XCTAssertEqual(payload["stringValue"] as? String, "text")
         XCTAssertTrue(payload["nullValue"] is NSNull)
         XCTAssertEqual(payload["nestedDict"] as? [String: String], ["innerKey": "innerValue"])
@@ -210,6 +215,8 @@ final class CompactDynamicKeyTests: XCTestCase {
         XCTAssertEqual((array[0] as? NSNumber)?.intValue, 1)
         XCTAssertEqual(array[1] as? String, "two")
         XCTAssertEqual((array[2] as? NSNumber)?.boolValue, true)
+        XCTAssertNotEqual(CFGetTypeID(try XCTUnwrap(array[0] as? NSNumber)), CFBooleanGetTypeID())
+        XCTAssertEqual(CFGetTypeID(try XCTUnwrap(array[2] as? NSNumber)), CFBooleanGetTypeID())
 
         XCTAssertEqual((payload["nestedModel"] as? [String: String])?["user_name"], "CHILD")
 
@@ -223,7 +230,7 @@ final class CompactDynamicKeyTests: XCTestCase {
     func testUnsupportedNestedLeafThrowsInvalidValueWithNestedCodingPath() throws {
         struct Model: SmartCodableX {
             @SmartCompact.Dictionary var payload: [String: Any] = [
-                "nestedPayload": ["opaqueValue": F03Opaque()]
+                "nestedPayload": ["opaqueValue": UnsupportedDynamicValue()]
             ]
         }
 
@@ -242,7 +249,7 @@ final class CompactDynamicKeyTests: XCTestCase {
 
     // MARK: - (f) legacy 行为保持不变
 
-    /// 便于报告引用：把解析后的字典按 key 排序输出（不依赖 JSON 字符串顺序）。
+    /// 按键排序输出解析后的字典，不依赖 JSON 字符串顺序。
     private static func describe(_ payload: [String: Any]) -> String {
         "[" + payload.keys.sorted().map { "\($0): \(describeValue(payload[$0]))" }.joined(separator: ", ") + "]"
     }
@@ -261,15 +268,15 @@ final class CompactDynamicKeyTests: XCTestCase {
             @SmartCompact.Dictionary var payload: [String: Any] = [
                 "firstName": 1,
                 "otherName": 2,
-                "badValue": F03Opaque(),
+                "badValue": UnsupportedDynamicValue(),
                 "goodValue": 3
             ]
         }
 
         let json = try encodedJSON(Model(), recursive: false)
         let payload = try XCTUnwrap(json["payload"] as? [String: Any])
-        print("F03-LEGACY-FULL: " + Self.describe(json))
-        print("F03-LEGACY-PAYLOAD: " + Self.describe(payload))
+        print("Legacy output: " + Self.describe(json))
+        print("Legacy payload: " + Self.describe(payload))
 
         XCTAssertEqual(Set(payload.keys), ["first_name", "other_name", "good_value"])
         XCTAssertEqual((payload["first_name"] as? NSNumber)?.intValue, 1)
@@ -286,7 +293,7 @@ final class CompactDynamicKeyTests: XCTestCase {
 
         let json = try encodedJSON(Model(), recursive: false)
         let payload = try XCTUnwrap(json["payload"] as? [String: Any])
-        print("F03-COUNTEREXAMPLE-LEGACY: " + Self.describe(payload))
+        print("Legacy colliding keys: " + Self.describe(payload))
 
         XCTAssertEqual(payload.keys.sorted(), ["first_name"],
                        "observed payload: \(payload)")

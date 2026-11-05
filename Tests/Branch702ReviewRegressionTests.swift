@@ -9,6 +9,64 @@ import Combine
 @testable import SmartCodable
 
 final class Branch702ReviewRegressionTests: XCTestCase {
+    func testRawValueEnumCasesDecodeAcrossDistinctDeclaredDefaults() throws {
+        // The finite domains match the Int and String examples. Invalid raw
+        // values and other enum types are outside this test's scope.
+        enum Sex: Int, SmartCaseDefaultable { case unknown = 0, man = 1, woman = 2 }
+        enum Role: String, SmartCaseDefaultable { case admin, user, guest }
+        struct FirstDefaults: SmartCodableX {
+            var sex: Sex = .unknown
+            var role: Role = .admin
+        }
+        struct LastDefaults: SmartCodableX {
+            var sex: Sex = .woman
+            var role: Role = .guest
+        }
+
+        let sexCases: [(Int, Sex)] = [(0, .unknown), (1, .man), (2, .woman)]
+        let roleCases: [(String, Role)] = [("admin", .admin), ("user", .user), ("guest", .guest)]
+        XCTAssertEqual(sexCases.count, Sex.allCases.count)
+        XCTAssertEqual(roleCases.count, Role.allCases.count)
+        for (input, expected) in sexCases {
+            XCTAssertEqual(try XCTUnwrap(FirstDefaults.deserialize(from: ["sex": input])).sex, expected, "first default; input=\(input)")
+            XCTAssertEqual(try XCTUnwrap(LastDefaults.deserialize(from: ["sex": input])).sex, expected, "last default; input=\(input)")
+        }
+        for (input, expected) in roleCases {
+            XCTAssertEqual(try XCTUnwrap(FirstDefaults.deserialize(from: ["role": input])).role, expected, "first default; input=\(input)")
+            XCTAssertEqual(try XCTUnwrap(LastDefaults.deserialize(from: ["role": input])).role, expected, "last default; input=\(input)")
+        }
+
+        let basicCases: [(Int, BasicModel.Sex)] = [(1, .man), (0, .women)]
+        XCTAssertEqual(basicCases.count, BasicModel.Sex.allCases.count)
+        for (input, expected) in basicCases {
+            XCTAssertEqual(try XCTUnwrap(BasicModel.deserialize(from: ["sex": input])).sex, expected, "BasicModel input=\(input)")
+        }
+
+        // SmartFlatTests uses a file-private two-case enum; reproduce that
+        // declaration and container shape without exposing the test fixture.
+        enum FlatKind: Int, SmartCaseDefaultable { case fallback, preferred }
+        struct FlatChild: SmartCodableX { var accid = "" }
+        struct FlatFirstDefault: SmartCodableX {
+            @SmartFlat var child: FlatChild?
+            var kind: FlatKind = .fallback
+        }
+        struct FlatLastDefault: SmartCodableX {
+            @SmartFlat var child: FlatChild?
+            var kind: FlatKind = .preferred
+        }
+        let flatCases: [(Int, FlatKind)] = [(0, .fallback), (1, .preferred)]
+        XCTAssertEqual(flatCases.count, FlatKind.allCases.count)
+        for (input, expected) in flatCases {
+            let payload: [String: Any] = ["kind": input, "accid": "a1"]
+            let first = try XCTUnwrap(FlatFirstDefault.deserialize(from: payload))
+            let last = try XCTUnwrap(FlatLastDefault.deserialize(from: payload))
+            XCTAssertEqual(first.child?.accid, "a1")
+            XCTAssertEqual(last.child?.accid, "a1")
+            XCTAssertEqual(first.kind, expected, "flat first default; input=\(input)")
+            XCTAssertEqual(last.kind, expected, "flat last default; input=\(input)")
+        }
+    }
+
     func testR1FloatStringTransformerTakesPriority() throws {
         struct Model: SmartCodableX {
             var value: Double = -1
@@ -196,11 +254,6 @@ final class Branch702ReviewRegressionTests: XCTestCase {
     func testR5NestedArrayElements() {
         struct Model: SmartCodableX { var m: [[Int]] = [[9]] }
         // 7.0.1 语义：嵌套数组的元素解码失败时错误向上传播，整个属性回退声明默认值 [[9]]。
-        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
-        //   CASE r5-1 result=[[9]]
-        //   CASE r5-2 result=[[9]]
-        //   CASE r5-3 result=[[9]]
-        //   CASE r5-4 result=[[9]]
         let samples: [([String: Any], [[Int]])] = [
             (["m": [[1, 2], "x", [3]] as [Any]], [[9]]),
             (["m": [[1, "a"] as [Any], [3]] as [Any]], [[9]]),
@@ -741,13 +794,10 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         let withNull = try XCTUnwrap(Host.deserialize(from: ["optional": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
         XCTAssertEqual(withNull.optional.count, 3)
         // 7.0.1 语义：`[Child?]` 的元素类型是 Optional，不算 SmartDecodable，
-        // 默认不触发完成回调。依据 7.0.1 oracle 探测输出：
-        //   CASE optional-array-valid-null ids=[1,nil,2] calls=[0,nil,0]
+        // 默认不触发完成回调。
         XCTAssertEqual(withNull.optional.map { $0?.id }, [1, nil, 2])
         XCTAssertEqual(withNull.optional.map { $0?.calls }, [0, nil, 0])
         // 7.0.1 语义：嵌套数组中的非对象元素使错误向上传播，整个属性回退声明默认值 []。
-        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
-        //   CASE b1-optional-bad result=ids=[] calls=[]
         let withBad = try XCTUnwrap(Host.deserialize(from: ["optional": [["id": 1], "bad", ["id": 2]] as [Any]]))
         XCTAssertEqual(withBad.optional.count, 0)
         XCTAssertEqual(withBad.optional.map { $0?.id }, [])
@@ -762,8 +812,6 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         let plainNull = try XCTUnwrap(PlainHost.deserialize(from: ["plain": [["id": 1], NSNull(), ["id": 2]] as [Any]]))
         XCTAssertEqual(plainNull.plain.map { $0?.id }, [1, nil, 2])
         // 7.0.1 语义：嵌套数组中的非对象元素使整个属性回退声明默认值 []。
-        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
-        //   CASE b1-plain-optional-bad result=ids=[] calls=[]
         let plainBad = try XCTUnwrap(PlainHost.deserialize(from: ["plain": [["id": 1], "bad", ["id": 2]] as [Any]]))
         XCTAssertEqual(plainBad.plain.map { $0?.id }, [])
     }

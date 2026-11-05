@@ -117,7 +117,7 @@ final class DecodingContextTests: XCTestCase {
     // MARK: - 独立调用与稳定归属
 
     /// 同一次模型 init 内多次请求 keyed / single 容器：从两个容器读取同一缺失字段，
-    /// 复用本次初始化的同一个引用类型默认对象，且默认值 provider 只执行一次（T32）
+    /// 复用本次初始化的同一个引用类型默认对象，且默认值 provider 只执行一次
     func testRepeatedContainerRequestsKeepSameContextInOneInit() throws {
         RepeatedContainerHost.resetDefaultProviderCallCount()
 
@@ -131,7 +131,7 @@ final class DecodingContextTests: XCTestCase {
                        "默认值 provider（objectType.init() 反射构造）在同一次初始化内只执行一次")
     }
 
-    /// 不同宿主的同名 _settings 声明只能恢复属性边精确指向的那一个（T33）
+    /// 不同宿主的同名 _settings 声明只能恢复属性边精确指向的那一个
     func testPropertyEdgeRestoresPreciseHostDeclaration() throws {
         let host = try XCTUnwrap(EdgeParentHost.deserialize(from: ["child": [:]]))
 
@@ -141,7 +141,7 @@ final class DecodingContextTests: XCTestCase {
         XCTAssertTrue(host.child.settingsIsEncodable)
     }
 
-    /// 用户在 init 中主动引用静态单例属于用户指定的共享，框架不得擅自深拷贝（T35）
+    /// 用户在 init 中主动引用静态单例属于用户指定的共享，框架不得擅自深拷贝
     func testStaticSingletonDefaultIsNotCopied() throws {
         let first = try XCTUnwrap(SingletonDefaultModel.deserialize(from: [:]))
         let second = try XCTUnwrap(SingletonDefaultModel.deserialize(from: [:]))
@@ -170,7 +170,7 @@ final class DecodingContextTests: XCTestCase {
     /// @SmartAny 包装模型时，兜底解码路径保留模型声明默认值
     func testSmartAnyModelBackedValueKeepsDeclaredDefaultsWhenKeysMissing() throws {
         struct Model: SmartCodableX {
-            @SmartAny var payload: SmartAnyTargetModel = .init()
+            @SmartAny var payload: SmartAnyTargetModel = .init(score: 77)
         }
 
         let model = try XCTUnwrap(Model.deserialize(from: ["payload": [:]]))
@@ -182,18 +182,24 @@ final class DecodingContextTests: XCTestCase {
 
     /// 第三方包装器两条路径（直接初始化与 single-value 重入）都保留内层声明默认值
     func testThirdPartyWrappersPreserveWrappedModelDefaults() throws {
+        WrapperEntryProbe.direct = 0
         let direct = try XCTUnwrap(DirectWrapperHost.deserialize(from: ["payload": [:]]))
         XCTAssertEqual(direct.payload.count, 99)
+        XCTAssertGreaterThan(WrapperEntryProbe.direct, 0)
 
+        WrapperEntryProbe.container = 0
         let container = try XCTUnwrap(ContainerWrapperHost.deserialize(from: ["payload": [:]]))
         XCTAssertEqual(container.payload.count, 99)
+        XCTAssertGreaterThan(WrapperEntryProbe.container, 0)
     }
 
     /// 双协议包装器与内层模型共享 codingPath 时，两者都保留各自声明的默认值
     func testDualConformingWrapperPreservesWrapperAndWrappedModelDefaults() throws {
+        WrapperEntryProbe.dual = 0
         let direct = try XCTUnwrap(DualDirectWrapperHost.deserialize(from: ["payload": [:]]))
         XCTAssertEqual(direct.payload.count, 99)
         XCTAssertEqual(direct.$payload.marker, 7)
+        XCTAssertGreaterThan(WrapperEntryProbe.dual, 0)
     }
 
     /// 包装器自己的 key/value mapping 归属包装器 owner，不被同路径内层模型覆盖
@@ -301,10 +307,12 @@ final class DecodingContextTests: XCTestCase {
         XCTAssertEqual(host.$payload.wrappedValue.innerMarker, 22)
         XCTAssertEqual(host.payload.value, 99)
         XCTAssertEqual(host.trailing, 77)
+        XCTAssertGreaterThan(ThrowingNestedDualLeaf.decodeAttempts, 0)
     }
 
     /// 第三方包装器内层抛错：宿主取得声明回退，后续字段继续命中宿主默认值
     func testThrowingThirdPartyWrapperRestoresHostDefaults() throws {
+        ThrowingWrapperProbeModel.decodeAttempts = 0
         let legacyHost = try XCTUnwrap(ThrowingWrapperHost.deserialize(from: [
             "payload": [:],
             "trailing": "not-an-int"
@@ -312,7 +320,9 @@ final class DecodingContextTests: XCTestCase {
 
         XCTAssertEqual(legacyHost.payload.marker, 41)
         XCTAssertEqual(legacyHost.trailing, 77)
+        XCTAssertGreaterThan(ThrowingWrapperProbeModel.decodeAttempts, 0)
 
+        ThrowingWrapperProbeModel.decodeAttempts = 0
         let dualHost = try XCTUnwrap(ThrowingDualWrapperHost.deserialize(from: [
             "payload": [:],
             "trailing": "not-an-int"
@@ -321,10 +331,12 @@ final class DecodingContextTests: XCTestCase {
         XCTAssertEqual(dualHost.payload.marker, 41)
         XCTAssertEqual(dualHost.$payload.marker, 7)
         XCTAssertEqual(dualHost.trailing, 77)
+        XCTAssertGreaterThan(ThrowingWrapperProbeModel.decodeAttempts, 0)
     }
 
     /// 包装器经 singleValueContainer 重入后抛错：宿主后续字段继续命中声明默认值
     func testThrowingContainerWrapperReentryRestoresHostDefaults() throws {
+        ThrowingWrapperProbeModel.decodeAttempts = 0
         let host = try XCTUnwrap(ThrowingContainerWrapperHost.deserialize(from: [
             "payload": [:],
             "trailing": "not-an-int"
@@ -332,6 +344,7 @@ final class DecodingContextTests: XCTestCase {
 
         XCTAssertEqual(host.payload.marker, 41)
         XCTAssertEqual(host.trailing, 77)
+        XCTAssertGreaterThan(ThrowingWrapperProbeModel.decodeAttempts, 0)
     }
 
     // MARK: - 日志归属
@@ -380,7 +393,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 集合与结构下钻
 
-    /// 根数组与嵌套数组中可解码成功的 Smart 元素各自取声明默认值；元素解码失败时错误向上传播，整个属性回退声明默认值（T38）
+    /// 根数组与嵌套数组中可解码成功的 Smart 元素各自取声明默认值；元素解码失败时错误向上传播，整个属性回退声明默认值
     func testRootAndNestedArraysGiveElementsIndependentDefaults() throws {
         let roots = try XCTUnwrap([ArrayElementChild].deserialize(from: [
             ["tag": "a"],
@@ -394,7 +407,7 @@ final class DecodingContextTests: XCTestCase {
         XCTAssertEqual(host.models.map(\.tag), ["inner", "b"])
     }
 
-    /// 宿主字段整体 transformer 只对整个字段生效一次，不泄漏到内部元素（T39）
+    /// 宿主字段整体 transformer 只对整个字段生效一次，不泄漏到内部元素
     func testWholeFieldTransformerAppliesOncePerField() throws {
         CountingListTransformer.applyCount = 0
         let host = try XCTUnwrap(TransformerListHost.deserialize(from: [
@@ -406,14 +419,14 @@ final class DecodingContextTests: XCTestCase {
                        "整字段 transformer 应在字段层生效一次，而不是逐元素生效")
     }
 
-    /// JSON 字符串形式的对象输入同样绑定正确的容器上下文（T41）
+    /// JSON 字符串形式的对象输入同样绑定正确的容器上下文
     func testJSONStringObjectInputBindsContainerContext() throws {
         let model = try XCTUnwrap(StringInputHost.deserialize(from: "{\"name\":\"mccc\"}"))
         XCTAssertEqual(model.name, "mccc")
         XCTAssertEqual(model.mikeNo, "我是默认值")
     }
 
-    /// 手写 nestedContainer 取得的原始子结构不继承宿主字段表（T45/T12）
+    /// 手写 nestedContainer 取得的原始子结构不继承宿主字段表
     func testHandWrittenNestedContainerStaysIsolated() throws {
         let host = try XCTUnwrap(RawNestedHost.deserialize(from: [
             "plain": [:] as [String: Any]
@@ -425,7 +438,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 回调次数
 
-    /// didFinishMapping 在各完成节点恰好执行一次（T46）
+    /// didFinishMapping 在各完成节点恰好执行一次
     func testDidFinishMappingExecutesExactlyOncePerCompletionPoint() throws {
         MappingCountedModel.mappingCount = 0
         _ = try XCTUnwrap(MappingCountedModel.deserialize(from: [:]))
@@ -456,7 +469,7 @@ final class DecodingContextTests: XCTestCase {
     // MARK: - 并发解码
 
     /// 多个独立 decoder 并发解码：空输入真实触发默认值回退，
-    /// 不同模型的默认上下文互不串扰，跨调用不共享可变默认对象（T49）。
+    /// 不同模型的默认上下文互不串扰，跨调用不共享可变默认对象。
     /// 结果全部保留存活后再比较对象身份，避免对象释放后的地址复用干扰判断。
     /// 数据竞争检测配合 TSan：
     /// swift test --sanitize=thread --filter DecodingContextTests.testConcurrentIndependentDecodersFallbackDefaultsStayIsolated
@@ -522,10 +535,12 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 第三方包装器 Optional 内层
 
-    /// 第三方包装器包装 Optional 内层模型：直接初始化路径仍保留内层声明默认值（T14）
+    /// 第三方包装器包装 Optional 内层模型：直接初始化路径仍保留内层声明默认值
     func testOptionalThirdPartyWrapperKeepsWrappedModelDefaults() throws {
+        WrapperEntryProbe.optional = 0
         let present = try XCTUnwrap(OptionalWrapperHost.deserialize(from: ["payload": [:]]))
         XCTAssertEqual(present.payload?.count, 99, "直接初始化路径内层默认值可用")
+        XCTAssertGreaterThan(WrapperEntryProbe.optional, 0)
 
         let missing = try XCTUnwrap(OptionalWrapperHost.deserialize(from: [:]))
         XCTAssertEqual(missing.payload?.count, 99, "字段缺失时恢复宿主声明的完整包装器默认值")
@@ -533,7 +548,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - SmartAny 组合回退
 
-    /// @SmartAny 包装 Optional 模型：缺字段与错误类型都回退声明默认值（T25）
+    /// @SmartAny 包装 Optional 模型：缺字段与错误类型都回退声明默认值
     func testSmartAnyOptionalModelFallsBackToDeclaredDefaults() throws {
         struct OptionalHost: SmartCodableX {
             @SmartAny var payload: SmartAnyTargetModel? = SmartAnyTargetModel()
@@ -546,7 +561,7 @@ final class DecodingContextTests: XCTestCase {
         XCTAssertEqual(wrongType.payload?.score, 11, "错误类型回退声明默认值，不产生半解码模型")
     }
 
-    /// @SmartAny 非 Optional 模型遇到错误类型：回退声明默认值（T25）
+    /// @SmartAny 非 Optional 模型遇到错误类型：回退声明默认值
     func testSmartAnyNonOptionalModelWrongTypeFallsBackToDeclaredDefault() throws {
         struct Host: SmartCodableX {
             @SmartAny var payload: SmartAnyTargetModel = SmartAnyTargetModel()
@@ -558,7 +573,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - SmartPublished
 
-    /// @SmartPublished：内层默认值、数据与发布行为保持正常（T26）
+    /// @SmartPublished：内层默认值、数据与发布行为保持正常
     #if canImport(Combine)
     func testSmartPublishedKeepsDefaultsDataAndPublishing() throws {
         struct Host: SmartCodableX {
@@ -588,7 +603,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - JSON 字符串数组输入
 
-    /// JSON 字符串形式的数组值：unkeyedContainer 的字符串解析分支同样取得正确上下文（T41）
+    /// JSON 字符串形式的数组值：unkeyedContainer 的字符串解析分支同样取得正确上下文
     func testJSONStringArrayInputBindsElementContexts() throws {
         let host = try XCTUnwrap(StringArrayInputHost.deserialize(from: [
             "models": "[{\"tag\":\"a\"},{\"tag\":\"b\"},{}]"
@@ -600,7 +615,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 特殊类型与数值边界
 
-    /// Date / Data / URL / Decimal / CGFloat 特殊分支与 Int64/UInt64 边界、Int8 溢出回退（T42）
+    /// Date / Data / URL / Decimal / CGFloat 特殊分支与 Int64/UInt64 边界、Int8 溢出回退
     func testSpecialTypeUnwrapAndNumericBoundaries() throws {
         struct Host: SmartCodableX {
             var date: Date = Date(timeIntervalSince1970: 0)
@@ -638,7 +653,7 @@ final class DecodingContextTests: XCTestCase {
     // MARK: - 继承的映射与转换器
 
     /// 手写父子类共享 decoder：组合声明的 Key Mapping 与 Value Transformer
-    /// 在同一次子类解码中同时生效（T44）
+    /// 在同一次子类解码中同时生效
     func testInheritanceKeepsDeclaredKeyMappingAndValueTransformer() throws {
         let base = try XCTUnwrap(MappedBaseModel.deserialize(from: ["base_value": "5"]))
         XCTAssertEqual(base.baseValue, 105, "父类单独入口应用父类声明的映射与 transformer")
@@ -659,7 +674,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - superDecoder 隔离
 
-    /// 手写 superDecoder 取得的视图不继承宿主字段表（T45）
+    /// 手写 superDecoder 取得的视图不继承宿主字段表
     func testHandWrittenSuperDecoderStaysIsolated() throws {
         let host = try XCTUnwrap(SuperDecoderHost.deserialize(from: [
             "plain": [:] as [String: Any]
@@ -671,7 +686,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 包装器回调次数
 
-    /// 包装器路径 wrappedValueDidFinishMapping 恰好执行一次：解码成功、缺字段回退、transformer（T46）
+    /// 包装器路径 wrappedValueDidFinishMapping 恰好执行一次：解码成功、缺字段回退、transformer
     func testWrapperDidFinishMappingExecutesExactlyOnce() throws {
         WrapperCountedModel.mappingCount = 0
         _ = try XCTUnwrap(WrapperCountHost.deserialize(from: ["payload": [:]]))
@@ -689,7 +704,7 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - SmartHexColor 配置与编码
 
-    /// SmartHexColor：声明非默认 encodeHexFormat，解码按 JSON，编码仍用声明格式（T24/T48）。
+    /// SmartHexColor：声明非默认 encodeHexFormat，解码按 JSON，编码仍用声明格式。
     /// 分量断言不经过 deviceRGB 色域转换，避免设备色域影响数值稳定性。
     func testSmartHexColorKeepsDeclaredEncodeFormatAcrossRoundTrip() throws {
         struct Host: SmartCodableX {
@@ -731,25 +746,29 @@ final class DecodingContextTests: XCTestCase {
 
     // MARK: - 上下文释放
 
-    /// 正常解码结束后，框架不再持有本次解码的模型上下文（T47 弱引用探针）
+    /// 正常解码结束后，框架不再持有本次解码的模型上下文（弱引用探针）
     func testDecoderContextIsReleasedAfterDecodeCompletes() throws {
         final class ReleaseProbe: SmartCodableX {
             static weak var observedContext: DecodingSnapshot?
+            static var observedContextWasPresent = false
 
             var value = 1
 
             required init() {}
             required init(from decoder: Decoder) throws {
                 ReleaseProbe.observedContext = (decoder as? JSONDecoderImpl)?.modelSnapshot
+                ReleaseProbe.observedContextWasPresent = ReleaseProbe.observedContext != nil
             }
         }
 
+        ReleaseProbe.observedContextWasPresent = false
         var result: ReleaseProbe?
         autoreleasepool {
             result = ReleaseProbe.deserialize(from: [:] as [String: Any])
         }
 
         XCTAssertNotNil(result)
+        XCTAssertTrue(ReleaseProbe.observedContextWasPresent)
         XCTAssertNil(ReleaseProbe.observedContext,
                      "解码完成后框架不应继续持有模型上下文（引用环或全局注册都会导致此断言失败）")
     }
@@ -952,6 +971,13 @@ private struct SmartAnyTargetModel: SmartCodableX {
 
 // MARK: - 包装器 fixture（自旧 DecodingCacheLifecycleTests 迁移）
 
+private enum WrapperEntryProbe {
+    static var direct = 0
+    static var container = 0
+    static var dual = 0
+    static var optional = 0
+}
+
 private protocol ModelWrapper: PropertyWrapperable, Codable
 where WrappedValue: SmartDecodable & SmartEncodable {}
 
@@ -982,6 +1008,7 @@ private struct DirectInitWrapper<Value: SmartDecodable & SmartEncodable>: ModelW
 
     init(from decoder: Decoder) throws {
         wrappedValue = try Value(from: decoder)
+        WrapperEntryProbe.direct += 1
     }
 
 }
@@ -997,6 +1024,7 @@ private struct ContainerDecodeWrapper<Value: SmartDecodable & SmartEncodable>: M
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         wrappedValue = try container.decode(Value.self)
+        WrapperEntryProbe.container += 1
     }
 
 }
@@ -1024,6 +1052,7 @@ private struct DualDirectInitWrapper<Value: SmartDecodable & SmartEncodable>: Mo
         let container = try decoder.container(keyedBy: CodingKeys.self)
         marker = try container.decode(Int.self, forKey: .marker)
         wrappedValue = try Self.decodeWrappedValue(from: decoder)
+        WrapperEntryProbe.dual += 1
     }
 
     static func mappingForKey() -> [SmartKeyTransformer]? {
@@ -1373,11 +1402,13 @@ private struct WrapperProbeModel: SmartCodableX {
 }
 
 private struct ThrowingWrapperProbeModel: SmartCodableX {
+    static var decodeAttempts = 0
     var marker: Int = 41
 
     init() {}
 
     init(from decoder: Decoder) throws {
+        Self.decodeAttempts += 1
         throw ContextTestError.boom
     }
 }
@@ -1428,15 +1459,17 @@ private struct NestedDualLeaf: SmartCodableX {
 }
 
 private struct ThrowingNestedDualLeaf: SmartCodableX {
+    static var decodeAttempts = 0
     var value = 99
 
     init() {}
 
     init(from decoder: Decoder) throws {
+        Self.decodeAttempts += 1
         throw ContextTestError.boom
     }
 
-    static func resetObservations() {}
+    static func resetObservations() { decodeAttempts = 0 }
 }
 
 /// 无 parsingMark 场景的宿主：声明初始值与 init() 默认值不同，用于区分取值来源
@@ -1563,9 +1596,9 @@ private struct MappingTransformerHost: SmartCodableX {
     }
 }
 
-// MARK: - 审查补充 fixture
+// MARK: - Additional fixtures
 
-/// 第三方包装器包装 Optional 内层模型（T14）
+/// 第三方包装器包装 Optional 内层模型
 @propertyWrapper
 private struct OptionalDirectWrapper<Value: SmartDecodable & SmartEncodable>: PropertyWrapperable, Codable {
     var wrappedValue: Value?
@@ -1576,6 +1609,7 @@ private struct OptionalDirectWrapper<Value: SmartDecodable & SmartEncodable>: Pr
 
     init(from decoder: Decoder) throws {
         wrappedValue = try Value(from: decoder)
+        WrapperEntryProbe.optional += 1
     }
 
     func encode(to encoder: Encoder) throws {
@@ -1603,17 +1637,17 @@ private struct OptionalWrapperHost: SmartCodableX {
     @OptionalDirectWrapper var payload = WrapperProbeModel()
 }
 
-/// SmartPublished 的内层模型（T26）
+/// SmartPublished 的内层模型
 private struct PublishedChild: SmartCodableX {
     var level = 11
 }
 
-/// JSON 字符串数组输入宿主（T41）
+/// JSON 字符串数组输入宿主
 private struct StringArrayInputHost: SmartCodableX {
     var models: [ArrayElementChild] = []
 }
 
-/// 继承映射用例的父类（T44）
+/// 继承映射用例的父类
 private enum MappedBaseKeys: String, CodingKey {
     case baseValue
 }
@@ -1647,7 +1681,7 @@ private class MappedBaseModel: SmartCodableX {
     }
 }
 
-/// 继承映射用例的子类：声明自己的映射与转换器，共享同一个传入 decoder（T44）
+/// 继承映射用例的子类：声明自己的映射与转换器，共享同一个传入 decoder
 private enum MappedDerivedKeys: String, CodingKey {
     case childValue
 }
@@ -1686,7 +1720,7 @@ private final class MappedDerivedModel: MappedBaseModel {
     }
 }
 
-/// 手写 superDecoder 用例（T45）
+/// 手写 superDecoder 用例
 private struct SuperDecoderHost: SmartCodableX {
     var count = 99
     var plainCount = 0
@@ -1708,7 +1742,7 @@ private struct SuperDecoderHost: SmartCodableX {
     func encode(to encoder: Encoder) throws {}
 }
 
-/// 包装器回调计数模型（T46）
+/// 包装器回调计数模型
 private final class WrapperCountedModel: SmartCodableX {
     static var mappingCount = 0
 

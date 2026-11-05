@@ -88,9 +88,8 @@ final class AuditRegressionTests: XCTestCase {
 
         let encoder = SmartJSONEncoder()
         encoder.userInfo[.init(rawValue: "Smart.useMappedKeys")!] = true
-        let json = try XCTUnwrap(String(data: try encoder.encode(Model()), encoding: .utf8))
-        XCTAssertTrue(json.contains("\"createdAt\":\"CREATED\""), json)
-        XCTAssertTrue(json.contains("\"expired_at\":\"EXPIRED\""), json)
+        let json = try JSONSerialization.jsonObject(with: encoder.encode(Model()))
+        XCTAssertEqual(json as? [String: String], ["createdAt": "CREATED", "expired_at": "EXPIRED"])
     }
 
     func testDictionaryAndOptionalElementsKeepValueTransformers() throws {
@@ -112,10 +111,11 @@ final class AuditRegressionTests: XCTestCase {
             one: Child(name: "y"),
             list: [Child(name: "z")]
         )
-        let json = try XCTUnwrap(String(data: try SmartJSONEncoder().encode(model), encoding: .utf8))
-        XCTAssertTrue(json.contains("\"name\":\"X\""), json)
-        XCTAssertTrue(json.contains("\"name\":\"Y\""), json)
-        XCTAssertTrue(json.contains("\"name\":\"Z\""), json)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: SmartJSONEncoder().encode(model)) as? [String: Any])
+        XCTAssertEqual(Set(json.keys), ["map", "one", "list"])
+        XCTAssertEqual(json["map"] as? [String: [String: String]], ["a": ["name": "X"]])
+        XCTAssertEqual(json["one"] as? [String: String], ["name": "Y"])
+        XCTAssertEqual(json["list"] as? [[String: String]], [["name": "Z"]])
     }
 
     // MARK: - Numeric boundaries
@@ -165,9 +165,6 @@ final class AuditRegressionTests: XCTestCase {
         }
 
         // 7.0.1 语义：嵌套数组的元素解码失败时错误向上传播，整个属性回退声明默认值 [7, 7, 7]。
-        // 依据 7.0.1 oracle 探测输出（v701-full 基线）：
-        //   CASE int-array-null result=[9]
-        //   CASE int-array-null-default-777 result=[7,7,7]
         XCTAssertEqual(Model.deserialize(from: ["values": [1, NSNull(), 3]])?.values, [7, 7, 7])
     }
 
@@ -206,7 +203,6 @@ final class AuditRegressionTests: XCTestCase {
     }
 
     // 7.0.1 语义：字典子模型默认不在字典解包路径触发完成回调。
-    // 依据 7.0.1 oracle 探测输出：CASE dictionary-valid ids=[1,2] calls=[0,0] tally=0
     func testDictionaryElementsDoNotRunDidFinishMappingByDefault() {
         struct Model: SmartCodableX {
             var map: [String: DidFinishChild] = [:]
@@ -238,6 +234,7 @@ final class AuditRegressionTests: XCTestCase {
 
         XCTAssertNil(Model.deserialize(from: ["name": "root"], designatedPath: " "))
         XCTAssertNil(Model.deserialize(from: ["name": "root"], designatedPath: "."))
+        XCTAssertEqual(Model.deserialize(from: ["name": "root"], designatedPath: "")?.name, "root")
 
         struct Named: SmartCodableX {
             var name: String = "dft"

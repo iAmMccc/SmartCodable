@@ -2,15 +2,12 @@ import Foundation
 import XCTest
 @testable import SmartCodable
 
-/// Review target: fix/smartflat-snapshot-pollution @ 16f3203b4cd24fe72e3ccf49786593a92cf441fa.
-///
-/// 本文件是解码上下文显式绑定重构（refactor/decoder-context）的行为契约测试：
-/// 前两项来自上一轮审查（R01/R02），后续补充隔离、回退、继承与 transformer 对照用例。
+/// 解码上下文隔离、回退、继承与 transformer 的行为契约测试。
 ///
 /// Run:
 ///   swift test --filter LatestReviewRegressionTests
 final class LatestReviewRegressionTests: XCTestCase {
-    /// Candidate regression: two separate model decodes within a wrapper must not reuse a
+    /// Two separate model decodes within a wrapper must not reuse a
     /// mutable default object solely because scope, codingPath and model type are equal.
     func testSequentialWrappedDecodesDoNotShareMutableDefaults() throws {
         let impl = makeDecoder()
@@ -23,8 +20,7 @@ final class LatestReviewRegressionTests: XCTestCase {
                        "Independent model decodes must not unexpectedly alias a mutable default")
     }
 
-    /// Refactor contract, not a claim that this behavior was introduced by the latest commit:
-    /// a parent's already-created container should stay bound to the parent while a child is
+    /// A parent's already-created container should stay bound to the parent while a child is
     /// being decoded at the same JSON path. A callback exercises the retained parent container
     /// before either init(from:) has returned; this does not use a decoder after its lifetime.
     func testCapturedParentContainerKeepsItsOwnerDuringChildDecode() throws {

@@ -2,7 +2,7 @@
 //  UnkeyedDecodeIfPresentContractTests.swift
 //  SmartCodableTests
 //
-//  F-02: under `.consumeOnce`, `UnkeyedDecodingContainer.decodeIfPresent` must
+//  Under `.consumeOnce`, `UnkeyedDecodingContainer.decodeIfPresent` must
 //  follow Apple's contract: nil when there is no remaining element, nil when
 //  the current element is null. The legacy strategy keeps its behavior.
 //  Tests use the public SmartJSONDecoder.smartDecode(_:from:) entry point.
@@ -18,7 +18,7 @@ private final class InitCounter {
 }
 
 private extension CodingUserInfoKey {
-    static let f02InitCounter = CodingUserInfoKey(rawValue: "SmartCodable.F02.InitCounter")!
+    static let decodeInitCounter = CodingUserInfoKey(rawValue: "SmartCodable.DecodeInitCounter")!
 }
 
 private struct InputCase {
@@ -73,7 +73,7 @@ private struct PositiveElement: Decodable {
 private struct NullTolerantElement: Decodable {
     let value: String
     init(from decoder: Decoder) throws {
-        (decoder.userInfo[.f02InitCounter] as? InitCounter)?.bump()
+        (decoder.userInfo[.decodeInitCounter] as? InitCounter)?.bump()
         let container = try decoder.singleValueContainer()
         self.value = (try? container.decode(String.self)) ?? "tolerated-null"
     }
@@ -135,7 +135,7 @@ private struct EndOfContainerProbe: Decodable {
     }
 }
 
-/// Mirrors the `Cursor` probe of the root-cause tests: after the loop it calls
+/// After the loop, this probe calls
 /// `decodeIfPresent` past the end and records whether the cursor moved.
 private struct CursorEOFProbe: Decodable {
     var values: [Int?] = []
@@ -197,7 +197,7 @@ final class UnkeyedDecodeIfPresentContractTests: XCTestCase {
         let decoder = SmartJSONDecoder()
         decoder.smartUnkeyedDecodingStrategy = strategy
         if let counter {
-            decoder.userInfo[.f02InitCounter] = counter
+            decoder.userInfo[.decodeInitCounter] = counter
         }
         return decoder
     }
@@ -216,7 +216,7 @@ final class UnkeyedDecodeIfPresentContractTests: XCTestCase {
 
     // MARK: - `.consumeOnce`
 
-    /// RED case: at the end of the container `decodeIfPresent` must return nil, not throw.
+    /// At the end of the container `decodeIfPresent` must return nil, not throw.
     func testConsumeOnceDecodeIfPresentAtEndOfContainerReturnsNilWithoutConsuming() throws {
         for source in Source.allCases {
             let decoder = makeDecoder(.consumeOnce)

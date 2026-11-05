@@ -46,7 +46,7 @@ final class RootCauseFixTests: XCTestCase {
         func transformFromJSON(_ value: Any) -> String? { value as? String }
         func transformToJSON(_ value: String) -> String? { value.uppercased() }
     }
-    private enum Expected: Error { case failure }
+    private enum Expected: Error { case failure, unexpectedSuccess }
     private struct Throwing: SmartCodableX {
         var value = "bad"
         static func mappingForValue() -> [SmartValueTransformer]? {
@@ -58,7 +58,10 @@ final class RootCauseFixTests: XCTestCase {
     private struct Recover: Encodable {
         func encode(to encoder: Encoder) throws {
             var container = encoder.singleValueContainer()
-            do { try container.encode(Optional(Throwing())) } catch Expected.failure { }
+            do {
+                try container.encode(Optional(Throwing()))
+                throw Expected.unexpectedSuccess
+            } catch Expected.failure { }
             try container.encode(Plain())
         }
     }
@@ -81,6 +84,7 @@ final class RootCauseFixTests: XCTestCase {
         let first = try decoder.smartDecode(Model.self, from: [:] as [String: Int])
         let second = try decoder.smartDecode(Model.self, from: [:] as [String: Int])
         XCTAssertNotEqual(first.mark, "missing")
+        XCTAssertNotEqual(second.mark, "missing")
         XCTAssertNotEqual(first.mark, second.mark)
         XCTAssertNil(decoder.userInfo[CodingUserInfoKey.parsingMark!])
         XCTAssertEqual(decoder.userInfo[callerKey] as? String, "retained")
@@ -166,7 +170,7 @@ extension RootCauseFixTests {
         let payload = try XCTUnwrap(json["payload"] as? [String: Any])
         XCTAssertNil(payload["data_key"])
         let nested = try XCTUnwrap(payload["dataKey"] as? [String: Any])
-        XCTAssertEqual((nested["date"] as? NSNumber)?.intValue, 2000)
+        XCTAssertEqual((nested["date"] as? NSNumber)?.doubleValue, 2000)
         XCTAssertEqual(nested["data"] as? String, "AQID")
         XCTAssertEqual(nested["url"] as? String, "https://example.com/a")
         XCTAssertEqual(nested["model"] as? [String: String], ["encoded_name": "CHILD"])
@@ -246,7 +250,23 @@ extension RootCauseFixTests {
 
 extension RootCauseFixTests {
     func testSharedDecoderConcurrentLogsKeepOneSessionPerCall() {
-        struct SharedLogged: SmartCodableX { var id = -1; var value = 7 }
+        struct DynamicKey: CodingKey {
+            let stringValue: String
+            let intValue: Int? = nil
+            init(_ string: String) { stringValue = string }
+            init?(stringValue: String) { self.stringValue = stringValue }
+            init?(intValue: Int) { return nil }
+        }
+        struct SharedLogged: SmartDecodable {
+            var id = -1
+            var value = 7
+            init() {}
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: DynamicKey.self)
+                id = try container.decode(Int.self, forKey: DynamicKey("id"))
+                value = try container.decodeIfPresent(Int.self, forKey: DynamicKey("token_\(id)_end")) ?? 7
+            }
+        }
         let oldMode = SmartSentinel.debugMode
         defer {
             SmartSentinel.debugMode = oldMode
@@ -266,7 +286,7 @@ extension RootCauseFixTests {
         }
         let decoder = SmartJSONDecoder()
         DispatchQueue.concurrentPerform(iterations: 64) { index in
-            let value = try? decoder.smartDecode(SharedLogged.self, from: ["id": index, "value": "bad"])
+            let value = try? decoder.smartDecode(SharedLogged.self, from: ["id": index, "token_\(index)_end": "bad"] as [String: Any])
             lock.lock()
             results.append((index, value))
             lock.unlock()
@@ -276,6 +296,12 @@ extension RootCauseFixTests {
         for message in messages {
             XCTAssertTrue(message.contains("SharedLogged"))
             XCTAssertEqual(message.components(separatedBy: "[Smart Sentinel]").count - 1, 1)
+            let matches = (0..<64).filter { message.contains("token_\($0)_end:") }
+            XCTAssertEqual(matches.count, 1, message)
+        }
+        for index in 0..<64 {
+            let token = "token_\(index)_end:"
+            XCTAssertEqual(messages.filter { $0.contains(token) }.count, 1, token)
         }
         XCTAssertEqual(results.count, 64)
         for (index, result) in results {
