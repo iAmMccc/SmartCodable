@@ -161,11 +161,16 @@ private func _fixedWidthInteger<T: FixedWidthInteger>(from value: JSONValue) -> 
 
     // Keep exact integer parsing as the fast path, including Int64/UInt64 edges.
     if let integer = T(text) { return integer }
-    guard let parts = _DecimalParts(text, maxDigits: max(
+    if let parts = _DecimalParts(text, maxDigits: max(
         String(describing: T.min).utf8.count,
         String(describing: T.max).utf8.count
-    )) else { return nil }
-    return _decimalInteger(parts, as: T.self)
+    )) {
+        return _decimalInteger(parts, as: T.self)
+    }
+    // Legacy numeric strings also accepted hexadecimal floating-point text.
+    // Keep that bridge separate from JSON numbers and the exact decimal path.
+    if case .string = value { return _hexadecimalInteger(text, as: T.self) }
+    return nil
 }
 
 /// Preserve the decimal digits and exponent until range checking is complete.
@@ -277,4 +282,89 @@ private func _decimalInteger<T: FixedWidthInteger>(_ parts: _DecimalParts, as ty
     let roundedMagnitude = String(decoding: whole, as: UTF8.self)
     let signed = parts.negative && roundedMagnitude != "0" ? "-" + roundedMagnitude : roundedMagnitude
     return T(signed)
+}
+
+
+/// Parses the legacy hexadecimal string language without passing through Double.
+/// Binary digits preserve fractional overflow at the integer limits, and a bounded
+/// exponent avoids work proportional to the exponent's numeric value.
+private func _hexadecimalInteger<T: FixedWidthInteger>(_ text: String, as type: T.Type) -> T? {
+    let bytes = Array(text.utf8)
+    guard !bytes.isEmpty else { return nil }
+    var index = 0
+    let negative = bytes[index] == 45
+    if negative || bytes[index] == 43 { index += 1 }
+    guard index + 2 <= bytes.count, bytes[index] == 48,
+          bytes[index + 1] == 120 || bytes[index + 1] == 88 else { return nil }
+    index += 2
+
+    var bits: [UInt8] = []
+    var hasPoint = false
+    var fractionalBits = 0
+    digits: while index < bytes.count {
+        let byte = bytes[index]
+        if byte == 46, !hasPoint {
+            hasPoint = true
+            index += 1
+            continue
+        }
+        let digit: UInt8
+        switch byte {
+        case 48...57: digit = byte - 48
+        case 65...70: digit = byte - 65 + 10
+        case 97...102: digit = byte - 97 + 10
+        default: break digits
+        }
+        for shift in (0...3).reversed() { bits.append((digit >> shift) & 1) }
+        if hasPoint { fractionalBits += 4 }
+        index += 1
+    }
+    guard !bits.isEmpty else { return nil }
+
+    var exponent = 0
+    var exponentNegative = false
+    if index < bytes.count, bytes[index] == 112 || bytes[index] == 80 {
+        index += 1
+        if index < bytes.count, bytes[index] == 43 || bytes[index] == 45 {
+            exponentNegative = bytes[index] == 45
+            index += 1
+        }
+        let start = index
+        let limit = bits.count + T.bitWidth + 1
+        while index < bytes.count, bytes[index] >= 48, bytes[index] <= 57 {
+            let digit = Int(bytes[index] - 48)
+            exponent = exponent > (limit - digit) / 10 ? limit : min(limit, exponent * 10 + digit)
+            index += 1
+        }
+        guard index > start else { return nil }
+    }
+    guard index == bytes.count else { return nil }
+    bits = Array(bits.drop(while: { $0 == 0 }))
+    if bits.isEmpty { return 0 }
+    if negative && !T.isSigned { return nil }
+
+    let point = bits.count + (exponentNegative ? -exponent : exponent) - fractionalBits
+    let wholeCount = max(0, point)
+    guard wholeCount <= T.bitWidth else { return nil }
+    let hasFraction = bits.dropFirst(wholeCount).contains(1)
+    let strategy = SmartCodableOptions.numberStrategy
+    if strategy == .strict && hasFraction { return nil }
+
+    var magnitude: T.Magnitude = 0
+    for position in 0..<wholeCount {
+        let bit = position < bits.count ? bits[position] : 0
+        let shifted = magnitude.multipliedReportingOverflow(by: 2)
+        let added = shifted.partialValue.addingReportingOverflow(T.Magnitude(bit))
+        guard !shifted.overflow && !added.overflow else { return nil }
+        magnitude = added.partialValue
+    }
+    let limit = negative ? T.min.magnitude : T.max.magnitude
+    guard magnitude <= limit, magnitude != limit || !hasFraction else { return nil }
+    // The first fractional bit represents one half; round ties away from zero.
+    if strategy == .rounded, point >= 0, point < bits.count, bits[point] == 1 {
+        let rounded = magnitude.addingReportingOverflow(1)
+        guard !rounded.overflow, rounded.partialValue <= limit else { return nil }
+        magnitude = rounded.partialValue
+    }
+    return T((negative && magnitude != 0 ? "-" : "") + String(describing: magnitude))
 }
