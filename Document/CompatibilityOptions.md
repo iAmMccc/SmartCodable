@@ -81,6 +81,28 @@ Encoding snapshots are scoped to an individual model encoding attempt. If custom
 encoding catches a nested model's error, a subsequent fallback does not inherit
 that failed model's value transformers.
 
+## Model completion callbacks
+
+Completion depends on the decoding entry point and container:
+
+- `Model.deserialize(...)` and `SmartUpdater.update(...)` complete the root model
+  once after decoding succeeds. `SmartJSONDecoder.smartDecode(...)` does not add
+  a root completion callback; nested properties still use their container rules.
+- Keyed model properties, including models inside property wrappers, complete
+  after their decoded or fallback value is selected. A nil optional has no model
+  to complete.
+- Ordinary model arrays complete each successfully decoded model element once.
+  Their callback guard checks the static element type: `Optional<Model>` does not
+  conform to `SmartDecodable`, so `[Model?]` elements receive no callback.
+  Dictionary values (`[String: Model]`) also receive no callback. A failed array
+  or dictionary property uses its declared fallback; callbacks already executed
+  before the failure remain externally visible.
+- `@SmartCompact.Array` completes each successfully decoded non-optional model
+  element once and skips malformed elements. Optional model elements retain the
+  7.0.1 JSON-value decoding path: model objects and null do not become model
+  elements, so `@SmartCompact.Array var values: [Model?] = []` decodes to an empty
+  array without model callbacks. This boundary also applies with `consumeOnce`.
+
 ## Shared decoder configuration
 
 With fixed configuration, SmartJSONDecoder keeps parsing identifiers, options and

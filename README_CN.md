@@ -345,7 +345,8 @@ struct SexTransformer: ValueTransformable {
 
 ### 7. 解码回调与模型更新
 
-**`didFinishMapping()`** — 解码完成后执行：
+**`didFinishMapping()`** — 解码后的处理回调，具体触发入口与容器规则见
+[模型完成回调](Document/CompatibilityOptions.md#model-completion-callbacks)：
 
 ```swift
 struct Model: SmartCodableX {

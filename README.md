@@ -346,7 +346,8 @@ struct SexTransformer: ValueTransformable {
 
 ### 7. Post-Processing & Update
 
-**`didFinishMapping()`** — runs after decoding completes:
+**`didFinishMapping()`** — post-processing callback. Its entry points and container
+rules are described in [Model completion callbacks](Document/CompatibilityOptions.md#model-completion-callbacks):
 
 ```swift
 struct Model: SmartCodableX {

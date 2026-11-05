@@ -69,6 +69,10 @@ JSONDecoderImpl.unwrap(as: type)                  // JSONDecoderImpl+Unwrap.swif
 didFinishMapping()                                // 用户回调，可做后处理
 ```
 
+上图表示 `Model.deserialize` 的根模型路径。低层 `smartDecode` 不额外完成根模型；
+嵌套属性、数组、字典和 Compact 的具体回调边界见
+[模型完成回调](CompatibilityOptions.md#model-completion-callbacks)。
+
 ### 关键设计：解码永不抛异常
 
 与原生 Codable 最大的区别在于错误处理策略。当某个属性解码失败时：
