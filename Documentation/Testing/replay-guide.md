@@ -19,11 +19,21 @@ swift test --filter CompatibilityReviewTests
 swift test --filter RootCauseFixTests
 swift test --filter UnkeyedDecodeIfPresentContractTests
 swift test --filter CompactDynamicKeyTests
+swift test --filter LegacyAPICompatibilityTests
+swift test --filter CompactOptionalCompatibilityTests
+swift test --filter DynamicEncodingErrorBoundaryTests
+swift test --filter LegacyHexIntegerTests
 swift test --package-path Tools/PropertyTests
 swift run --package-path Tools/PublicAPISmoke PublicAPISmoke
 ```
 
 过滤测试时检查实际执行数；过滤器没有匹配项也可能退出 0。`NumericSubprocessTests` 的子入口仅由父测试启动，在普通 XCTest 进程中按设计跳过；子进程边界测试仅在 macOS 上编译。公开 API fixture 不验证宏继承功能。各测试支持域与独立预期见 [测试契约](contracts.md)。
+
+`LegacyAPICompatibilityTests.swift` 仅使用 7.0.1 已有调用方式，不启用新增策略。
+它可以原样放入 7.0.1 与 7.0.2 的隔离源码副本，验证默认接受范围、null、声明默认值、
+模型回调及自定义编码的副作用和错误边界。两边使用相同工具链、测试源码与输入；
+这组定向对照不替代任一版本的全量测试。精度与上下文隔离等已修正缺陷仍由各自回归测试验证，
+不要求恢复旧版错误结果。扩展策略另由对应测试显式启用并断言。
 
 比较 API 时使用明确的 Git 引用，避免同名分支和标签歧义：
 
