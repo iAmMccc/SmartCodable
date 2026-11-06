@@ -42,7 +42,7 @@ final class OptionalNullLogDemoViewController: DemoBaseViewController {
         report.add(
             input: #"{"b":null}"#,
             api: "SmartSentinel.debugMode = .verbose; ValueModel.deserialize(from:)",
-            expected: "1（正向对照；契约 LOG-02 中此格待确认）",
+            expected: "1（正向对照：verbose 记录非可选 null）",
             actual: verboseNullCount,
             matches: verboseNullCount == "1"
         )
