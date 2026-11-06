@@ -55,6 +55,7 @@ final class CustomCodableDemoViewController: DemoBaseViewController {
     override var expectedOutput: [String] {
         [
             "name = Mccc",
+            "scores = English:88,Math:99,Science:95",
             "  • English: 88",
             "  • Math: 99",
             "  • Science: 95",
@@ -69,6 +70,7 @@ final class CustomCodableDemoViewController: DemoBaseViewController {
         var lines: [String] = []
         lines.append("---- 解码结果（dict 已转 array）----")
         lines.append("name = \(player.name)")
+        lines.append("scores = " + player.scores.map { "\($0.subject):\($0.score)" }.joined(separator: ","))
         for item in player.scores {
             lines.append("  • \(item.subject): \(item.score)")
         }

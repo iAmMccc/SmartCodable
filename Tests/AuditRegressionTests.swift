@@ -378,12 +378,9 @@ final class AuditRegressionTests: XCTestCase {
         let encoder = SmartJSONEncoder()
         encoder.smartDynamicValueEncodingStrategy = .recursive
         let encoded = try encoder.encode(model)
-        let dictionary = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
-        let info = try XCTUnwrap(dictionary["info"] as? [String: Any])
-
-        XCTAssertEqual((info["a"] as? NSNumber)?.intValue, 1)
-        XCTAssertEqual(info["b"] as? String, "x")
-        XCTAssertEqual(((info["c"] as? [String: Any])?["n"] as? NSNumber)?.intValue, 2)
+        let actual = try XCTUnwrap(String(data: encoded, encoding: .utf8))
+        let expected = #"{"info":{"a":1,"b":"x","c":{"n":2}}}"#
+        XCTAssertEqual(try ReferenceJSON.parse(actual), try ReferenceJSON.parse(expected), actual)
     }
 
     func testSmartAnyEncodesCodableRuntimeValues() throws {

@@ -73,6 +73,7 @@ final class TypeDispatchDemoViewController: DemoBaseViewController {
     override var demoAPI: String { "Feed.deserialize; FeedItem.init(from:)" }
     override var expectedOutput: [String] {
         [
+            "items.count = 4",
             "[0] text  -> Hello SmartCodable",
             "[1] image -> https://x/y.png (1024x768)",
             "[2] video -> https://x/z.mp4 (90s)",
@@ -84,7 +85,7 @@ final class TypeDispatchDemoViewController: DemoBaseViewController {
         guard let feed = Feed.deserialize(from: json) else {
             return ["解码失败"]
         }
-        var lines: [String] = []
+        var lines: [String] = ["items.count = \(feed.items.count)"]
         for (i, item) in feed.items.enumerated() {
             switch item {
             case .text(let v):  lines.append("[\(i)] text  -> \(v.content)")
