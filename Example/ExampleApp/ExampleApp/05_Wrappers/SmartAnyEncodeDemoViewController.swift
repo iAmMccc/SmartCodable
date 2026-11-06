@@ -1,7 +1,7 @@
 import UIKit
 import SmartCodable
 
-/// @SmartAny 把运行时的 Data / Date 编进字典，并保留科学计数法与超大整数。
+/// @SmartAny 默认将 Data / Date 编为 null；显式 recursive 才启用动态编码策略。
 /// 不可编码的字典值在 @SmartCompact.Dictionary 中被省略。
 final class SmartAnyEncodeDemoViewController: DemoBaseViewController {
 
@@ -23,61 +23,41 @@ final class SmartAnyEncodeDemoViewController: DemoBaseViewController {
     override var defaultJSON: String { #"{"v":1e5}"# }
 
     override func run(with json: String) -> [String] {
-        var report = DemoReport(unjudgedPrefix: 0, unjudgedIndices: json == defaultJSON ? [] : [5])
-        let dictionary = RuntimeModel().toDictionary()
-        report.add(
-            input: "ts=Date(timeIntervalSince1970: 2), data=Data([1, 2, 3])",
-            api: "Model().toDictionary()[\"data\"]",
-            expected: "AQID",
-            actual: encodedData(dictionary)
-        )
-        report.add(
-            input: "ts=Date(timeIntervalSince1970: 2), data=Data([1, 2, 3])",
-            api: "Model().toDictionary()[\"ts\"].doubleValue",
-            expected: "-978307198",
-            actual: encodedTimestamp(dictionary)
-        )
-
+        var report = DemoReport(unjudgedPrefix: 0, unjudgedIndices: json == defaultJSON ? [] : [7])
+        for (strategy, name) in [(SmartJSONEncoder.DynamicValueEncodingStrategy.legacy, ".legacy（默认）"), (.recursive, ".recursive（显式）")] {
+            let dictionary = runtimeDictionary(strategy)
+            report.add(input: "data=Data([1,2,3])", api: "encoder.smartDynamicValueEncodingStrategy = \(name); encode(RuntimeModel()).data",
+                       expected: strategy == .legacy ? "null" : "AQID", actual: dictionary.data)
+            report.add(input: "ts=Date(timeIntervalSince1970:2)", api: "encoder.smartDynamicValueEncodingStrategy = \(name); encode(RuntimeModel()).ts",
+                       expected: strategy == .legacy ? "null" : "-978307198", actual: dictionary.date)
+        }
         let skipped = skippedKeys()
-        report.add(
-            input: #"{"bad":Opaque(),"good":7}"#,
-            api: "SmartJSONEncoder().encode(SkipModel()).info[\"bad\"]",
-            expected: "键不存在",
-            actual: skipped.bad,
-            matches: skipped.bad == "键不存在"
-        )
-        report.add(
-            input: #"{"bad":Opaque(),"good":7}"#,
-            api: "SmartJSONEncoder().encode(SkipModel()).info[\"good\"]",
-            expected: "7",
-            actual: skipped.good
-        )
-
-        report.add(
-            input: json,
-            api: "NumberModel.deserialize(from:).v.doubleValue",
-            expected: "100000",
-            actual: scientific(json)
-        )
+        report.add(input: #"{"bad":Opaque(),"good":7}"#, api: "SmartJSONEncoder().encode(SkipModel()).info[\"bad\"]",
+                   expected: "键不存在", actual: skipped.bad)
+        report.add(input: #"{"bad":Opaque(),"good":7}"#, api: "SmartJSONEncoder().encode(SkipModel()).info[\"good\"]",
+                   expected: "7", actual: skipped.good)
+        report.add(input: json, api: "NumberModel.deserialize(from:).v.doubleValue", expected: "100000", actual: scientific(json))
         let wideJSON = #"{"v":18446744073709551615}"#
-        report.add(
-            input: wideJSON,
-            api: "NumberModel.deserialize(from:).v.stringValue",
-            expected: "18446744073709551615",
-            actual: wide(wideJSON)
-        )
+        report.add(input: wideJSON, api: "NumberModel.deserialize(from:).v.stringValue", expected: "18446744073709551615", actual: wide(wideJSON))
         return report.finish()
     }
 
-    private func encodedData(_ dictionary: [String: Any]?) -> String {
-        guard let text = dictionary?["data"] as? String else { return "nil" }
-        return text
-    }
-
-    private func encodedTimestamp(_ dictionary: [String: Any]?) -> String {
-        guard let number = dictionary?["ts"] as? NSNumber else { return "nil" }
-        if number.doubleValue == -978307198 { return "-978307198" }
-        return String(number.doubleValue)
+    private func runtimeDictionary(_ strategy: SmartJSONEncoder.DynamicValueEncodingStrategy) -> (data: String, date: String) {
+        let encoder = SmartJSONEncoder()
+        encoder.smartDynamicValueEncodingStrategy = strategy
+        do {
+            let data = try encoder.encode(RuntimeModel())
+            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return ("输出不是字典", "输出不是字典")
+            }
+            let encodedData: String
+            if object["data"] is NSNull { encodedData = "null" }
+            else { encodedData = object["data"] as? String ?? "data 缺失或类型错误" }
+            let encodedDate: String
+            if object["ts"] is NSNull { encodedDate = "null" }
+            else { encodedDate = (object["ts"] as? NSNumber)?.stringValue ?? "ts 缺失或类型错误" }
+            return (encodedData, encodedDate)
+        } catch { return ("编码失败: \(error)", "编码失败: \(error)") }
     }
 
     private func skippedKeys() -> (bad: String, good: String) {

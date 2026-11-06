@@ -25,6 +25,9 @@ final class IntegerStrategyDemoViewController: DemoBaseViewController {
             field: "w",
             into: &report
         )
+        addIntCases(#"{"v":"0x10"}"#, expected: ["16", "16", "16"], field: "v", into: &report)
+        addIntCases(#"{"v":"0x1p4"}"#, expected: ["16", "16", "16"], field: "v", into: &report)
+        addIntCases(#"{"v":"invalid"}"#, expected: ["77", "77", "77"], field: "v", into: &report)
         return report.finish()
     }
 
