@@ -12,85 +12,65 @@ final class OptionalNullLogDemoViewController: DemoBaseViewController {
         var b: Int = 0
     }
 
-    private final class LogBox {
-        var count = 0
-    }
-
     override var defaultJSON: String { #"{"a":null}"# }
 
     override func run(with json: String) -> [String] {
-        let previousMode = SmartSentinel.debugMode
-        defer {
-            SmartSentinel.debugMode = previousMode
-            SmartSentinel.onLogGenerated { _ in }
-        }
-
         var report = DemoReport(unjudgedPrefix: json == defaultJSON ? 0 : 1)
         report.add(
             input: json,
             api: "SmartSentinel.debugMode = .verbose; OptionalModel.deserialize(from:)",
-            expected: "0",
+            expected: "callbacks=0; main-queue completion barrier=completed",
             actual: count(mode: .verbose) { _ = OptionalModel.deserialize(from: json) }
         )
         report.add(
             input: #"{"a":"abc"}"#,
             api: "SmartSentinel.debugMode = .verbose; OptionalModel.deserialize(from:)",
-            expected: "1",
+            expected: "callbacks=1; main-queue completion barrier=completed",
             actual: count(mode: .verbose) { _ = OptionalModel.deserialize(from: #"{"a":"abc"}"#) }
         )
-        let verboseNullCount = count(mode: .verbose) { _ = ValueModel.deserialize(from: #"{"b":null}"#) }
         report.add(
             input: #"{"b":null}"#,
-            api: "SmartSentinel.debugMode = .verbose; ValueModel.deserialize(from:)",
-            expected: "1（正向对照：verbose 记录非可选 null）",
-            actual: verboseNullCount,
-            matches: verboseNullCount == "1"
+            api: "SmartSentinel.debugMode = .verbose; ValueModel.deserialize(from:)（正向对照）",
+            expected: "callbacks=1; main-queue completion barrier=completed",
+            actual: count(mode: .verbose) { _ = ValueModel.deserialize(from: #"{"b":null}"#) }
         )
         report.add(
             input: #"{"b":null}"#,
             api: "SmartSentinel.debugMode = .alert; ValueModel.deserialize(from:)",
-            expected: "0",
+            expected: "callbacks=0; main-queue completion barrier=completed",
             actual: count(mode: .alert) { _ = ValueModel.deserialize(from: #"{"b":null}"#) }
         )
         report.add(
             input: #"{"b":"abc"}"#,
             api: "SmartSentinel.debugMode = .alert; ValueModel.deserialize(from:)",
-            expected: "1",
+            expected: "callbacks=1; main-queue completion barrier=completed",
             actual: count(mode: .alert) { _ = ValueModel.deserialize(from: #"{"b":"abc"}"#) }
         )
         report.add(
             input: #"{"b":"abc"}"#,
             api: "SmartSentinel.debugMode = .none; ValueModel.deserialize(from:)",
-            expected: "0",
+            expected: "callbacks=0; main-queue completion barrier=completed",
             actual: count(mode: .none) { _ = ValueModel.deserialize(from: #"{"b":"abc"}"#) }
         )
         return report.finish()
     }
 
     private func count(mode: SmartSentinel.Level, _ body: () -> Void) -> String {
+        let previousMode = SmartSentinel.debugMode
+        let recorder = DemoLogRecorder()
         SmartSentinel.debugMode = mode
-        let box = LogBox()
-        SmartSentinel.onLogGenerated { _ in
-            box.count += 1
+        SmartSentinel.onLogGenerated { message in
+            recorder.record(message)
         }
-        body()
-        waitForMainQueue()
-        return String(box.count)
-    }
+        defer {
+            SmartSentinel.debugMode = previousMode
+            SmartSentinel.onLogGenerated { _ in }
+        }
 
-    /// 回调经主队列异步投递。在主线程上转 RunLoop，0 条日志也会等到截止时间。
-    private func waitForMainQueue() {
-        let deadline = Date().addingTimeInterval(0.2)
-        let pump = {
-            while Date() < deadline {
-                RunLoop.current.run(mode: .default, before: deadline)
-            }
-        }
-        if Thread.isMainThread {
-            pump()
-        } else {
-            DispatchQueue.main.sync(execute: pump)
-        }
+        body()
+        let barrierCompleted = DemoMainQueueCompletionBarrier.wait(timeout: 1.0)
+        let barrierStatus = barrierCompleted ? "completed" : "timeout after 1.0s"
+        return "callbacks=\(recorder.messages.count); main-queue completion barrier=\(barrierStatus)"
     }
 }
 

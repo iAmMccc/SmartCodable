@@ -143,15 +143,13 @@ final class EncodeMappingDemoViewController: DemoBaseViewController {
             list: [Child(name: "z")]
         )
         let mappedActual = encodeTopLevel(mapped)
-        let mappedExpected = "包含 \"name\":\"X\"、\"name\":\"Y\"、\"name\":\"Z\""
+        let mappedExpected = #"{"map":{"a":{"name":"X"}},"one":{"name":"Y"},"list":[{"name":"Z"}]}"#
         report.add(
             input: "map[a]=x, one=y, list=[z]",
             api: "SmartJSONEncoder().encode(MapModel(map:one:list:))",
             expected: mappedExpected,
             actual: mappedActual,
-            matches: mappedActual.contains("\"name\":\"X\"")
-                && mappedActual.contains("\"name\":\"Y\"")
-                && mappedActual.contains("\"name\":\"Z\"")
+            matches: DemoJSONOracle.matchesJSON(mappedActual, mappedExpected)
         )
         return report.finish()
     }

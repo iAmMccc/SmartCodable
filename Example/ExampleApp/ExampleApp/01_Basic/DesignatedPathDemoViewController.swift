@@ -1,7 +1,7 @@
 import UIKit
 import SmartCodable
 
-/// designatedPath 取内层对象；空段路径得到 nil。跨层别名按声明顺序取值，字典可从 JSON 字符串解码。
+/// designatedPath 沿用旧行为跳过空段；需要严格路径时由调用方先校验。跨层别名按声明顺序取值。
 final class DesignatedPathDemoViewController: DemoBaseViewController {
 
     struct NameModel: SmartCodableX {
@@ -45,10 +45,11 @@ final class DesignatedPathDemoViewController: DemoBaseViewController {
         )
         let paths = [
             ("", "root"),
-            (" ", "nil"),
-            ("a.", "nil"),
-            (".a", "nil"),
-            ("a..b", "nil"),
+            (" ", "root"),
+            ("a.", "dft"),
+            (".a", "dft"),
+            ("a..b", "x"),
+            ("missing.name", "nil"),
         ]
         for (path, expected) in paths {
             let shown = path.isEmpty ? "\"\"" : "\"\(path)\""
@@ -59,6 +60,12 @@ final class DesignatedPathDemoViewController: DemoBaseViewController {
                 actual: name(canonical, path: path)
             )
         }
+        report.add(
+            input: canonical,
+            api: "调用方先校验 designatedPath 后再调用 deserialize",
+            expected: "nil",
+            actual: strictName(canonical, path: "a..b")
+        )
 
         let nullInner = #"{"a":{"b":null},"alt":"X"}"#
         report.add(
@@ -79,8 +86,14 @@ final class DesignatedPathDemoViewController: DemoBaseViewController {
         report.add(
             input: dictJSON,
             api: "DictModel.deserialize(from:).d",
-            expected: "[\"a\":1,\"b\":2]",
+            expected: "[\"z\":0]",
             actual: dictionary(dictJSON)
+        )
+        report.add(
+            input: dictJSON,
+            api: "JSONSerialization 预处理字典字段后再 deserialize",
+            expected: "[\"a\":1,\"b\":2]",
+            actual: preprocessedDictionary(dictJSON)
         )
         let arrayJSON = #"{"d":"[1]"}"#
         report.add(
@@ -112,6 +125,13 @@ final class DesignatedPathDemoViewController: DemoBaseViewController {
         return model.name
     }
 
+    private func strictName(_ json: String, path: String) -> String {
+        guard path.isEmpty || path.components(separatedBy: ".").allSatisfy({
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }) else { return "nil" }
+        return name(json, path: path)
+    }
+
     private func alias(_ json: String) -> String {
         guard let model = AliasModel.deserialize(from: json) else { return "nil" }
         return model.name
@@ -119,6 +139,21 @@ final class DesignatedPathDemoViewController: DemoBaseViewController {
 
     private func dictionary(_ json: String) -> String {
         guard let model = DictModel.deserialize(from: json) else { return "nil" }
+        return dictionary(model)
+    }
+
+    private func preprocessedDictionary(_ json: String) -> String {
+        guard let input = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any],
+              let encodedObject = input["d"] as? String,
+              let object = try? JSONSerialization.jsonObject(with: Data(encodedObject.utf8)) as? [String: Any]
+        else { return "nil" }
+        var preparedInput = input
+        preparedInput["d"] = object
+        guard let model = DictModel.deserialize(from: preparedInput) else { return "nil" }
+        return dictionary(model)
+    }
+
+    private func dictionary(_ model: DictModel) -> String {
         let body = model.d.keys.sorted().map { "\"\($0)\":\(model.d[$0]!)" }.joined(separator: ",")
         return "[\(body)]"
     }

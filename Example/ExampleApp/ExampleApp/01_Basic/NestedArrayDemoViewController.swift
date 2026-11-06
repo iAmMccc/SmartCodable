@@ -94,7 +94,7 @@ final class NestedArrayDemoViewController: DemoBaseViewController {
         report.add(
             input: nullKidsJSON,
             api: "OptionalKidsModel.deserialize(from:).kids",
-            expected: "[有值, nil, 有值]",
+            expected: "count=3, ids=[1, nil, 2]",
             actual: optionalKids(nullKidsJSON)
         )
         let callbackResult = callbackKids(nullKidsJSON)
@@ -130,8 +130,10 @@ final class NestedArrayDemoViewController: DemoBaseViewController {
 
     private func optionalKids(_ json: String) -> String {
         guard let model = OptionalKidsModel.deserialize(from: json) else { return "nil" }
-        let body = model.kids.map { $0 == nil ? "nil" : "有值" }.joined(separator: ", ")
-        return "[\(body)]"
+        let ids = model.kids.map { child in
+            child.map { String($0.id) } ?? "nil"
+        }.joined(separator: ", ")
+        return "count=\(model.kids.count), ids=[\(ids)]"
     }
 
     private func callbackKids(_ json: String) -> String {

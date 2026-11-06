@@ -25,33 +25,31 @@ final class SmartSentinelDemoViewController: DemoBaseViewController {
     override var demoAPI: String { "SmartSentinel.verbose / onLogGenerated; Person.deserialize" }
     override var expectedOutput: [String] {
         [
-            "日志回调数 = 1",
+            "日志回调数 = 1; main-queue completion barrier = completed",
         ]
     }
 
     override func run(with json: String) -> [String] {
-        // 1. 打开详细日志，回调收集
         let previousMode = SmartSentinel.debugMode
+        let recorder = DemoLogRecorder()
         SmartSentinel.debugMode = .verbose
-
-        var collected: [String] = []
         SmartSentinel.onLogGenerated { message in
-            collected.append(message)
+            recorder.record(message)
+        }
+
+        defer {
+            SmartSentinel.debugMode = previousMode
+            // The public API is setter-only; clear this page's capture after its queued callbacks drain.
+            SmartSentinel.onLogGenerated { _ in }
         }
 
         _ = Person.deserialize(from: json)
-
-        // 回调异步投递主队列；运行循环允许它们执行，等待最多 200ms。
-        let deadline = Date().addingTimeInterval(0.2)
-        while Date() < deadline {
-            RunLoop.current.run(mode: .default, before: deadline)
-        }
-
-        SmartSentinel.debugMode = previousMode
-        SmartSentinel.onLogGenerated { _ in }
+        let barrierCompleted = DemoMainQueueCompletionBarrier.wait(timeout: 1.0)
+        let collected = recorder.messages
+        let barrierStatus = barrierCompleted ? "completed" : "timeout after 1.0s"
 
         var lines: [String] = []
-        lines.append("日志回调数 = \(collected.count)")
+        lines.append("日志回调数 = \(collected.count); main-queue completion barrier = \(barrierStatus)")
         lines.append("---- SmartSentinel 收集到的日志 ----")
         if collected.isEmpty {
             lines.append("（无日志，可能 JSON 完全合法）")

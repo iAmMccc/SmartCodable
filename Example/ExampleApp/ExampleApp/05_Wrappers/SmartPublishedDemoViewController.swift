@@ -28,10 +28,10 @@ final class SmartPublishedDemoViewController: DemoBaseViewController {
     override var expectedOutput: [String] {
         [
             "初始解码值：count=10 label=\"Hello SwiftUI\"",
-            "count -> 10",
-            "label -> Hello SwiftUI",
-            "count -> 11",
-            "label -> Updated!",
+            "count 通知序列 = [10, 11]",
+            "label 通知序列 = [\"Hello SwiftUI\", \"Updated!\"]",
+            "更新后模型.count = 11",
+            "更新后模型.label = \"Updated!\"",
         ]
     }
 
@@ -43,14 +43,22 @@ final class SmartPublishedDemoViewController: DemoBaseViewController {
         }
 
         var observed: [String] = []
+        var countNotifications: [Int] = []
+        var labelNotifications: [String] = []
 
         // 通过 projectedValue 拿到 Publisher，订阅变化
         counter.$count
-            .sink { value in observed.append("count -> \(value)") }
+            .sink { value in
+                countNotifications.append(value)
+                observed.append("count -> \(value)")
+            }
             .store(in: &cancellables)
 
         counter.$label
-            .sink { value in observed.append("label -> \(value)") }
+            .sink { value in
+                labelNotifications.append(value)
+                observed.append("label -> \(value)")
+            }
             .store(in: &cancellables)
 
         let initialCount = counter.count
@@ -65,6 +73,10 @@ final class SmartPublishedDemoViewController: DemoBaseViewController {
         lines.append("")
         lines.append("---- Combine 观察到的事件 ----")
         lines.append(contentsOf: observed)
+        lines.append("count 通知序列 = [\(countNotifications.map(String.init).joined(separator: ", "))]")
+        lines.append("label 通知序列 = [\(labelNotifications.map { "\"\($0)\"" }.joined(separator: ", "))]")
+        lines.append("更新后模型.count = \(counter.count)")
+        lines.append("更新后模型.label = \"\(counter.label)\"")
         lines.append("")
         lines.append("📝 在 SwiftUI 中：")
         lines.append("  @StateObject var counter = Counter.deserialize(from: json) ?? .init()")

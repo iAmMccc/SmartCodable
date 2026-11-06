@@ -31,11 +31,12 @@ final class BasicDecodeDemoViewController: DemoBaseViewController {
     override var expectedOutput: [String] {
         [
             "code: 0",
-            "users.count: 2",
-            "  • 1 Mccc <mccc@example.com>",
-            "  • 2 Apple <apple@example.com>",
-            "  • Mccc",
-            "  • Apple",
+            "Wrapper.data.count: 2",
+            "Wrapper.data[0]: id=1 name=Mccc email=mccc@example.com",
+            "Wrapper.data[1]: id=2 name=Apple email=apple@example.com",
+            "designatedPath[0]: id=1 name=Mccc email=mccc@example.com",
+            "designatedPath[1]: id=2 name=Apple email=apple@example.com",
+            "designatedPath.count: 2",
         ]
     }
 
@@ -46,9 +47,9 @@ final class BasicDecodeDemoViewController: DemoBaseViewController {
         if let wrapper = Wrapper.deserialize(from: json) {
             lines.append("---- 整体解码 Wrapper ----")
             lines.append("code: \(wrapper.code)")
-            lines.append("users.count: \(wrapper.data.count)")
-            for user in wrapper.data {
-                lines.append("  • \(user.id) \(user.name) <\(user.email)>")
+            lines.append("Wrapper.data.count: \(wrapper.data.count)")
+            for (index, user) in wrapper.data.enumerated() {
+                lines.append("Wrapper.data[\(index)]: \(format(user))")
             }
         } else {
             lines.append("整体解码失败")
@@ -58,13 +59,18 @@ final class BasicDecodeDemoViewController: DemoBaseViewController {
         lines.append("")
         lines.append("---- 通过 designatedPath = \"data\" 直接解码数组 ----")
         if let users = [User].deserialize(from: json, designatedPath: "data") {
-            for user in users {
-                lines.append("  • \(user.name)")
+            lines.append("designatedPath.count: \(users.count)")
+            for (index, user) in users.enumerated() {
+                lines.append("designatedPath[\(index)]: \(format(user))")
             }
         } else {
             lines.append("直达数组失败")
         }
 
         return lines
+    }
+
+    private func format(_ user: User) -> String {
+        "id=\(user.id) name=\(user.name) email=\(user.email)"
     }
 }

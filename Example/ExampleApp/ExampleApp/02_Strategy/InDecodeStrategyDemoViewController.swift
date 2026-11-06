@@ -22,8 +22,9 @@ final class InDecodeStrategyDemoViewController: DemoBaseViewController {
     override var demoAPI: String { "Event.deserialize; options: date millisecondsSince1970 / key fromSnakeCase" }
     override var expectedOutput: [String] {
         [
-            "eventName = WWDC 2026",
-            "毫秒策略秒数 = 1781472000",
+            "默认策略.eventName = \"\"",
+            "显式策略.millisecondsSince1970 秒数 = 1781472000",
+            "显式策略.eventName = \"WWDC 2026\"",
         ]
     }
 
@@ -33,7 +34,7 @@ final class InDecodeStrategyDemoViewController: DemoBaseViewController {
         // 1. 不带策略：日期由 DateParser 识别输入
         if let model = Event.deserialize(from: json) {
             lines.append("---- 默认策略 ----")
-            lines.append("eventName = \(model.eventName)")
+            lines.append("默认策略.eventName = \"\(model.eventName)\"")
             lines.append("startDate  = \(model.startDate.map { "\($0)" } ?? "nil")")
         }
 
@@ -45,9 +46,9 @@ final class InDecodeStrategyDemoViewController: DemoBaseViewController {
         if let model = Event.deserialize(from: json, options: options) {
             lines.append("")
             lines.append("---- 单次策略：millisecondsSince1970 + fromSnakeCase ----")
-            lines.append("eventName = \(model.eventName)")
+            lines.append("显式策略.eventName = \"\(model.eventName)\"")
             lines.append("startDate  = \(model.startDate.map { "\($0)" } ?? "nil")")
-            lines.append("毫秒策略秒数 = \(model.startDate.map { String(format: "%.0f", $0.timeIntervalSince1970) } ?? "nil")")
+            lines.append("显式策略.millisecondsSince1970 秒数 = \(model.startDate.map { String(format: "%.0f", $0.timeIntervalSince1970) } ?? "nil")")
         }
 
         lines.append("")
