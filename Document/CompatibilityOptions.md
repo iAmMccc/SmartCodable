@@ -60,11 +60,15 @@ are traversed recursively. Unsupported leaves throw `EncodingError.invalidValue`
 with their coding path, rather than silently losing data. Compact dictionaries
 still skip unsupported direct entries according to their existing compact contract.
 
-Under the default `.legacy` strategy a runtime value that is neither a JSON
-container nor a `SmartCodableX` model encodes as `null`: its own `encode(to:)`
-is not invoked, so a custom encoder that throws cannot fail the outer encode.
-Choose `.recursive` when such values must be encoded; the custom `encode(to:)`
-then runs and its errors reach the caller instead of becoming `null`.
+Under the default `.legacy` strategy, `@SmartAny` retains its existing JSON-value
+bridge, including supported JSON scalar and container values, and its
+`SmartCodableX` model path. Values outside those supported paths, including
+otherwise unknown plain `Encodable` values, fall back to `null` without invoking
+their own `encode(to:)`. The Compact wrappers retain their separately documented
+legacy contracts.
+Choose `.recursive` when those otherwise unsupported values must be encoded;
+their custom `encode(to:)` then runs and its errors reach the caller instead of
+becoming `null`.
 
 ## Integer conversion boundaries
 
