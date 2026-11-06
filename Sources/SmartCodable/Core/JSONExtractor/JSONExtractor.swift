@@ -55,7 +55,6 @@ struct JSONExtractor {
             var next = object as? [String: Any]
             paths.forEach({ (seg) in
                 if seg.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) == "" || abort {
-                    abort = true
                     return
                 }
                 if let _next = next?[seg] {

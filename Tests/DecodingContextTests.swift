@@ -551,24 +551,41 @@ final class DecodingContextTests: XCTestCase {
     /// @SmartAny 包装 Optional 模型：缺字段与错误类型都回退声明默认值
     func testSmartAnyOptionalModelFallsBackToDeclaredDefaults() throws {
         struct OptionalHost: SmartCodableX {
-            @SmartAny var payload: SmartAnyTargetModel? = SmartAnyTargetModel()
+            @SmartAny var payload: SmartAnyTargetModel? = .init(score: 77)
         }
 
         let missing = try XCTUnwrap(OptionalHost.deserialize(from: ["other": 1]))
-        XCTAssertEqual(missing.payload?.score, 11, "缺字段回退宿主声明默认值")
+        XCTAssertEqual(missing.payload?.score, 77, "缺字段回退宿主声明默认值")
 
         let wrongType = try XCTUnwrap(OptionalHost.deserialize(from: ["payload": 123]))
-        XCTAssertEqual(wrongType.payload?.score, 11, "错误类型回退声明默认值，不产生半解码模型")
+        XCTAssertEqual(wrongType.payload?.score, 77, "错误类型回退声明默认值，不产生半解码模型")
+
+        let validEmptyObject = try XCTUnwrap(OptionalHost.deserialize(from: ["payload": [:]]))
+        XCTAssertEqual(validEmptyObject.payload?.score, 11,
+                       "成功解码的空对象应使用内层类型默认值，而非宿主回退值")
+
+        let explicit = try XCTUnwrap(OptionalHost.deserialize(from: ["payload": ["score": 5]]))
+        XCTAssertEqual(explicit.payload?.score, 5)
     }
 
     /// @SmartAny 非 Optional 模型遇到错误类型：回退声明默认值
     func testSmartAnyNonOptionalModelWrongTypeFallsBackToDeclaredDefault() throws {
         struct Host: SmartCodableX {
-            @SmartAny var payload: SmartAnyTargetModel = SmartAnyTargetModel()
+            @SmartAny var payload: SmartAnyTargetModel = .init(score: 77)
         }
 
         let host = try XCTUnwrap(Host.deserialize(from: ["payload": "text"]))
-        XCTAssertEqual(host.payload.score, 11)
+        XCTAssertEqual(host.payload.score, 77)
+
+        let missing = try XCTUnwrap(Host.deserialize(from: ["other": 1]))
+        XCTAssertEqual(missing.payload.score, 77)
+
+        let validEmptyObject = try XCTUnwrap(Host.deserialize(from: ["payload": [:]]))
+        XCTAssertEqual(validEmptyObject.payload.score, 11,
+                       "成功解码的空对象应使用内层类型默认值，而非宿主回退值")
+
+        let explicit = try XCTUnwrap(Host.deserialize(from: ["payload": ["score": 5]]))
+        XCTAssertEqual(explicit.payload.score, 5)
     }
 
     // MARK: - SmartPublished

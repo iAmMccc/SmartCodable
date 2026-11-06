@@ -230,7 +230,7 @@ extension RootCauseFixTests {
         let lock = NSLock()
         var results: [(Int, Model?)] = []
         DispatchQueue.concurrentPerform(iterations: 128) { index in
-            let result = try? decoder.smartDecode(Model.self, from: String(index))
+            let result = try? decoder.smartDecode(Model.self, from: Data(String(index).utf8))
             lock.lock()
             results.append((index, result))
             lock.unlock()

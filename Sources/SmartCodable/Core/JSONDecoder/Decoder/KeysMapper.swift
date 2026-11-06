@@ -133,9 +133,6 @@ extension Dictionary {
 
 extension String {
     func toJSONObject() -> Any? {
-        // 与 Data 输入保持一致：顶层标量（42、"x"、true、null）也是合法 JSON。
-        return data(using: .utf8).flatMap {
-            try? JSONSerialization.jsonObject(with: $0, options: .allowFragments)
-        }
+        return data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) }
     }
 }

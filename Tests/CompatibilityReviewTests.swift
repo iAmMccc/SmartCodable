@@ -118,19 +118,29 @@ final class CompatibilityReviewTests: XCTestCase {
     func testHistoricalUpdaterOptionalDefaultForNullAndMissingAcrossEntrypoints() throws {
         struct Model: SmartCodableX { var value: Int? = 7; var name = "old" }
         let payload = "{\"value\":null}"
-        var dictionary = Model(), string = Model(), data = Model()
+        var dictionary = Model(value: 73, name: "old")
+        var string = Model(value: 73, name: "old")
+        var data = Model(value: 73, name: "old")
         SmartUpdater.update(&dictionary, from: ["value": NSNull()])
         SmartUpdater.update(&string, from: payload)
         SmartUpdater.update(&data, from: Data(payload.utf8))
         for model in [dictionary, string, data] {
-            // Both fixed snapshots restore the declared Optional default on null.
+            // A present null restores the declared default, even when the target was changed.
             XCTAssertEqual(model.value, 7)
             XCTAssertEqual(model.name, "old")
         }
-        var missing = Model()
-        SmartUpdater.update(&missing, from: ["name": "new"])
-        XCTAssertEqual(missing.value, 7)
-        XCTAssertEqual(missing.name, "new")
+
+        var missingDictionary = Model(value: 73, name: "old")
+        var missingString = Model(value: 73, name: "old")
+        var missingData = Model(value: 73, name: "old")
+        SmartUpdater.update(&missingDictionary, from: ["name": "new"])
+        SmartUpdater.update(&missingString, from: "{\"name\":\"new\"}")
+        SmartUpdater.update(&missingData, from: Data("{\"name\":\"new\"}".utf8))
+        for model in [missingDictionary, missingString, missingData] {
+            // A missing key leaves the existing target value intact.
+            XCTAssertEqual(model.value, 73)
+            XCTAssertEqual(model.name, "new")
+        }
     }
 
     // MARK: - Compact arrays with Optional elements

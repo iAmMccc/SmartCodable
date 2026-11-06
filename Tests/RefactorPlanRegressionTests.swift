@@ -138,8 +138,14 @@ extension LatestReviewRegressionTests {
         let host = try XCTUnwrap(ReviewPlainHost.deserialize(from: [
             "plain": [:] as [String: Any]
         ]))
+        let missing = try XCTUnwrap(ReviewPlainHost.deserialize(from: [:] as [String: Any]))
+
         XCTAssertEqual(host.count, 99)
-        XCTAssertEqual(host.plain.count, 0)
+        XCTAssertEqual(host.plain.count, 0,
+                       "成功解码的空子对象应使用 plain 类型默认值")
+        XCTAssertEqual(missing.count, 99)
+        XCTAssertEqual(missing.plain.count, 7,
+                       "整体缺失时应回退宿主声明值，不应被父字段或子类型默认值覆盖")
     }
 
     func testWholePropertyFallbackAndInnerFieldDefaultAreDifferent() throws {
@@ -213,7 +219,7 @@ private struct ReviewPlain: Codable {
 
 private struct ReviewPlainHost: SmartCodableX {
     var count = 99
-    var plain = ReviewPlain()
+    var plain = ReviewPlain(count: 7)
 }
 
 private struct ReviewDeclaredChild: SmartCodableX {

@@ -307,29 +307,7 @@ extension JSONDecoderImpl {
             preconditionFailure("Must only be called of T implements _JSONStringDictionaryDecodableMarker")
         }
 
-        let resolvedJSON: JSONValue
-        switch self.json {
-        case .object:
-            resolvedJSON = self.json
-        case .string(let string):
-            // 与 container(keyedBy:) 保持一致：字典值可以是 JSON 字符串。
-            guard let object = string.toJSONObject() as? [String: Any],
-                  let json = JSONValue.make(object),
-                  case .object = json else {
-                throw DecodingError.typeMismatch([String: JSONValue].self, DecodingError.Context(
-                    codingPath: self.codingPath,
-                    debugDescription: "Expected to decode \([String: JSONValue].self) but found \(self.json.debugDataTypeDescription) instead."
-                ))
-            }
-            resolvedJSON = json
-        default:
-            throw DecodingError.typeMismatch([String: JSONValue].self, DecodingError.Context(
-                codingPath: self.codingPath,
-                debugDescription: "Expected to decode \([String: JSONValue].self) but found \(self.json.debugDataTypeDescription) instead."
-            ))
-        }
-
-        guard case .object(let object) = resolvedJSON else {
+        guard case .object(let object) = self.json else {
             throw DecodingError.typeMismatch([String: JSONValue].self, DecodingError.Context(
                 codingPath: self.codingPath,
                 debugDescription: "Expected to decode \([String: JSONValue].self) but found \(self.json.debugDataTypeDescription) instead."

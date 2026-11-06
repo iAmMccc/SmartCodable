@@ -70,6 +70,39 @@ Choose `.recursive` when those otherwise unsupported values must be encoded;
 their custom `encode(to:)` then runs and its errors reach the caller instead of
 becoming `null`.
 
+`@SmartCompact.Dictionary` has a different legacy boundary: direct runtime
+`Encodable` values are encoded, including Date/Data/URL, typed collections and
+plain Encodable models. Their errors propagate. Values that only the JSON-value
+bridge can represent, such as heterogeneous `[String: Any]`, `[Any]` and NSNull,
+are omitted under `.legacy`. In particular, a nested heterogeneous dictionary
+containing a Date is omitted as a whole, rather than being replaced by an empty
+object. Choose `.recursive` to retain those containers and encode their leaves
+with the selected date/data strategies.
+
+## JSON input boundaries
+
+Dictionary properties keep their object-only input boundary. A JSON object
+stored inside a string does not opt the property into another parse: it falls
+back to its declaration just as in 7.0.1. Parse that string into an object before
+deserializing, or declare an explicit `mappingForValue()` transformer for the
+property when the wire format intentionally contains embedded JSON text.
+
+The String entry of `SmartJSONDecoder.smartDecode` accepts JSON objects and
+arrays. To decode a top-level JSON fragment, use the existing Data entry:
+
+```swift
+let decoder = SmartJSONDecoder()
+let value = try decoder.smartDecode(Int.self, from: Data("42".utf8))
+// value == 42; smartDecode(Int.self, from: "42") keeps the legacy rejection.
+```
+
+`designatedPath` retains the historical treatment of empty or whitespace-only
+components: they are skipped. For example, `""`, `" "` and `"."` select the root,
+and `"a..b"` selects the same object as `"a.b"`. A real missing component still
+fails extraction. Callers that require strict path syntax can validate the
+components before calling `deserialize`; the Example designated-path page shows
+that explicit validation alongside the legacy default.
+
 ## Integer conversion boundaries
 
 The original numeric value must be within the target integer's range before

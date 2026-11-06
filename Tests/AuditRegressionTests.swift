@@ -168,10 +168,20 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual(Model.deserialize(from: ["values": [1, NSNull(), 3]])?.values, [7, 7, 7])
     }
 
-    func testStringFragmentDecodingMatchesDataInput() throws {
+    func testStringFragmentsRequireDataWhileContainerInputsMatch() throws {
         let decoder = SmartJSONDecoder()
-        XCTAssertEqual(try decoder.smartDecode(Int.self, from: "42"), 42)
+        XCTAssertThrowsError(try decoder.smartDecode(Int.self, from: "42"))
         XCTAssertEqual(try decoder.smartDecode(Int.self, from: Data("42".utf8)), 42)
+
+        let object: [String: Int] = ["value": 2]
+        let objectJSON = #"{"value":2}"#
+        XCTAssertEqual(try decoder.smartDecode([String: Int].self, from: objectJSON), object)
+        XCTAssertEqual(try decoder.smartDecode([String: Int].self, from: Data(objectJSON.utf8)), object)
+
+        let array = [1, 2]
+        let arrayJSON = "[1,2]"
+        XCTAssertEqual(try decoder.smartDecode([Int].self, from: arrayJSON), array)
+        XCTAssertEqual(try decoder.smartDecode([Int].self, from: Data(arrayJSON.utf8)), array)
     }
 
     func testJSONValueKeepsIndexForUnsupportedValue() throws {
@@ -190,7 +200,7 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual(values["good"], .number("1"))
     }
 
-    func testDictionaryCanDecodeFromJSONStringValue() {
+    func testDictionaryJSONStringRequiresCallerPreprocessing() throws {
         struct Item: SmartCodableX {
             var n: Int = 0
         }
@@ -198,7 +208,14 @@ final class AuditRegressionTests: XCTestCase {
             var map: [String: Item] = [:]
         }
 
-        let model = Model.deserialize(from: ["map": "{\"k\":{\"n\":1}}"])
+        let encodedObject = #"{"k":{"n":1}}"#
+        let legacy = try XCTUnwrap(Model.deserialize(from: ["map": encodedObject]))
+        XCTAssertTrue(legacy.map.isEmpty)
+
+        let preparedObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(encodedObject.utf8)) as? [String: Any]
+        )
+        let model = Model.deserialize(from: ["map": preparedObject])
         XCTAssertEqual(model?.map["k"]?.n, 1)
     }
 
@@ -227,13 +244,13 @@ final class AuditRegressionTests: XCTestCase {
         XCTAssertEqual(model?.value, 5)
     }
 
-    func testBlankDesignatedPathFailsInsteadOfReturningRoot() throws {
+    func testDesignatedPathSkipsBlankSegmentsAndMissingComponentsFail() throws {
         struct Model: SmartCodableX {
             var name: String = ""
         }
 
-        XCTAssertNil(Model.deserialize(from: ["name": "root"], designatedPath: " "))
-        XCTAssertNil(Model.deserialize(from: ["name": "root"], designatedPath: "."))
+        XCTAssertEqual(Model.deserialize(from: ["name": "root"], designatedPath: " ")?.name, "root")
+        XCTAssertEqual(Model.deserialize(from: ["name": "root"], designatedPath: ".")?.name, "root")
         XCTAssertEqual(Model.deserialize(from: ["name": "root"], designatedPath: "")?.name, "root")
 
         struct Named: SmartCodableX {
@@ -243,13 +260,19 @@ final class AuditRegressionTests: XCTestCase {
             "a": ["b": ["name": "x"]],
             "name": "root"
         ]
-        let rejectedPaths = ["a.", ".a", "a. .b", "a..b"]
-        var rejectedCases = 0
-        for path in rejectedPaths {
-            XCTAssertNil(Named.deserialize(from: payload, designatedPath: path), path)
-            rejectedCases += 1
+        let legacyPaths = [
+            "a.": "dft",
+            ".a": "dft",
+            "a. .b": "x",
+            "a..b": "x",
+        ]
+        var checkedPaths = 0
+        for (path, expected) in legacyPaths {
+            XCTAssertEqual(Named.deserialize(from: payload, designatedPath: path)?.name, expected, path)
+            checkedPaths += 1
         }
-        XCTAssertEqual(rejectedCases, 4)
+        XCTAssertEqual(checkedPaths, 4)
+        XCTAssertNil(Named.deserialize(from: payload, designatedPath: "a.missing"))
 
         let nested = try XCTUnwrap(Named.deserialize(from: payload, designatedPath: "a.b"))
         XCTAssertEqual(nested.name, "x")
@@ -352,7 +375,10 @@ final class AuditRegressionTests: XCTestCase {
         let model = try XCTUnwrap(Model.deserialize(from: [
             "info": ["a": 1, "b": "x", "c": ["n": 2]]
         ]))
-        let dictionary = try XCTUnwrap(model.toDictionary())
+        let encoder = SmartJSONEncoder()
+        encoder.smartDynamicValueEncodingStrategy = .recursive
+        let encoded = try encoder.encode(model)
+        let dictionary = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         let info = try XCTUnwrap(dictionary["info"] as? [String: Any])
 
         XCTAssertEqual((info["a"] as? NSNumber)?.intValue, 1)

@@ -31,10 +31,13 @@ private final class ReferenceChild: ReferenceBase {
     required init(from decoder: Decoder) throws { try super.init(from: decoder) }
 }
 
+private var checks = 0
+
 private func verify(_ condition: @autoclosure () -> Bool, _ description: String) {
     guard condition() else {
         fatalError("Public API smoke failed: \(description)")
     }
+    checks += 1
 }
 
 verify(DecodeOnly.deserialize(from: [:])?.value == 73, "decode-only default")
@@ -46,9 +49,19 @@ verify(ReferenceChild.deserialize(from: ["value": 12]) != nil, "subclass compile
 let decoder = SmartJSONDecoder()
 decoder.smartUnkeyedDecodingStrategy = .consumeOnce
 verify((try? decoder.smartDecode(DecodeOnly.self, from: [:] as [String: Any]))?.value == 73, "single-consumption option")
-verify((try? decoder.smartDecode(Int.self, from: "5")) == 5, "decoder strategy API")
+verify((try? decoder.smartDecode(Int.self, from: Data("5".utf8))) == 5, "decoder strategy API with explicit fragment input")
+let rejectsLegacyStringFragment: Bool
+do {
+    _ = try decoder.smartDecode(Int.self, from: "5")
+    rejectsLegacyStringFragment = false
+} catch DecodingError.dataCorrupted {
+    rejectsLegacyStringFragment = true
+} catch {
+    rejectsLegacyStringFragment = false
+}
+verify(rejectsLegacyStringFragment, "legacy String fragment boundary")
 let encoder = SmartJSONEncoder()
 encoder.smartDynamicValueEncodingStrategy = .recursive
 verify((try? encoder.encode(EncodeOnly())) != nil, "encoder strategy API")
 verify(((try? JSONSerialization.jsonObject(with: encoder.encode(EncodeOnly()), options: .fragmentsAllowed)) as? [String: Any])?["value"] as? Int == 42, "recursive option")
-print("Public API smoke passed: 10 checks")
+print("Public API smoke passed: \(checks) checks")

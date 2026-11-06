@@ -739,14 +739,22 @@ final class Branch702ReviewRegressionTests: XCTestCase {
         XCTAssertEqual(executed, 4)
     }
 
-    func testR14DictionaryJSONStringExclusions() {
+    func testR14DictionaryJSONStringRequiresObjectPreprocessing() throws {
         struct DictModel: SmartCodableX { var d: [String: Int] = ["z": 0] }
         struct NestedModel: SmartCodableX { var n: [String: [String: Int]] = [:] }
         var executed = 0
         XCTAssertEqual(DictModel.deserialize(from: ["d": "[1]"])?.d, ["z": 0]); executed += 1
         XCTAssertEqual(DictModel.deserialize(from: ["d": "abc"])?.d, ["z": 0]); executed += 1
-        XCTAssertEqual(NestedModel.deserialize(from: ["n": "{\"a\":{\"x\":1}}"])?.n, ["a": ["x": 1]]); executed += 1
-        XCTAssertEqual(executed, 3)
+        let encodedObject = #"{"a":{"x":1}}"#
+        let legacy = try XCTUnwrap(NestedModel.deserialize(from: ["n": encodedObject]))
+        XCTAssertTrue(legacy.n.isEmpty)
+        executed += 1
+        let preparedObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(encodedObject.utf8)) as? [String: Any]
+        )
+        XCTAssertEqual(NestedModel.deserialize(from: ["n": preparedObject])?.n, ["a": ["x": 1]])
+        executed += 1
+        XCTAssertEqual(executed, 4)
     }
 
     func testR15CrossLevelNullAlias() {

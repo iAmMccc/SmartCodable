@@ -100,9 +100,24 @@ final class DynamicEncodingRegressionTests: XCTestCase {
 
         let encoder = SmartJSONEncoder()
         encoder.dateEncodingStrategy = .millisecondsSince1970
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(Model())) as? [String: Any])
-        XCTAssertTrue((json["info"] as? [String: Any])?["date"] is NSNull)
-        let compact = try XCTUnwrap(json["compact"] as? [String: Any])
-        XCTAssertNil((compact["nested"] as? [String: Any])?["date"])
+        let actual = try XCTUnwrap(String(data: encoder.encode(Model()), encoding: .utf8))
+        let historicalShape = #"{"info":{"date":null},"compact":{}}"#
+        XCTAssertEqual(try ReferenceJSON.parse(actual), try ReferenceJSON.parse(historicalShape), actual)
+    }
+
+    func testRecursiveCompactDictionaryRetainsHeterogeneousDateParent() throws {
+        struct Model: SmartCodableX {
+            @SmartAny var info: [String: Any] = ["date": Date(timeIntervalSince1970: 0)]
+            @SmartCompact.Dictionary var compact: [String: Any] = [
+                "nested": ["date": Date(timeIntervalSince1970: 0)] as [String: Any]
+            ]
+        }
+
+        let encoder = SmartJSONEncoder()
+        encoder.smartDynamicValueEncodingStrategy = .recursive
+        encoder.dateEncodingStrategy = .millisecondsSince1970
+        let actual = try XCTUnwrap(String(data: encoder.encode(Model()), encoding: .utf8))
+        let expected = #"{"info":{"date":0},"compact":{"nested":{"date":0}}}"#
+        XCTAssertEqual(try ReferenceJSON.parse(actual), try ReferenceJSON.parse(expected), actual)
     }
 }

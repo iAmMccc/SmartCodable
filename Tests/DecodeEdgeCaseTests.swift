@@ -118,7 +118,10 @@ final class DecodeEdgeCaseTests: XCTestCase {
     }
 
     /// debugMode 为 .none 时，monitorAndPrint 路径也不能打印或回调
-    func testSmartSentinelNoneModeSuppressesPrintAndHandler() {
+    func testSmartSentinelNoneModeSuppressesPrintAndHandler() throws {
+#if os(macOS)
+        try SentinelSubprocessProbe.assertPrintAndHandlerSemantics(self)
+#else
         let previousMode = SmartSentinel.debugMode
         defer {
             SmartSentinel.debugMode = previousMode
@@ -126,19 +129,17 @@ final class DecodeEdgeCaseTests: XCTestCase {
         }
 
         SmartSentinel.debugMode = .none
-        let noLog = expectation(description: "no log emitted in .none")
+        let noLog = expectation(description: "no handler callback in .none mode")
         noLog.isInverted = true
         SmartSentinel.onLogGenerated { _ in noLog.fulfill() }
-
-        // 顶层输入不是合法 JSON 容器，必然走到 monitorAndPrint
         XCTAssertThrowsError(try SmartJSONDecoder().smartDecode(NumberStrategyModel.self, from: 42))
-
         wait(for: [noLog], timeout: 0.3)
 
         SmartSentinel.debugMode = .alert
-        let logged = expectation(description: "alert mode emits log for the same input")
+        let logged = expectation(description: "alert mode emits a callback for the same invalid input")
         SmartSentinel.onLogGenerated { _ in logged.fulfill() }
         XCTAssertThrowsError(try SmartJSONDecoder().smartDecode(NumberStrategyModel.self, from: 42))
         wait(for: [logged], timeout: 1)
+#endif
     }
 }

@@ -78,10 +78,10 @@ extension SmartCompact.Dictionary: Codable {
 
         var container = encoder.container(keyedBy: _JSONKey.self)
         for (k, v) in wrappedValue {
-            guard v is Encodable || JSONValue.make(v) != nil else { continue }
+            // The legacy path accepts runtime Encodable values only. JSON-only
+            // containers and null values require the explicit recursive bridge.
+            guard v is Encodable else { continue }
             let key = _JSONKey(stringValue: k.description, intValue: nil)
-            // Preserve Foundation JSON values such as NSNumber and [String: Any]
-            // without turning unrepresentable values into explicit nulls.
             try container.encode(AnyEncodableBox(value: v), forKey: key)
         }
     }
