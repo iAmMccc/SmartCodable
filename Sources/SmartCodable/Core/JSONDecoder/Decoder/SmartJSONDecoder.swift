@@ -20,6 +20,7 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
         let dataDecodingStrategy: SmartDataDecodingStrategy
         let nonConformingFloatDecodingStrategy: NonConformingFloatDecodingStrategy
         let keyDecodingStrategy: SmartKeyDecodingStrategy
+        let booleanToIntegerDecodingStrategy: BooleanToIntegerDecodingStrategy
         var userInfo: [CodingUserInfoKey : Any]
         var preMappedRootType: (any SmartDecodable.Type)? = nil
         var unkeyedDecodingStrategy: UnkeyedDecodingStrategy = .legacy
@@ -32,6 +33,7 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
             dataDecodingStrategy: smartDataDecodingStrategy,
             nonConformingFloatDecodingStrategy: nonConformingFloatDecodingStrategy,
             keyDecodingStrategy: smartKeyDecodingStrategy,
+            booleanToIntegerDecodingStrategy: smartBooleanToIntegerDecodingStrategy,
             userInfo: userInfo,
             unkeyedDecodingStrategy: smartUnkeyedDecodingStrategy
         )
@@ -48,6 +50,16 @@ open class SmartJSONDecoder: JSONDecoder, @unchecked Sendable {
     }
 
     open var smartUnkeyedDecodingStrategy: UnkeyedDecodingStrategy = .legacy
+
+    /// Controls how a JSON boolean is accepted when decoding a fixed-width integer.
+    /// `.legacy` preserves the existing accepted domain. `.zeroOrOne` additionally
+    /// accepts `true` as 1 and `false` as 0 through the integer Patcher.
+    public enum BooleanToIntegerDecodingStrategy: Sendable {
+        case legacy
+        case zeroOrOne
+    }
+
+    open var smartBooleanToIntegerDecodingStrategy: BooleanToIntegerDecodingStrategy = .legacy
 
     // MARK: - Decoding Values
 

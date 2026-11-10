@@ -68,63 +68,63 @@ extension String: TypeTransformable {
 
 extension Int: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> Int? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension Int8: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> Int8? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension Int16: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> Int16? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 
 extension Int32: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> Int32? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension Int64: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> Int64? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension UInt: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> UInt? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension UInt8: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> UInt8? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension UInt16: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> UInt16? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 
 extension UInt32: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> UInt32? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
 extension UInt64: TypeTransformable {
     static func transformValue(from value: JSONValue, impl: JSONDecoderImpl) -> UInt64? {
-        return _fixedWidthInteger(from: value)
+        return _fixedWidthInteger(from: value, impl: impl)
     }
 }
 
@@ -150,9 +150,16 @@ extension CGFloat: TypeTransformable {
 }
 
 
-private func _fixedWidthInteger<T: FixedWidthInteger>(from value: JSONValue) -> T? {
+private func _fixedWidthInteger<T: FixedWidthInteger>(from value: JSONValue, impl: JSONDecoderImpl) -> T? {
     let text: String
     switch value {
+    case .bool(let flag):
+        switch impl.options.booleanToIntegerDecodingStrategy {
+        case .legacy:
+            return nil
+        case .zeroOrOne:
+            return flag ? T(1) : T(0)
+        }
     case .string(let string), .number(let string):
         text = string
     default:

@@ -42,7 +42,9 @@ extension SmartCompact.Array: Codable {
             if strategy == .legacy {
                 // 7.0.1 acceptance domain: models decode through `Decodable`,
                 // every other element only survives when the bridged JSON value
-                // already matches `T`. No string/bool coercion, no truncation.
+                // already matches `T`. No extra Patcher coercion, no truncation;
+                // existing JSON/Foundation bridging may still convert a boolean
+                // into a matching `T`, so this path does not categorically drop it.
                 if T.self is SmartCodableX.Type, let type = T.self as? Decodable.Type {
                     return try? container.decode(type)
                 }
