@@ -114,7 +114,7 @@ pod 'SmartCodable', '~> 6.1'
 
 
 
-单次游标消费、递归动态编码与更新兼容行为，见 [兼容性选项说明](Document/CompatibilityOptions.md)。
+单次游标消费、递归动态编码与更新兼容行为，见 [兼容性选项说明](Document/CompatibilityOptions.md)。该文档也说明需显式启用的布尔转整数解码策略。
 
 ## 功能特性
 

@@ -11,6 +11,7 @@
 - `SmartJSONDecoder.smartUnkeyedDecodingStrategy = .consumeOnce`：自定义非键控可选元素解码中，null、成功及容错回退只消费一个位置；容器末尾返回 nil 且不推进游标。默认仍为 `.legacy`。
 - `SmartJSONEncoder.smartDynamicValueEncodingStrategy = .recursive`：递归编码动态容器内的 Date、Data、URL 和 Encodable 模型，使用当前 encoder 的日期、数据和键策略，保留字典数据键；不支持的嵌套叶子抛出带 codingPath 的错误。默认仍为 `.legacy`。
 - `SmartCodableOptions.compactElementStrategy = .convert`：为 `@SmartCompact.Array` 显式启用字符串到数值/布尔的转换及普通 Codable 元素支持。此全局选项同时影响元素编码；需要稳定调用策略时，在编解码期间保持配置不变。默认仍为 `.legacy`。
+- `SmartJSONDecoder.smartBooleanToIntegerDecodingStrategy = .zeroOrOne`：为 issue #142 显式启用 JSON 布尔到十种定宽整数的转换，`true`→1、`false`→0，须经 `SmartJSONDecoder.smartDecode(_:from:)` 使用；不影响 `deserialize`、根完成回调及既有数字转换语义。默认仍为 `.legacy`。
 
 ### 修复
 

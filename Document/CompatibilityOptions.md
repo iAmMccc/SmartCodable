@@ -204,3 +204,123 @@ concurrently with decoding. User-supplied reference values, strategy closures an
 custom decoding implementations must provide their own synchronization. Global
 option access is synchronized individually, not as a transaction covering an
 entire model; keep global options fixed when a stable per-call policy is required.
+
+## Opt-in boolean-to-integer decoding
+
+A genuine JSON `true` / `false` is not converted into a plain integer property by
+default. For callers who want that conversion, `SmartJSONDecoder` exposes a
+per-instance strategy; the default `.legacy` keeps every existing result
+unchanged, and nothing is enabled by updating the package alone:
+
+```swift
+import Foundation
+import SmartCodable
+
+struct Model: SmartCodableX {
+    var value: Int = 73
+}
+
+let decoder = SmartJSONDecoder()
+decoder.smartBooleanToIntegerDecodingStrategy = .zeroOrOne
+let model = try decoder.smartDecode(Model.self, from: #"{"value":true}"#)
+// model.value == 1; the `.legacy` default keeps 73
+
+let root = try decoder.smartDecode(Int.self, from: Data("true".utf8))
+// root == 1; Data("false".utf8) decodes as 0
+```
+
+The strategy is `BooleanToIntegerDecodingStrategy` (`case legacy`, `case zeroOrOne`),
+selected on a decoder instance as `smartBooleanToIntegerDecodingStrategy`. It adds
+no case to `SmartDecodingOption` or `SmartEncodingOption`, so existing exhaustive
+switches keep compiling; there is no new `deserialize` overload and no global
+mutable option. Use `SmartJSONDecoder.smartDecode(_:from:)` on the configured
+instance: the inherited `decode(_:from:)` from Foundation's `JSONDecoder` is not
+the configured entry. `Model.deserialize(...)` builds its own default decoder, so a
+caller's separately configured decoder does not affect it. As stated under
+"Model completion callbacks", `smartDecode` does not add a root
+`didFinishMapping()` callback; that difference from `deserialize` is preserved.
+
+### Accepted domain
+
+`.zeroOrOne` accepts a genuine JSON Bool for exactly the ten fixed-width integer
+types `Int`, `Int8`, `Int16`, `Int32`, `Int64`, `UInt`, `UInt8`, `UInt16`, `UInt32`
+and `UInt64`, mapping `true` to `1` and `false` to `0`. The conversion lives in the
+integer Patcher helper shared by these ten types. The pure-number direct-unwrap
+path is untouched, and all existing decimal-precision, hexadecimal-string and
+`numberStrategy` semantics (including `strict`, `truncate` and `rounded`) are
+unchanged. The boundary is deliberately narrow:
+
+- The JSON strings `"true"`, `"false"` and `"YES"` are not parsed as booleans.
+- Ordinary `Bool`, `Float`, `Double`, `CGFloat`, `Decimal` and `String` targets keep
+  their existing behavior in both strategies; the change only reaches the integer
+  Patcher.
+- Missing, null, object, array, invalid-number and out-of-range inputs keep their
+  existing recovery behavior.
+- `@SmartAny` keeps a Bool's identity and its re-encoding unchanged; an `Int` `1` or
+  `0` produced this way still encodes as a JSON number, not as `true` / `false`.
+
+### Input entries and Compact interaction
+
+The String entry of `SmartJSONDecoder.smartDecode` accepts JSON objects and arrays.
+A top-level `String("true")` is still rejected; use the Data entry (`Data("true".utf8)`
+or `Data("false".utf8)`) for a root JSON fragment, as shown above.
+
+For Compact, `.legacy` performs no extra Patcher coercion but still retains the
+existing JSON/Foundation bridging convertibility: a `true` whose bridged value
+already matches the declared `T` can already become `1`, so the documented
+`[1, "2", "x", null, 3.5, 4]` → `[1, 4]` result for `[Int]` is unchanged and it is
+not correct to say that legacy Compact always drops booleans. With
+`SmartCodableOptions.compactElementStrategy = .convert`, non-Optional integer
+elements go through the Patcher and gain Bool acceptance under the new strategy,
+while Optional elements keep the old bridging/filter path. Typed Compact Dictionary
+integer values inherit the strategy through the integer decode path; the dynamic
+`Any` path is unchanged. The unkeyed `.legacy` / `.consumeOnce` algorithms are
+unchanged.
+
+### Transformer priority and a field-level alternative
+
+A field Transformer still takes priority: a Transformer returning a usable integer
+(for example `true` → `7`) wins and is not overwritten with `1`. Returning `nil`
+falls through to the normal Patcher / default recovery, which under `.zeroOrOne`
+can then yield `1` / `0`.
+
+For a single field, the existing `mappingForValue()` Transformer API can convert a
+native Bool without changing the decoder strategy. `FastTransformer<Int, Any>` is a
+valid instantiation (`FastTransformer` declares no generic constraints); a `.bool`
+JSON value peels to a native Swift `Bool`, so `Swift.type(of: raw) == Bool.self` is
+true only for that native Bool, and every other input returns `nil` and keeps the
+existing recovery:
+
+```swift
+import Foundation
+import SmartCodable
+
+struct FlagModel: SmartCodableX {
+    var flag: Int = 73
+
+    static func mappingForValue() -> [SmartValueTransformer]? {
+        [
+            CodingKeys.flag <--- FastTransformer<Int, Any>(
+                fromJSON: { raw in
+                    guard let raw,
+                          Swift.type(of: raw) == Bool.self,
+                          let flag = raw as? Bool else {
+                        return nil
+                    }
+                    return flag ? 1 : 0
+                }
+            )
+        ]
+    }
+}
+
+let model = FlagModel.deserialize(from: #"{"flag":true}"#)
+// model?.flag == 1
+```
+
+No `toJSON` is supplied, so encoding keeps the integer encoder's existing
+fallback and writes `1` / `0` as a JSON number; it does not re-encode the value as
+JSON `true`. This is a per-field transformer written by the caller and works
+independently of `smartBooleanToIntegerDecodingStrategy`; it changes no default.
+Without such a transformer, the default `.legacy` strategy and `deserialize` still
+do not turn `true` into `1`.
