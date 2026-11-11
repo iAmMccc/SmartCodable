@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - "main"
-      - "7.0.2"
+      - "7.1.0"
       - "fix/smartflat-snapshot-pollution"
       - "refactor/decoder-context"
   pull_request:
@@ -66,7 +66,7 @@ jobs:
         grep -Eq 'Executed [1-9][0-9]* tests?, with 0 failures' "$RUNNER_TEMP/tsan-shared-logs.log"
 
   property-tests:
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/7.0.2'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/7.1.0'
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
