@@ -21,6 +21,8 @@ enum DemoCatalog {
                           make: { FloatStringDemoViewController() }),
                 DemoEntry(title: "整数策略", subtitle: "strict / truncate / rounded；十六进制字符串与非法文本",
                           make: { IntegerStrategyDemoViewController() }),
+                DemoEntry(title: "布尔转整数", subtitle: "legacy / zeroOrOne；集合、转换器与 Foundation 桥接",
+                          make: { BooleanIntegerDemoViewController() }),
                 DemoEntry(title: "数组逐元素容错", subtitle: "嵌套数组元素失败整段回退；模型数组 null 整段回退，逐元素跳过用 @SmartCompact.Array",
                           make: { NestedArrayDemoViewController() }),
                 DemoEntry(title: "重命名键的默认值与包装器", subtitle: "SmartDefaultValueKeyMapping，以及重命名后的 @SmartDate / @SmartHexColor",
